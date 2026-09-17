@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exonero</title>
+
+    <!--
+      Las dos tipografias del sistema de diseno:
+        Caprasimo  para los titulos (la redonda, con personalidad)
+        Figtree    para todo lo demas
+      Se cargan de Google Fonts. Si el dia de la defensa no hay internet, se
+      descargan los .woff2 a public/ y se cambian estos links por un @font-face.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- React se monta aca. Ver src/main.jsx -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

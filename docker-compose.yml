@@ -1,0 +1,30 @@
+# Lo unico que corre en Docker es PostgreSQL: asi los cuatro usamos la misma
+# version, el mismo esquema y los mismos datos de prueba. El backend y el
+# frontend corren locales (uvicorn --reload y npm run dev) para iterar rapido.
+services:
+  db:
+    image: postgres:16
+    container_name: exonero_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: exonero
+      POSTGRES_PASSWORD: exonero
+      POSTGRES_DB: exonero
+      # La app trabaja en America/Montevideo; la base guarda timestamptz en UTC.
+      TZ: America/Montevideo
+    ports:
+      - "5432:5432"
+    volumes:
+      - datos_postgres:/var/lib/postgresql/data
+      # Se ejecuta una sola vez, cuando el volumen se crea vacio. Habilita las
+      # extensiones que pide el esquema (citext para el correo, btree_gist para
+      # la restriccion EXCLUDE que impide dos clases encima).
+      - ./backend/docker/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U exonero -d exonero"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  datos_postgres:

@@ -1,0 +1,212 @@
+/* ===========================================================================
+   Estilos propios de las pantallas de login y registro.
+
+   El layout es de dos columnas:
+     izquierda  un panel terracota con la marca y para que sirve Exonero
+     derecha    la tarjeta del formulario, sobre el fondo crema
+
+   En pantallas angostas (menos de 900px) el panel de la izquierda se esconde
+   y queda solo el formulario, centrado.
+   =========================================================================== */
+
+.auth {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+/* --- Panel izquierdo ----------------------------------------------------- */
+
+.auth-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--space-8) var(--space-8);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  overflow: hidden;
+}
+
+/* Dos circulos gigantes, muy tenues, para que el panel no sea un rectangulo
+   plano. Son decorativos: aria-hidden en el JSX. */
+.auth-panel::before,
+.auth-panel::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+  background: color-mix(in srgb, #ffffff 10%, transparent);
+  pointer-events: none;
+}
+.auth-panel::before { width: 420px; height: 420px; right: -140px; top: -120px; }
+.auth-panel::after  { width: 300px; height: 300px; left: -110px; bottom: -90px; }
+
+.auth-marca {
+  position: relative;
+  font-family: var(--font-heading);
+  font-size: 30px;
+  line-height: 1;
+}
+
+.auth-lema {
+  position: relative;
+  max-width: 26ch;
+}
+.auth-lema h1 {
+  font-size: 46px;
+  margin-bottom: var(--space-3);
+}
+.auth-lema p {
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: color-mix(in srgb, #ffffff 82%, transparent);
+  margin: 0;
+}
+
+/* Las tres cositas que se listan abajo del lema */
+.auth-puntos {
+  position: relative;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.auth-punto {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 14px;
+  color: color-mix(in srgb, #ffffff 90%, transparent);
+}
+.auth-punto-icono {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, #ffffff 18%, transparent);
+}
+
+/* --- Columna derecha ----------------------------------------------------- */
+
+.auth-form-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-6);
+}
+
+.auth-caja {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* En el registro el formulario es mas largo, asi que la caja es mas ancha
+   para poder poner dos campos por fila. */
+.auth-caja-ancha { max-width: 520px; }
+
+.auth-titulo {
+  font-size: 34px;
+  margin-bottom: var(--space-1);
+}
+.auth-bajada {
+  font-size: 14px;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  margin-bottom: var(--space-6);
+}
+
+/* Fila de dos campos que se apilan cuando no entran */
+.auth-fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+/* El selector de rol del registro, arriba de todo del formulario */
+.auth-roles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.auth-rol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.auth-rol:hover { border-color: var(--color-accent-400); }
+.auth-rol[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-100);
+}
+.auth-rol-titulo {
+  font-family: var(--font-heading);
+  font-size: 15px;
+}
+.auth-rol-nota {
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  line-height: 1.35;
+}
+
+/* Fila de abajo: "olvidaste la clave" + enlace al otro formulario */
+.auth-pie {
+  margin-top: var(--space-4);
+  font-size: 13.5px;
+  text-align: center;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+.auth-pie a { font-weight: 600; }
+
+.auth-entre {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: calc(var(--space-1) * -1);
+  margin-bottom: var(--space-4);
+}
+
+/* El botoncito de mostrar/ocultar la contrasena, adentro del input */
+.auth-clave { position: relative; }
+.auth-clave .input { padding-right: 76px; }
+.auth-ver-clave {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  color: var(--color-accent);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.auth-ver-clave:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+
+/* --- Responsive ---------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .auth { grid-template-columns: 1fr; }
+  /* El panel de marketing se esconde: en el celular lo que importa es entrar. */
+  .auth-panel { display: none; }
+  .auth-form-col { padding: var(--space-6) var(--space-4); }
+}
+
+@media (max-width: 520px) {
+  .auth-fila { grid-template-columns: 1fr; }
+  .auth-roles { grid-template-columns: 1fr; }
+  .auth-titulo { font-size: 28px; }
+}
