@@ -10,7 +10,7 @@ las claves foraneas se declaran por nombre de tabla, ForeignKey("barrio.id").
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import ARRAY, Date, Enum, ForeignKey, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import ARRAY, Date, Enum, ForeignKey, Numeric, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base, Marcas
@@ -92,4 +92,8 @@ class ParametroPlataforma(Base, Marcas):
 
     clave: Mapped[str] = mapped_column(Text, nullable=False)  # comision_servicio | tasa_iva
     valor: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False)
-    vigente_desde: Mapped[date] = mapped_column(Date, nullable=False, server_default="CURRENT_DATE")
+    # text() y no la cadena suelta: con "CURRENT_DATE" a secas SQLAlchemy lo
+    # manda entre comillas, como un literal, y PostgreSQL rechaza la tabla.
+    vigente_desde: Mapped[date] = mapped_column(
+        Date, nullable=False, server_default=text("CURRENT_DATE")
+    )

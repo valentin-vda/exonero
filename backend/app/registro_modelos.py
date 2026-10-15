@@ -6,7 +6,8 @@ registradas en Base.metadata para poder comparar los modelos con la base y
 generar las migraciones. Si un modulo no se importa aca, autogenerate cree que
 sus tablas no existen y escribe un DROP TABLE.
 
-Lo importan alembic/env.py y app/main.py. Ningun modulo lo importa.
+Lo importan alembic/env.py, app/main.py y app/seeds.py (para vaciar las 24
+tablas). Ningun modulo lo importa.
 """
 
 from app.db import Base  # noqa: F401

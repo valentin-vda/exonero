@@ -11,7 +11,7 @@ class Ajustes(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # Cadena de conexion de SQLAlchemy hacia el PostgreSQL del docker-compose.
-    BASE_URL: str = "postgresql+psycopg://exonero:exonero@localhost:5432/exonero"
+    BASE_URL: str = "postgresql+psycopg://exonero:exonero@localhost:5433/exonero"
 
     # Firma de los tokens. El token no se guarda en la base: vive en el
     # frontend y vence solo (decision de la seccion 1 de la spec).

@@ -12,8 +12,12 @@ services:
       POSTGRES_DB: exonero
       # La app trabaja en America/Montevideo; la base guarda timestamptz en UTC.
       TZ: America/Montevideo
+    # Afuera queda en el 5433 y no en el 5432 a proposito: quien tenga un
+    # PostgreSQL instalado en Windows ya tiene el 5432 ocupado, y Alembic
+    # terminaria hablando con esa base ("password authentication failed for
+    # user exonero"). Adentro del contenedor sigue siendo el 5432.
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - datos_postgres:/var/lib/postgresql/data
       # Se ejecuta una sola vez, cuando el volumen se crea vacio. Habilita las

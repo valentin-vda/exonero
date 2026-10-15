@@ -11,7 +11,7 @@ NOMBRE DE TABLA. Asi este archivo no importa catalogos/modelos.py y la regla
 
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, Enum, ForeignKey, Index, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base, Marcas
@@ -58,6 +58,10 @@ class PerfilProfesor(Base, Marcas):
     __tablename__ = "perfil_profesor"
     __table_args__ = (
         CheckConstraint("duracion_max >= duracion_min", name="duracion_coherente"),
+        # La busqueda de 1c filtra por ficha publicada y barrio, y ordena por
+        # puntaje. schema.sql lo tiene DESC; aca va ascendente porque PostgreSQL
+        # recorre el indice al reves sin costo, y asi autogenerate no se confunde.
+        Index("ix_profesor_busqueda", "estado_ficha", "barrio_id", "puntaje_promedio"),
     )
 
     usuario_id: Mapped[int] = mapped_column(
@@ -122,7 +126,12 @@ class ProfesorMateria(Base, Marcas):
     """Que materias dicta. El filtro mas usado de 1c pasa por aca."""
 
     __tablename__ = "profesor_materia"
-    __table_args__ = (UniqueConstraint("perfil_profesor_id", "materia_id"),)
+    __table_args__ = (
+        UniqueConstraint("perfil_profesor_id", "materia_id"),
+        # El UNIQUE de arriba sirve para buscar por profesor; para "todos los
+        # que dan Fisica" hace falta este.
+        Index("ix_profesor_materia_materia", "materia_id"),
+    )
 
     perfil_profesor_id: Mapped[int] = mapped_column(
         ForeignKey("perfil_profesor.id", ondelete="CASCADE"), nullable=False
@@ -134,7 +143,10 @@ class ProfesorEtapa(Base, Marcas):
     """A que etapas le da clase, con el programa que sigue en cada una."""
 
     __tablename__ = "profesor_etapa"
-    __table_args__ = (UniqueConstraint("perfil_profesor_id", "etapa_id"),)
+    __table_args__ = (
+        UniqueConstraint("perfil_profesor_id", "etapa_id"),
+        Index("ix_profesor_etapa_etapa", "etapa_id"),
+    )
 
     perfil_profesor_id: Mapped[int] = mapped_column(
         ForeignKey("perfil_profesor.id", ondelete="CASCADE"), nullable=False
@@ -159,7 +171,10 @@ class ProfesorZona(Base, Marcas):
     """Barrios a los que el profesor se traslada."""
 
     __tablename__ = "profesor_zona"
-    __table_args__ = (UniqueConstraint("perfil_profesor_id", "barrio_id"),)
+    __table_args__ = (
+        UniqueConstraint("perfil_profesor_id", "barrio_id"),
+        Index("ix_profesor_zona_barrio", "barrio_id"),
+    )
 
     perfil_profesor_id: Mapped[int] = mapped_column(
         ForeignKey("perfil_profesor.id", ondelete="CASCADE"), nullable=False

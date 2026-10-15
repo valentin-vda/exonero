@@ -30,17 +30,20 @@ mismo lugar, una rama principal y un *pull request* por pantalla.
 
 ### Levantarlo por primera vez
 
+Hace falta **Python 3.13 o 3.14** (`python --version`), Node y Docker Desktop
+abierto.
+
 ```bash
 # 1. La base de datos (es lo unico que corre en Docker)
-docker compose up -d
+docker compose up -d            # queda en localhost:5433, no en el 5432 (ver abajo)
 
 # 2. El backend
 cd backend
-python -m venv .venv
+python -m venv .venv            # o py -3.13 -m venv .venv si tenes otra version por defecto
 .venv\Scripts\activate          # en Windows
 pip install -r requirements.txt
 copy .env.example .env          # y revisar los valores
-alembic upgrade head            # crea las tablas
+alembic upgrade head            # crea las 24 tablas
 python -m app.seeds             # carga los datos de prueba
 uvicorn app.main:app --reload   # queda en http://localhost:8000
 
@@ -51,6 +54,19 @@ npm run dev                     # queda en http://localhost:5173
 ```
 
 Abrí `http://localhost:5173` y te va a recibir el login.
+
+Los seeds dejan cargados veinte usuarios, todos con la clave `exonero123`:
+`profe1@exonero.test` a `profe8@exonero.test` y `alumno1@exonero.test` a
+`alumno12@exonero.test`. Entrar con ellos funciona cuando P1 termine
+`cuentas` (ver la sección 9).
+
+**Por qué el 5433 y no el 5432.** El 5432 es el puerto por defecto de
+PostgreSQL, y si alguna vez lo instalaste en Windows (para otra materia, por
+ejemplo) ese servicio ya lo tiene ocupado. Con el contenedor en el 5432,
+Alembic termina hablando con *tu* PostgreSQL y no con el del proyecto, y falla
+con `password authentication failed for user "exonero"`. Adentro del
+contenedor sigue siendo el 5432; lo que cambia es el de afuera, en
+`docker-compose.yml` y en `BASE_URL` del `.env`.
 
 ### Las tres URLs que importan
 
@@ -89,7 +105,7 @@ exonero/
 │       ├── main.py             crea la app y monta los routers
 │       ├── config.py           toda la configuracion, leida del .env
 │       ├── db.py               engine, sesion y la clase Base
-│       ├── enums.py            los 13 tipos ENUM de PostgreSQL
+│       ├── enums.py            los 12 tipos ENUM de PostgreSQL
 │       ├── seguridad.py        hash bcrypt y firma de tokens
 │       ├── errores.py          ErrorAPI y el formato unico de error
 │       ├── dependencias.py     quien es el usuario del token
@@ -200,10 +216,10 @@ aparece ahí, `autogenerate` cree que sus tablas no existen y escribe un
    │      ↓                                       │
    │   modelos.py   las tablas                    │
    └───────────────────┬──────────────────────────┘
-                       ▼                localhost:5432
+                       ▼                localhost:5433
    ┌──────────────────────────────────────────────┐
    │  PostgreSQL 16  (en Docker)                  │
-   │  24 tablas, 13 tipos ENUM                    │
+   │  24 tablas, 12 tipos ENUM                    │
    └──────────────────────────────────────────────┘
 ```
 
@@ -376,6 +392,19 @@ Cuatro reglas:
    una revisión nueva.
 4. **Cada uno migra solo sus tablas.** Si P3 necesita una columna en `clase`,
    se la pide a P4.
+
+Dos trampas que ya nos pasaron con la migración inicial:
+
+- **Los tipos ENUM en el `downgrade`.** `drop_table` no borra los ENUM que
+  creó la tabla, así que el `downgrade` que escribe el autogenerador deja la
+  base a medio limpiar y el siguiente `upgrade` falla con
+  `type "..." already exists`. Si tu migración crea un ENUM nuevo, agregá a
+  mano el `DROP TYPE` al final del `downgrade`, como en la inicial.
+- **Un `server_default` con una función de SQL va con `text()`**:
+  `server_default=text("CURRENT_DATE")`. Con la cadena suelta, SQLAlchemy la
+  manda entre comillas, como un literal, y PostgreSQL rechaza la tabla. Lo
+  mismo para el `postgresql_where` de un índice parcial: `text(...)` en
+  minúscula, no `Text`, que es el tipo de columna.
 
 ---
 
@@ -1007,10 +1036,15 @@ legítimas. El profesor elige cuál aprueba.
 - La estructura completa del monorepo
 - `docker-compose.yml` con PostgreSQL y las extensiones (`citext`, `btree_gist`)
 - Las **24 tablas** modeladas en SQLAlchemy, repartidas en los nueve módulos
-- Los **13 tipos ENUM**
+- Los **12 tipos ENUM**
 - Los **66 endpoints** montados y visibles en `/docs`
 - Todos los `esquemas.py` (los contratos de entrada y salida)
 - Alembic configurado, leyendo la conexión del `.env`
+- **La migración inicial** (`alembic/versions/79d6aea11ac3_esquema_inicial.py`):
+  las 24 tablas, los 12 ENUM, los 13 índices de `schema.sql` y la restricción
+  `EXCLUDE`
+- **Los seeds** (`app/seeds.py`): catálogos, veinte usuarios con sus perfiles
+  y su oferta, franjas de disponibilidad y treinta clases con su cobro
 - `schema.sql` completo, de referencia
 - El frontend entero: proxy, rutas, contexto de autenticación, sistema de
   diseño y componentes
@@ -1021,6 +1055,11 @@ legítimas. El profesor elige cuál aprueba.
 
 - El backend importa y monta las 66 rutas (`python -c "from app.main import app"`)
 - Las 24 tablas quedan registradas en `Base.metadata`
+- Desde un clon limpio, con Python 3.13 y con 3.14: `docker compose up -d`,
+  `pip install`, `alembic upgrade head` y `python -m app.seeds` (corrido dos
+  veces seguidas, sin duplicar nada)
+- `alembic check` no encuentra diferencias entre los modelos y la base, y
+  `alembic downgrade base` seguido de `alembic upgrade head` vuelve a andar
 - El frontend compila (`npm run build`) sin errores ni advertencias
 - Login y registro renderizan con el diseño correcto y la validación funciona
 - Sin errores en la consola del navegador
@@ -1047,7 +1086,7 @@ El orden de la spec:
 
 | Semana | Qué |
 |---|---|
-| 1 | Los cuatro juntos: la migración inicial, el script de seeds y el acuerdo escrito de los endpoints compartidos. Nadie escribe lógica |
+| 1 | Los cuatro juntos: revisar la migración inicial y los seeds (ya están escritos) y el acuerdo escrito de los endpoints compartidos. Nadie escribe lógica |
 | 2–3 | P1 termina `cuentas` y el esqueleto de `perfiles`. P2 termina `catalogos`. Los otros dos trabajan contra respuestas fijas |
 | 4–6 | P1 la ficha pública. P2 la búsqueda y los mapas. P3 agenda. P4 el ciclo de la clase |
 | 7–8 | P3 mensajería y reseñas. P4 checkout, reembolsos y métricas |
@@ -1123,11 +1162,31 @@ documentación sí los usa.
 El backend no está levantado, o no está en el 8000. Probá
 `http://localhost:8000/api/salud`.
 
-**`alembic upgrade head` falla con "extension citext does not exist".**
-El contenedor de la base se creó sin correr `docker/init.sql`. Se ejecuta una
-sola vez, cuando el volumen se crea vacío. Si ya existía, hay que borrar el
-volumen (`docker compose down -v`) y volver a levantar. **Eso borra todos los
-datos**, así que recargá los seeds después.
+**`alembic upgrade head` falla con `password authentication failed for user "exonero"`.**
+Alembic se está conectando a otro PostgreSQL, casi siempre uno instalado en
+Windows que ocupa el 5432. Revisá que `BASE_URL` en tu `.env` diga
+`localhost:5433` (si copiaste el `.env.example` antes de que se cambiara el
+puerto, dice 5432) y que el contenedor esté levantado: `docker compose ps`
+tiene que mostrar `exonero_db` con `0.0.0.0:5433->5432/tcp`. Si lo levantaste
+antes con el 5432, `docker compose up -d` lo recrea con el puerto nuevo sin
+borrar los datos.
+
+**`pip install -r requirements.txt` falla en `psycopg-binary` o `pydantic-core`.**
+Tu Python es de una versión que no está probada, y pip no encuentra esos
+paquetes ya compilados. Con 3.13 y 3.14 anda. Instalá una de esas, borrá la
+carpeta `.venv` y creala de nuevo (`py -3.13 -m venv .venv`).
+
+**`alembic` no se reconoce como comando.**
+El entorno virtual no está activado (`.venv\Scripts\activate`), o el
+`pip install` falló antes de llegar a instalar Alembic: mirá su error. También
+se puede correr sin activar: `.venv\Scripts\python -m alembic upgrade head`.
+
+**`alembic upgrade head` falla con `relation "..." already exists`.**
+Las tablas se crearon por fuera de Alembic (por ejemplo corriendo `schema.sql`
+a mano), y Alembic no sabe que ya están. Hay que empezar con la base vacía:
+`docker compose down -v`, `docker compose up -d` y de nuevo
+`alembic upgrade head`. **Eso borra todos los datos**, así que recargá los
+seeds después.
 
 **Cambié un modelo y `autogenerate` no detecta nada.**
 El módulo no está importado en `app/registro_modelos.py`.

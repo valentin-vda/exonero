@@ -1,13 +1,17 @@
+# Probado con Python 3.13 y 3.14 en Windows. pydantic, sqlalchemy y psycopg
+# no pueden bajar de estas versiones: las anteriores no tienen wheels para
+# Python 3.14 y pip intenta compilarlas (y falla).
+
 # --- API ---
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
-pydantic==2.10.4
+pydantic==2.12.5
 pydantic-settings==2.7.0
 email-validator==2.2.0
 
 # --- Base de datos ---
-sqlalchemy==2.0.36
-psycopg[binary]==3.2.3
+sqlalchemy==2.0.54
+psycopg[binary]==3.2.13
 alembic==1.14.0
 
 # --- Seguridad ---

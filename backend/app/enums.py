@@ -1,4 +1,4 @@
-"""Los trece tipos ENUM de PostgreSQL, como enumeraciones de Python.
+"""Los doce tipos ENUM de PostgreSQL, como enumeraciones de Python.
 
 Estan todos aca y no dentro de cada modulo porque varios modulos usan los
 mismos (modalidad_enum la usan perfiles, agenda y clases). Es la unica pieza

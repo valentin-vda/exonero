@@ -11,7 +11,7 @@ une a los dos.
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Text, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Index, Text, UniqueConstraint, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base, Marcas
@@ -49,7 +49,9 @@ class Mensaje(Base, Marcas):
         # Indice parcial: solo indexa los sin leer, que son pocos. Es lo que
         # hace barato el contador de la cabecera, que se consulta cada diez
         # segundos desde las diez pantallas.
-        Index("ix_mensaje_sin_leer", "hilo_id", postgresql_where=(Text("leido_el IS NULL"))),
+        # OJO: text() en minuscula (una expresion SQL), no Text (el tipo de
+        # columna). Con Text la migracion generada no corre.
+        Index("ix_mensaje_sin_leer", "hilo_id", postgresql_where=text("leido_el IS NULL")),
     )
 
     hilo_id: Mapped[int] = mapped_column(ForeignKey("hilo.id", ondelete="CASCADE"), nullable=False)

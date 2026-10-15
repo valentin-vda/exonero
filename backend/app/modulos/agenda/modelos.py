@@ -14,7 +14,7 @@ no hay forma de saber si un hueco vacio es que puede o que nunca dijo nada.
 
 from datetime import datetime, time
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Text, Time
+from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Index, Text, Time
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base, Marcas
@@ -28,6 +28,8 @@ class FranjaDisponibilidad(Base, Marcas):
     __table_args__ = (
         CheckConstraint("dia_semana BETWEEN 0 AND 6", name="dia_valido"),
         CheckConstraint("hora_fin > hora_inicio", name="franja_valida"),
+        # El calculo de huecos libres pide las franjas de un profesor por dia.
+        Index("ix_franja_profesor_dia", "perfil_profesor_id", "dia_semana"),
     )
 
     perfil_profesor_id: Mapped[int] = mapped_column(
@@ -50,7 +52,10 @@ class Bloqueo(Base, Marcas):
     """Una excepcion puntual con fecha: tapa lo que diga la franja semanal."""
 
     __tablename__ = "bloqueo"
-    __table_args__ = (CheckConstraint("fin > inicio", name="bloqueo_valido"),)
+    __table_args__ = (
+        CheckConstraint("fin > inicio", name="bloqueo_valido"),
+        Index("ix_bloqueo_profesor_inicio", "perfil_profesor_id", "inicio"),
+    )
 
     perfil_profesor_id: Mapped[int] = mapped_column(
         ForeignKey("perfil_profesor.id", ondelete="CASCADE"), nullable=False
