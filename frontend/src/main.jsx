@@ -14,11 +14,13 @@
  *   4. perfil       los de las pantallas de perfil (1e y 1j)
  *   5. panel        los del panel del profesor (1d) y sus graficos
  *   6. pagos        los del checkout (1g) y de "Medios de pago" (1e)
+ *   7. busqueda     los de buscar profesores (1c)
  */
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import 'leaflet/dist/leaflet.css'
 
 import App from './App.jsx'
 import { ProveedorAuth } from './auth/ContextoAuth.jsx'
@@ -29,6 +31,7 @@ import './estilos/auth.css'
 import './estilos/perfil.css'
 import './estilos/panel.css'
 import './estilos/pagos.css'
+import './estilos/busqueda.css'
 
 createRoot(document.getElementById('root')).render(
   // StrictMode solo corre en desarrollo. Hace que los efectos se ejecuten dos

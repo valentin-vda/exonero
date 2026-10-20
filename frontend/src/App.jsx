@@ -15,6 +15,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import RutaProtegida from './auth/RutaProtegida.jsx'
 import EnConstruccion from './componentes/EnConstruccion.jsx'
 import Layout from './componentes/Layout.jsx'
+import BuscarProfesores from './paginas/BuscarProfesores.jsx'
 import Checkout from './paginas/Checkout.jsx'
 import Login from './paginas/Login.jsx'
 import PanelProfesor from './paginas/PanelProfesor.jsx'
@@ -49,17 +50,7 @@ export default function App() {
               />
             }
           />
-          <Route
-            path="/buscar"
-            element={
-              <EnConstruccion
-                codigo="1c"
-                nombre="Buscar profes"
-                dueno="P2"
-                descripcion="Los nueve filtros, la lista de resultados y el mapa."
-              />
-            }
-          />
+          <Route path="/buscar" element={<BuscarProfesores />} />
           <Route
             path="/profesor/:id"
             element={
