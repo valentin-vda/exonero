@@ -58,8 +58,16 @@ const MENSAJES = {
   estado_invalido: 'La clase cambio de estado mientras tanto. Recarga la pagina.',
   clase_no_existe: 'Esa clase ya no existe. Recarga la pagina.',
   profesor_no_existe: 'Ese profe no existe o pauso su ficha.',
+  duracion_no_modificable:
+    'Al reprogramar no se puede cambiar la duracion: el importe ya quedo fijo. Cancela y reserva de nuevo.',
+  estado_no_permitido: 'Ese estado no corresponde para esta clase.',
+
+  // --- Panel del profesor (1d) ---
+  periodo_invalido: 'Ese periodo no existe. Elegi mes, trimestre o anio.',
+  agrupacion_invalida: 'Esa agrupacion no existe. Elegi semana, mes o anio.',
 
   // --- Pagos y tarjetas (1g, 1e) ---
+  cobro_no_existe: 'No encontramos el pago de esa clase. Recarga la pagina.',
   cobro_rechazado: 'La tarjeta rechazo el pago. Proba con otra.',
   tarjeta_vencida: 'Esa tarjeta esta vencida. Usa otra o agrega una nueva.',
   tarjeta_invalida: 'El numero de tarjeta no es valido.',

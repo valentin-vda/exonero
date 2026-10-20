@@ -142,12 +142,17 @@ exonero/
         │   ├── tokens.css      colores, tipografias, espaciado (y modo oscuro)
         │   ├── componentes.css .btn .input .card .tag .nav ...
         │   ├── auth.css        login y registro
-        │   └── perfil.css      las pantallas de perfil (1e y 1j)
+        │   ├── perfil.css      las pantallas de perfil (1e y 1j)
+        │   ├── panel.css       el panel del profesor (1d) y sus graficos
+        │   └── pagos.css       el checkout (1g) y "Medios de pago" (1e)
         ├── api/
         │   ├── cliente.js      el fetch con token y manejo de errores
         │   ├── mensajes.js     codigo de error -> texto en espanol
         │   ├── auth.js         una funcion por endpoint de cuentas
-        │   └── perfiles.js     una funcion por endpoint de perfiles
+        │   ├── perfiles.js     una funcion por endpoint de perfiles
+        │   ├── clases.js       una funcion por endpoint de clases (P4)
+        │   ├── pagos.js        una funcion por endpoint de pagos (P4)
+        │   └── agenda.js       por ahora solo verificar (lo usa 1g)
         ├── auth/
         │   ├── ContextoAuth.jsx  quien esta conectado (y su tema)
         │   └── RutaProtegida.jsx rutas que exigen sesion
@@ -162,6 +167,7 @@ exonero/
         │   ├── InterruptorTema.jsx modo claro / modo oscuro
         │   ├── SelectorRol.jsx   las dos tarjetas del registro
         │   ├── Alerta.jsx        el cartel de error, de exito o de aviso
+        │   ├── FormularioTarjeta.jsx los campos de una tarjeta (1g y 1e)
         │   └── EnConstruccion.jsx marcador de las pantallas pendientes
         ├── paginas/
         │   ├── Login.jsx         HECHA
@@ -169,10 +175,15 @@ exonero/
         │   ├── RecuperarClave.jsx HECHA
         │   ├── PerfilEstudiante.jsx  1e, HECHA
         │   ├── PerfilProfesor.jsx    1j, HECHA
-        │   └── perfil/           las piezas de 1e y 1j (ver la seccion 7)
+        │   ├── Checkout.jsx      1g, HECHA
+        │   ├── PanelProfesor.jsx 1d, HECHA
+        │   ├── perfil/           las piezas de 1e y 1j (ver la seccion 7)
+        │   ├── checkout/         las piezas de 1g (ver la seccion 8)
+        │   └── panel/            las piezas de 1d y sus graficos (seccion 8)
         └── utiles/
             ├── validaciones.js
-            ├── formato.js        iniciales, fechas, puntajes, numeros
+            ├── formato.js        iniciales, fechas, horas, importes, puntajes
+            ├── tarjetas.js       formato y validacion de las tarjetas
             └── imagenes.js       achicar una foto antes de subirla
 ```
 
@@ -747,10 +758,10 @@ estudiante, y la pantalla va a salir con la barra de navegación arriba.
 | `/inicio` | Inicio del estudiante | 1a | Pendiente, P2 |
 | `/buscar` | Buscar profes | 1c | Pendiente, P2 |
 | `/profesor/:id` | Detalle del profesor | 1f | Pendiente, P2 |
-| `/checkout` | Checkout | 1g | Pendiente, P4 |
+| `/checkout` | Checkout | 1g | **Hecha**, P4 |
 | `/mis-clases` | Mis clases | 1b | Pendiente, P3 |
-| `/mi-perfil` | Perfil del estudiante | 1e | **Hecha**, P1 |
-| `/panel` | Panel del profesor | 1d | Pendiente, P4 |
+| `/mi-perfil` | Perfil del estudiante | 1e | **Hecha**, P1 (y "Medios de pago", P4) |
+| `/panel` | Panel del profesor | 1d | **Hecha**, P4 |
 | `/agenda` | Agenda del profesor | 1i | Pendiente, P3 |
 | `/perfil-profesor` | Perfil del profesor | 1j | **Hecha**, P1 |
 | `/mensajes` | Mensajes | 1h | Pendiente, P3 |
@@ -1106,7 +1117,7 @@ está hecho para tolerar que todavía no exista:
 | `mensajeria.contar_no_leidos()` | P3 | `GET /usuarios/yo` responde `mensajes_no_leidos: 0` (ver `_contar_no_leidos` en `cuentas/rutas.py`). Sin esto, nadie podría entrar a la app |
 | `GET /api/catalogos/todo` | P2 | 1e y 1j muestran un aviso, y los desplegables de barrio, centro, etapa, materias e idiomas quedan con el valor actual y deshabilitados. El resto se puede editar |
 | Saber si el profesor tiene franjas de disponibilidad | P3 | Para publicar se exige materia y precio, pero todavía no franjas. El lugar del chequeo está marcado en `perfiles/logica.py` (`cambiar_estado_ficha`) |
-| Tarjetas guardadas | P4 | La pestaña "Medios de pago" de 1e muestra "pendiente, le toca a P4" |
+| Tarjetas guardadas | P4 | **Ya está**: P4 hizo la pestaña "Medios de pago" de 1e (sección 8) |
 | Reseñas recibidas | P3 | La pestaña "Mis reseñas" de 1e muestra "pendiente, le toca a P3" |
 
 Cuando cada uno termine su parte, lo de P1 empieza a usarla **sin cambiar nada**:
@@ -1268,11 +1279,11 @@ opción con el valor actual → los campos se deshabilitan y aparece el aviso.
 
 ## 8. Clases y pagos (P4), de punta a punta
 
-El backend de P4 está hecho: los módulos `clases` y `pagos`, la migración que
-arregla la tabla `cobro` y los seeds con el mismo cálculo de plata que el
-checkout. Las pantallas de P4 (**1g**, la pestaña "Medios de pago" de **1e** y
-el panel **1d**) se arman sobre este backend. Esta sección es el mapa, con la
-misma forma que la 7.
+Todo lo de P4 está hecho: los módulos `clases` y `pagos`, la migración que
+arregla la tabla `cobro`, los seeds con el mismo cálculo de plata que el
+checkout, y sus tres pantallas: el checkout **1g**, la pestaña "Medios de pago"
+de **1e** y el panel del profesor **1d** (ver "El frontend de P4", más abajo).
+Esta sección es el mapa, con la misma forma que la 7.
 
 ### Probarlo en dos minutos
 
@@ -1614,12 +1625,138 @@ están marcados:
   (para que `clases` sepa en qué anda la plata sin leer la tabla) y las de
   tarjetas, historial e ingresos; en `clases`, `desglosar()`,
   `importes_congelados()`, `armar_clases()` y las de cada pantalla.
-- **Códigos de error nuevos**, que todavía no están en `mensajes.js`:
+- **Códigos de error nuevos**, ya con su texto en `mensajes.js`:
   400 `periodo_invalido`, 400 `agrupacion_invalida`, 400 `estado_no_permitido`
   (un estado que no corresponde, en el filtro de `/clases` o al completar),
   400 `duracion_no_modificable` y 404 `cobro_no_existe` (defensivo: una clase sin
   cobro solo puede salir de tocar la base a mano). Además se reusan dos que ya
   estaban: 400 `materia_no_existe` y 400 `etapa_educativa_no_existe`.
+
+### El frontend de P4
+
+Tres pantallas, armadas con el mismo esqueleto que 1e y 1j (sección 7). Todas
+hablan con el backend a través de `api/clases.js`, `api/pagos.js` y
+`api/agenda.js`, y **ninguna hace cuentas de plata**: los importes llegan como
+texto (`"1811.70"`) y `pesos()` de `utiles/formato.js` solo les da formato.
+`diaYHora()` y `hora()` muestran las fechas siempre en la hora de Montevideo,
+aunque la computadora esté en otra zona.
+
+#### 1g · Checkout (`/checkout`, solo estudiante)
+
+**Cómo se llega: el contrato de la URL.** 1f (de P2, todavía pendiente)
+navega así:
+
+```
+/checkout?profesor=<usuario_id>&materia=<id>&inicio=<ISO 8601 con zona>
+         &duracion=<minutos>&modalidad=presencial|online
+         [&traslado=1][&etapa=<id>][&tema=<texto>]
+```
+
+Va en la URL y no en el `state` del router para que sobreviva a un recargar.
+`inicio` tiene que traer la zona (`2026-10-27T18:00:00-03:00`): sin zona, "18:00"
+sería la hora de la computadora del alumno. Desde 1f, `URLSearchParams` se
+encarga de codificar todo. Si falta algo o no tiene sentido, la pantalla lo dice
+y ofrece volver a buscar, sin romperse. El contrato completo está comentado
+arriba de `Checkout.jsx`.
+
+| Archivo | Qué es |
+|---|---|
+| `paginas/Checkout.jsx` | La pantalla: lee la URL, carga todo junto y confirma |
+| `paginas/checkout/ElegirMedio.jsx` | Las tarjetas guardadas (radios de verdad) o "Agregar tarjeta nueva" con "Guardar esta tarjeta en mi perfil" |
+| `paginas/checkout/Resumen.jsx` | El desglose de `cotizar` y "Confirmar reserva" |
+| `paginas/checkout/ReservaEnviada.jsx` | El cartel del final: atrapa el foco y deja la página de atrás `inert` |
+| `componentes/FormularioTarjeta.jsx` | Los cuatro campos de una tarjeta. **El mismo** en 1g y en 1e |
+| `utiles/tarjetas.js` | Formato (espacios cada cuatro, `MM/AA`), validación y el cuerpo para el backend. Duplica `TarjetaIn` para avisar al instante, como `validaciones.js` |
+| `estilos/pagos.css` | Lo propio de 1g y de "Medios de pago" |
+
+| Momento | Llamadas |
+|---|---|
+| Al entrar, las cuatro juntas | `GET /profesores/{id}` (la cabecera), `POST /clases/cotizar` (el desglose, **el mismo cálculo que 1f**), `GET /pagos/tarjetas`, `POST /agenda/verificar` (la segunda verificación) |
+| "Confirmar reserva" | `POST /pagos/tarjetas` (solo si es nueva) → `POST /clases` → `DELETE /pagos/tarjetas/{id}` (solo si la nueva **no** se quería guardar) |
+
+Tres detalles:
+
+- **`agenda/verificar` todavía responde 500** (es de P3). El checkout sigue como
+  si el horario estuviera libre: `POST /clases` vuelve a chequear y la base
+  tiene la `EXCLUDE`. Cuando P3 lo implemente, un `{libre: false, motivo}` muestra
+  un mensaje distinto por motivo y deshabilita confirmar.
+- **"Guardar esta tarjeta" sin marcar** igual da de alta la tarjeta (el cobro
+  necesita una), y la da de baja apenas se crea la clase. Si la reserva falla
+  (por ejemplo, la tarjeta rechaza el pago), también se da de baja: no quedan
+  tarjetas sueltas. Si **sí** se quería guardar, queda guardada y elegida, así
+  reintentar no la da de alta dos veces.
+- El doble clic no duplica la reserva: el botón queda `aria-disabled` mientras
+  se envía y una `ref` frena el segundo envío.
+
+#### 1e · La pestaña "Medios de pago" (`/mi-perfil`)
+
+`paginas/perfil/SeccionMediosPago.jsx` reemplaza el marcador que había dejado P1.
+
+| Qué | Llamada |
+|---|---|
+| Las tarjetas guardadas (marca, `•••• ultimos4`, titular, vencimiento) | `GET /pagos/tarjetas` |
+| "Quitar", con confirmación en línea (no `window.confirm`) | `DELETE /pagos/tarjetas/{id}` (baja lógica) |
+| "Agregar medio de pago", con el mismo `FormularioTarjeta` del checkout | `POST /pagos/tarjetas` |
+| "Ver historial de pagos" (`HistorialPagos.jsx`), de a páginas con "Ver más pagos" | `GET /pagos/historial` |
+
+En el historial, el estado del cobro va como etiqueta: retenido = "Pendiente de
+aprobación", cobrado = "Pagado", liberado = "Solicitud rechazada · no se
+cobró", reembolsado = "Reembolsado". En los liberados, `materia`,
+`contraparte` y `clase_id` pueden venir en `null` (la clase se borró).
+
+#### 1d · Panel del profesor (`/panel`, solo profesor)
+
+`paginas/PanelProfesor.jsx` y sus piezas en `paginas/panel/`:
+
+| Bloque | Archivo | Llamada | Lo recarga |
+|---|---|---|---|
+| Saludo ("Hola, Lucía" y materias · etapas · barrio) | `Saludo.jsx` | `GET /perfiles/profesor/yo` | — |
+| Próxima clase | `ProximaClase.jsx` | `GET /clases/proxima` (204 = no hay) | — |
+| Cuatro indicadores | `Indicadores.jsx` | `GET /clases/metricas?periodo=` | Mes / Trimestre / Año |
+| Indicador de ingresos | `Indicadores.jsx` | `GET /pagos/ingresos?periodo=` | Mes / Trimestre / Año |
+| Reservas de hoy | `ReservasDeHoy.jsx` | `GET /clases?desde=hoy&hasta=hoy` | — |
+| Ingresos | `Ingresos.jsx` | `GET /pagos/ingresos?periodo=mes&agrupar=` | Semana / Mes / Año |
+| Reservas en el tiempo | `ReservasEnElTiempo.jsx` | `GET /clases/series?agrupar=` | 10 semanas / Mes / Año |
+
+Las siete llamadas salen juntas al entrar. **Si una falla, solo ese bloque
+muestra su error** y el resto se ve igual. Cada bloque tiene su estado en
+`useBloque.js`, un hook propio que además descarta las respuestas viejas (tocar
+"Mes" y enseguida "Año"). "Hoy" es el de Montevideo (`panel/fechas.js`, la
+misma cuenta que `app/fechas.py`).
+
+**Los gráficos son SVG a mano, sin librerías** (`GraficoBarras.jsx`, simple o
+apilado, compartido por los dos):
+
+- `viewBox` y ancho 100 %, así se adaptan solos al celular. Las etiquetas de
+  los ejes van en HTML y no adentro del SVG: el texto de un SVG escala con el
+  dibujo y en 375 px quedaba ilegible.
+- El backend no manda los tramos sin datos: `fechas.tramos()` arma la ventana
+  (10 lunes, 12 primeros de mes, 5 eneros) y los completa con 0.
+- Colores **solo con variables** de `tokens.css`, así el modo oscuro anda solo.
+  "A confirmar" va hueca con borde punteado, como su etiqueta en la tabla.
+  Cancelada y no_asistida van juntas como "No se dieron".
+- Accesibles: el `svg` es `role="img"` con un resumen, cada columna tiene su
+  `<title>` (el cartelito del mouse) y los mismos números van en una tabla
+  `oculto-visual`. La leyenda nombra cada serie: el color nunca va solo.
+
+Decisiones del panel: las tres cifras del bloque Ingresos son siempre del mes en
+curso ("cobrado este mes", como el mockup); su selector cambia solo la
+agrupación de las barras. En la tasa de cancelación, bajar se pinta como bueno.
+El resumen de "Reservas de hoy" no cuenta las canceladas, pero la tabla sí las
+muestra; en el celular, cada fila pasa a ser una tarjeta. Aprobar y rechazar son
+de 1i: "Ver" y "Confirmar" llevan a `/agenda`.
+
+#### Lo del mockup que no está en las pantallas de P4
+
+| En el mockup | Por qué no está |
+|---|---|
+| El selector "Estudiante / Profesor" de la barra (1d) | No hay cambio de rol: una cuenta es una cosa o la otra |
+| "si el pago va por la app · a definir" (1d) y el tag "Depende del pago in-app" (1e) | El pago es siempre por la app |
+| El botón "Notas" de las clases dictadas (1d) | No hay notas de clase en el modelo. En su lugar, "Ver" lleva a la agenda |
+| La variación de los ingresos ("14 % arriba de agosto") | `/pagos/ingresos` no la trae y la plata no se calcula en el frontend |
+| "2 puntos menos" en la tasa de cancelación | La variación del backend es relativa, en %, no en puntos |
+| La tarjeta "Principal", "Hacer principal" y "Editar" (1e) | No hay tarjeta principal (se elige en cada reserva) ni endpoint de edición: se quita y se agrega otra |
+| Mercado Pago (1e) | Solo hay tarjetas |
 
 ### Lo que quedó afuera, y por qué
 
@@ -1921,10 +2058,12 @@ legítimas. El profesor elige cuál aprueba.
 - **Todo lo de P1** (ver la sección 7): `usuario_actual()`, los módulos
   `cuentas` y `perfiles` completos, y las pantallas **1e** y **1j**, con
   modo oscuro
-- **El backend de P4** (ver la sección 8): los módulos `clases` y `pagos`
+- **Todo lo de P4** (ver la sección 8): los módulos `clases` y `pagos`
   completos, los 19 endpoints, el cobro simulado con su reembolso en segundo
-  plano, las métricas y series del panel, y lo que leen agenda y reseñas
-- Las otras ocho pantallas enrutadas con un marcador
+  plano, las métricas y series del panel, lo que leen agenda y reseñas, y las
+  pantallas **1g** (checkout), **1d** (panel del profesor) y la pestaña
+  "Medios de pago" de **1e**, con modo oscuro
+- Las otras seis pantallas enrutadas con un marcador
 
 ### Verificado
 
@@ -1960,7 +2099,21 @@ legítimas. El profesor elige cuál aprueba.
   los días en Montevideo. Y además: la app importa, `alembic downgrade -1` /
   `upgrade head` / `check` sin diferencias, y los seeds dos veces seguidas sin
   duplicar, con las treinta clases cuadrando con `desglosar()` y los mismos
-  totales que antes
+  totales que antes. Las 276 pasan también sobre el código ya integrado (las
+  tres ramas de P4 juntas)
+- P4, frontend, en el navegador sobre el código integrado y contra una base
+  recién sembrada: **1g** reservando con una tarjeta guardada (la clase queda
+  `pendiente` con el cobro `retenido` y el mismo total que la cotización), con
+  una tarjeta nueva sin guardar (no queda en el perfil), con una terminada en
+  `0000` (mensaje de pago rechazado, la clase no se crea y la tarjeta no queda),
+  con una vencida (el campo queda marcado), el mismo horario dos veces (409 con
+  "Elegir otro horario") y una URL incompleta; **1e** agregar y quitar una
+  tarjeta (nunca se ve el número completo) y el historial con la reserva nueva
+  como "Pendiente de aprobación"; **1d** con profe1 y con un profe sin clases
+  (todos los estados vacíos y el 204), los tres selectores. Las tres en modo
+  oscuro y a 375 px sin scroll horizontal, sin errores de JavaScript, y
+  `npm run build` sin advertencias. En la consola solo aparece el 500 de
+  `POST /agenda/verificar`, que es de P3 y el checkout tolera
 
 ### Falta
 
@@ -2011,9 +2164,10 @@ saben de franjas ni bloqueos), `agenda.hay_bloqueo_encima()` y
 `resenas.resena_de()`. Lo que agenda y reseñas necesitan de `clases`
 (`clases_entre`, `clases_aprobadas_entre`, `tuvieron_clase`) ya está.
 
-**P4**: el backend está terminado. Faltan sus pantallas (1g, "Medios de pago" de
-1e y 1d), que van sobre los endpoints de la sección 8, y sumar a `mensajes.js`
-los cinco códigos de error nuevos.
+**P4**: terminado, backend y pantallas. Lo único que espera de otros: que 1f
+(P2) navegue al checkout con el contrato de la URL de la sección 8, y que P3
+implemente `agenda.verificar()` para que 1g avise antes de confirmar si el
+horario ya no está libre.
 
 ---
 
