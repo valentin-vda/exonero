@@ -19,6 +19,10 @@
   background: var(--color-surface);
 }
 
+/* El panel de resultados se agregará después, pero comparte desde ahora la
+   misma superficie blanca que el de filtros, como indica la demo. */
+.resultados-panel { background: var(--color-surface); }
+
 .filtros-cabecera {
   display: flex;
   align-items: baseline;
@@ -29,6 +33,7 @@
 
 .filtros-cabecera h2 {
   margin: 0;
+  color: var(--color-text);
   font-size: 16px;
 }
 

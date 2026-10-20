@@ -11,6 +11,7 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { useAuth } from '../auth/ContextoAuth.jsx'
+import logoExonero from '../assets/logo-exonero.png'
 import Avatar from './Avatar.jsx'
 
 // Los enlaces de cada rol. Cada uno ve su propio menu.
@@ -37,7 +38,8 @@ export default function Layout() {
     <>
       <nav className="nav">
         <Link to={usuario?.rol === 'profesor' ? '/panel' : '/inicio'} className="nav-brand">
-          Exonero
+          <img className="nav-logo" src={logoExonero} alt="" />
+          <span>Exonero</span>
         </Link>
 
         {/* NavLink pone aria-current="page" solo en el enlace activo, y el CSS
@@ -48,14 +50,14 @@ export default function Layout() {
           </NavLink>
         ))}
 
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div className="nav-actions">
           {/* El contador de mensajes no leidos viene adentro de
               GET /usuarios/yo, asi que no hace falta otra llamada para pintarlo. */}
           {usuario?.mensajes_no_leidos > 0 && (
             <span className="tag tag-accent">{usuario.mensajes_no_leidos} sin leer</span>
           )}
 
-          <button type="button" className="btn btn-ghost" onClick={salir}>
+          <button type="button" className="btn btn-ghost nav-salir" onClick={salir}>
             Salir
           </button>
 

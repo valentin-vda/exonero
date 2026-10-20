@@ -1419,6 +1419,17 @@ separación de `18px`, panel con `18px` de relleno y mapa de `420px` de alto.
 No lleva un título introductorio sobre ambas columnas. Debajo de 900 px pasa
 a una sola columna para evitar desplazamiento horizontal.
 
+La paleta de la demo ahora vive en `tokens.css` y es global: fondo `#e6edf5`,
+paneles `#ffffff`, texto y encabezados `#13284c`, y acento `#4d7fb3`. La
+navegación usa el texto oscuro como fondo y el enlace activo usa
+`--color-accent-300`. Todas las pantallas consumen las mismas variables; el
+modo oscuro las redefine también de forma global.
+
+El encabezado reutiliza el PNG del búho incrustado en la demo, guardado como
+`frontend/src/assets/logo-exonero.png`. `Layout.jsx` lo coloca junto a la marca
+con las medidas originales del mockup: imagen de `30 x 29px`, separación de
+`9px` y texto Caprasimo de `20px`.
+
 La lista abierta de un `<select>` la dibujan el navegador y Windows. Para que
 no quede texto claro sobre fondo blanco en modo oscuro, las opciones definen
 explícitamente ambos colores con variables del tema.

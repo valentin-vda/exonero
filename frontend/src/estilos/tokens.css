@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Tokens del sistema de diseno "Organic" de Exonero.
+   Tokens del sistema de diseno de Exonero.
 
    Estos son los MISMOS valores que usan los mockups. Todo el resto del CSS
    (y todos los componentes) se escribe con estas variables, nunca con colores
@@ -12,46 +12,46 @@
    =========================================================================== */
 
 :root {
-  /* --- Los cinco colores base --- */
-  --color-bg: #f5ead8;        /* el fondo crema de toda la app */
-  --color-surface: #ebddc5;   /* tarjetas e inputs, un tono mas oscuro */
-  --color-text: #201e1d;      /* casi negro, calido */
-  --color-accent: #c67139;    /* terracota: botones primarios, links, activo */
-  --color-accent-2: #7a8a5e;  /* verde oliva: acento secundario */
-  --color-divider: color-mix(in srgb, #201e1d 16%, transparent);
+  /* --- Los cinco colores base de Exonero Demo.html --- */
+  --color-bg: #e6edf5;        /* fondo azul claro de todas las pantallas */
+  --color-surface: #ffffff;   /* paneles, tarjetas e inputs */
+  --color-text: #13284c;      /* texto y encabezados azul oscuro */
+  --color-accent: #4d7fb3;    /* botones, enlaces y controles activos */
+  --color-accent-2: #9b6b4f;  /* acento secundario marron */
+  --color-divider: color-mix(in srgb, #13284c 14%, transparent);
 
   /* --- Rampa neutra --- */
-  --color-neutral-100: #f9f4ed;
-  --color-neutral-200: #eee7db;
-  --color-neutral-300: #dcd3c4;
-  --color-neutral-400: #c0b6a5;
-  --color-neutral-500: #a19786;
-  --color-neutral-600: #82796a;
-  --color-neutral-700: #645c50;
-  --color-neutral-800: #474238;
-  --color-neutral-900: #2e2b25;
+  --color-neutral-100: #ffffff;
+  --color-neutral-200: #eeebe5;
+  --color-neutral-300: #dfdbd3;
+  --color-neutral-400: #c3c0ba;
+  --color-neutral-500: #a3a19d;
+  --color-neutral-600: #83827f;
+  --color-neutral-700: #5f6673;
+  --color-neutral-800: #434a57;
+  --color-neutral-900: #2a3140;
 
   /* --- Rampa del acento (terracota) --- */
-  --color-accent-100: #fff2eb;
-  --color-accent-200: #ffe1d0;
-  --color-accent-300: #ffc6a5;
-  --color-accent-400: #f6a06b;
-  --color-accent-500: #d67f48;
-  --color-accent-600: #b2622d;
-  --color-accent-700: #8c491a;
-  --color-accent-800: #643312;
-  --color-accent-900: #402310;
+  --color-accent-100: #eef4fb;
+  --color-accent-200: #dce8f5;
+  --color-accent-300: #bdd3ec;
+  --color-accent-400: #8fb3db;
+  --color-accent-500: #6a95c4;
+  --color-accent-600: #3f6c9c;
+  --color-accent-700: #3a6594;
+  --color-accent-800: #284a70;
+  --color-accent-900: #18304d;
 
   /* --- Rampa del acento secundario (oliva) --- */
-  --color-accent-2-100: #f0fae1;
-  --color-accent-2-200: #e1eecc;
-  --color-accent-2-300: #ccdbb2;
-  --color-accent-2-400: #aebf92;
-  --color-accent-2-500: #8fa073;
-  --color-accent-2-600: #728157;
-  --color-accent-2-700: #56633f;
-  --color-accent-2-800: #3d472b;
-  --color-accent-2-900: #272e1b;
+  --color-accent-2-100: #ffffff;
+  --color-accent-2-200: #efe0d4;
+  --color-accent-2-300: #e0c6b2;
+  --color-accent-2-400: #c9a084;
+  --color-accent-2-500: #a8785a;
+  --color-accent-2-600: #8b5e3c;
+  --color-accent-2-700: #6f4a30;
+  --color-accent-2-800: #523624;
+  --color-accent-2-900: #3a2c24;
 
   /* --- Estados (no estan en el sistema base; los agregamos para formularios) --- */
   --color-error: #a33c2a;
@@ -80,9 +80,9 @@
 
   /* --- Sombras: tintadas con el color del texto, no negro puro, para que no
          "ensucien" el fondo crema. --- */
-  --shadow-sm: 0 1px 2px color-mix(in srgb, #2e2b25 14%, transparent);
-  --shadow-md: 0 3px 10px color-mix(in srgb, #2e2b25 16%, transparent);
-  --shadow-lg: 0 12px 32px color-mix(in srgb, #2e2b25 22%, transparent);
+  --shadow-sm: 0 1px 2px color-mix(in srgb, #13284c 12%, transparent);
+  --shadow-md: 0 3px 12px color-mix(in srgb, #13284c 12%, transparent);
+  --shadow-lg: 0 12px 32px color-mix(in srgb, #13284c 18%, transparent);
 
   /* Le avisa al navegador que el tema es claro: los controles nativos (el
      calendario de un input date, las flechas de un select) se dibujan claros. */
