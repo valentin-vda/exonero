@@ -47,7 +47,8 @@ export function diaYHora(fechaIso) {
 /** "2026-10-21T21:00:00Z" -> "18:00". */
 export function hora(fechaIso) {
   if (!fechaIso) return ''
-  return new Date(fechaIso).toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', timeZone: ZONA })
+  // hourCycle h23: "18:00" y no "06:00 p. m.", que es lo que da es-UY por defecto.
+  return new Date(fechaIso).toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: ZONA })
 }
 
 /**
