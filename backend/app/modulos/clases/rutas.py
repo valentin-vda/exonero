@@ -163,61 +163,80 @@ def crear_clase(datos: esquemas.CrearClaseIn, yo: Estudiante, db: Db):
 # ============================================================================
 
 @router.post("/{clase_id}/aprobar", response_model=esquemas.ClaseCreadaOut)
-def aprobar_clase(clase_id: int, yo: Yo, db: Db):
+def aprobar_clase(clase_id: int, yo: Profesor, db: Db):
     """El profesor acepta la solicitud. 1i.
 
     La clase pasa a aprobada, el cobro a cobrado y el horario queda ocupado.
 
-    TODO (P4): implementar. 409 horario_ocupado si se aprobo otra encima
-    mientras tanto: lo detecta la restriccion EXCLUDE de la base.
+    Errores: 404 clase_no_existe, 403 no_es_tuyo, 409 estado_invalido,
+    409 horario_ocupado (se aprobo otra encima mientras tanto: lo detecta la
+    restriccion EXCLUDE de la base).
     """
-    raise NotImplementedError("P4 - clases: POST /clases/{id}/aprobar")
+    clase = logica.aprobar(db, clase_id, yo.id)
+    respuesta = logica.resumen(db, clase)
+    db.commit()
+    return respuesta
 
 
 @router.delete("/{clase_id}", status_code=status.HTTP_204_NO_CONTENT)
-def rechazar_clase(clase_id: int, yo: Yo, db: Db):
+def rechazar_clase(clase_id: int, yo: Profesor, db: Db):
     """El profesor rechaza. BORRA la fila y libera el cobro retenido. 1i.
 
-    La clase rechazada no deja rastro.
+    La clase rechazada no deja rastro; el cobro liberado si (aparece en el
+    historial del alumno).
 
-    TODO (P4): implementar.
+    Errores: 404 clase_no_existe, 403 no_es_tuyo, 409 estado_invalido.
     """
-    raise NotImplementedError("P4 - clases: DELETE /clases/{id}")
+    logica.rechazar(db, clase_id, yo.id)
+    db.commit()
+    return None
 
 
 @router.post("/{clase_id}/cancelar", response_model=esquemas.CancelarOut)
 def cancelar_clase(clase_id: int, datos: esquemas.CancelarIn, yo: Yo, db: Db,
                    tareas: BackgroundTasks):
-    """Cancela una clase aprobada. Compartido por 1b y 1i.
+    """Cancela una clase pendiente o aprobada. Compartido por 1b y 1i.
 
     Las dos partes pueden cancelar; quien lo hizo sale del token. NO borra:
     pasa a cancelada y queda en el historial.
 
-    El reembolso corre en BackgroundTask: la respuesta vuelve al instante y el
-    cobro pasa a reembolsado unos segundos despues.
+    Si estaba pendiente, la plata retenida se libera en el momento
+    (reembolso.estado = "liberado"). Si estaba aprobada, el reembolso corre en
+    BackgroundTask: la respuesta vuelve al instante con "en_proceso" y el
+    cobro pasa a reembolsado unos segundos despues. La tarea corre despues
+    de este commit, asi que ya ve la clase cancelada.
 
-    TODO (P4): implementar.
+    Errores: 404 clase_no_existe, 403 no_es_tuyo, 409 estado_invalido.
     """
-    raise NotImplementedError("P4 - clases: POST /clases/{id}/cancelar")
+    respuesta = logica.cancelar(db, clase_id, yo.id, datos.motivo, tareas)
+    db.commit()
+    return respuesta
 
 
 @router.post("/{clase_id}/reprogramar", response_model=esquemas.ClaseOut)
 def reprogramar_clase(clase_id: int, datos: esquemas.ReprogramarIn, yo: Yo, db: Db):
     """Mueve la clase de horario. Compartido por 1b y 1i.
 
-    Vuelve a estado pendiente: el profesor la tiene que aprobar otra vez.
+    Vuelve a estado pendiente: el profesor la tiene que aprobar otra vez. Los
+    importes no cambian. Devuelve la clase como una fila del calendario.
 
-    TODO (P4): implementar.
+    Errores: 404 clase_no_existe, 403 no_es_tuyo, 409 estado_invalido,
+    400 duracion_no_modificable, 409 horario_ocupado.
     """
-    raise NotImplementedError("P4 - clases: POST /clases/{id}/reprogramar")
+    clase = logica.reprogramar(db, clase_id, yo.id, datos.inicio, datos.duracion_min)
+    db.commit()
+    return logica.armar_clases(db, [clase], yo.id)[0]
 
 
 @router.post("/{clase_id}/completar", response_model=esquemas.ClaseOut)
-def completar_clase(clase_id: int, datos: esquemas.CompletarIn, yo: Yo, db: Db):
+def completar_clase(clase_id: int, datos: esquemas.CompletarIn, yo: Profesor, db: Db):
     """El profesor la marca como dictada o no_asistida. 1i.
 
-    Suma a las horas dictadas del profesor y habilita resenar al alumno.
+    Suma a las clases dictadas del profesor y habilita resenar al alumno.
 
-    TODO (P4): implementar.
+    Errores: 404 clase_no_existe, 403 no_es_tuyo, 400 estado_no_permitido,
+    409 estado_invalido (no estaba aprobada).
     """
-    raise NotImplementedError("P4 - clases: POST /clases/{id}/completar")
+    clase = logica.completar(db, clase_id, yo.id, datos.estado)
+    db.commit()
+    return logica.armar_clases(db, [clase], yo.id)[0]

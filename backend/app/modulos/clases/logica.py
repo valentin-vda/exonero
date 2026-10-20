@@ -29,11 +29,12 @@ from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import and_, column, exists, func, or_, select, table
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app import fechas
-from app.enums import EstadoClase, Modalidad, Rol
-from app.errores import ErrorAPI, conflicto, no_existe
+from app.enums import Actor, EstadoClase, Modalidad, Rol
+from app.errores import ErrorAPI, conflicto, no_es_tuyo, no_existe
 from app.modulos.agenda import logica as agenda
 from app.modulos.catalogos import logica as catalogos
 from app.modulos.clases.modelos import Clase
@@ -243,76 +244,177 @@ def resumen(db: Session, clase: Clase) -> dict:
     }
 
 
-def aprobar(db: Session, clase_id: int, profesor_id: int) -> object:
+# ---------------------------------------------------------------------------
+# Las acciones sobre una clase - 1b y 1i
+#
+# Todas empiezan igual: buscar la clase (404), ver que quien pide sea parte
+# (403) y que este en el estado que la accion necesita (409 estado_invalido).
+# La clase se lee con FOR UPDATE: si el profesor aprueba y el alumno cancela
+# en el mismo instante, la segunda espera a que termine la primera y ve el
+# estado nuevo, en vez de pisarlo.
+# ---------------------------------------------------------------------------
+
+def aprobar(db: Session, clase_id: int, profesor_id: int) -> Clase:
     """El profesor acepta. La clase pasa a aprobada y el cobro a cobrado.
 
-    TODO (P4): implementar.
-      1. 403 si la clase no es de este profesor; 409 si no esta pendiente.
-      2. Pasar a aprobada. La restriccion EXCLUDE de la base puede rechazar el
-         UPDATE si mientras tanto se aprobo otra encima: capturar el
-         IntegrityError y devolver 409 "horario_ocupado".
-      3. pagos.logica.cobrar(db, clase_id).
+    Errores: 404 clase_no_existe, 403 no_es_tuyo, 409 estado_invalido (no esta
+    pendiente), 409 horario_ocupado (ya hay otra aprobada encima, o el
+    profesor bloqueo ese rato en su agenda).
     """
-    raise NotImplementedError("P4 - clases: aprobar")
+    clase = _clase_del_profesor(db, clase_id, profesor_id)
+    _exigir_estado(clase, EstadoClase.pendiente)
+
+    # 1. Un bloqueo de la agenda encima (P3; mientras no este, no hay bloqueos).
+    if _hay_bloqueo(db, profesor_id, clase.inicio, clase.fin):
+        raise conflicto("horario_ocupado")
+
+    # 2. LA DEFENSA REAL contra dos clases encimadas: la restriccion EXCLUDE
+    #    clase_sin_superposicion de la base, que salta en el UPDATE si ya hay
+    #    otra aprobada del mismo profesor que se cruza con esta. Va dentro de
+    #    un SAVEPOINT (begin_nested): si salta, se deshace solo el UPDATE y la
+    #    sesion sigue sana para responder el 409.
+    try:
+        with db.begin_nested():
+            clase.estado = EstadoClase.aprobada
+            db.flush()
+    except IntegrityError as error:
+        if _restriccion(error) != "clase_sin_superposicion":
+            raise
+        raise conflicto("horario_ocupado")
+
+    # 3. La plata retenida pasa a cobrada (si ya lo estaba, porque la clase se
+    #    reprogramo, cobrar() no hace nada).
+    pagos.cobrar(db, clase.id)
+    return clase
 
 
 def rechazar(db: Session, clase_id: int, profesor_id: int) -> None:
     """El profesor rechaza. SE BORRA LA FILA y se libera el cobro.
 
     La clase rechazada no deja rastro: no es un estado, es una fila que no
-    existe mas. El cobro SI queda, con estado liberado, porque hubo un
-    movimiento de plata que registrar.
+    existe mas. El cobro SI queda, con estado liberado y clase_id en NULL,
+    porque hubo un movimiento de plata que registrar (y el historial de 1e
+    lo muestra como "Solicitud rechazada").
 
-    TODO (P4): implementar.
-      1. 403 si no es de este profesor; 409 si no esta pendiente.
-      2. pagos.logica.liberar(db, clase_id) ANTES de borrar la clase.
-      3. Borrar la fila.
+    Errores: 404 clase_no_existe, 403 no_es_tuyo, 409 estado_invalido.
     """
-    raise NotImplementedError("P4 - clases: rechazar")
+    clase = _clase_del_profesor(db, clase_id, profesor_id)
+    _exigir_estado(clase, EstadoClase.pendiente)
+    # ANTES de borrar: despues ya no habria como encontrar el cobro por la clase.
+    pagos.liberar(db, clase.id)
+    db.delete(clase)
+    db.flush()
 
 
-def cancelar(db: Session, clase_id: int, quien_id: int, motivo: str | None, tareas) -> object:
+def cancelar(db: Session, clase_id: int, quien_id: int, motivo: str | None, tareas) -> dict:
     """Cualquiera de las dos partes cancela. NO se borra: cambia de estado.
 
     Queda en el historial porque el reembolso y la tasa de cancelacion de 1d
-    la necesitan.
+    la necesitan. Se puede cancelar una pendiente o una aprobada.
 
-    TODO (P4): implementar.
-      1. 403 si quien cancela no es parte de la clase.
-      2. 409 si ya esta cancelada o dictada.
-      3. estado = cancelada, cancelada_por = estudiante o profesor segun el rol
-         del token, motivo = el que vino.
-      4. Encolar el reembolso: tareas.add_task(pagos.logica.reembolsar, clase_id).
-         Corre como BackgroundTask para que el cancelar responda al instante.
+    Que pasa con la plata depende de en que estado este el cobro:
+      retenido (todavia pendiente) -> se LIBERA en el momento
+      cobrado  (ya aprobada)       -> se encola el REEMBOLSO como BackgroundTask
+                                      (`tareas`), para que el cancelar responda
+                                      al instante; el cobro pasa a reembolsado
+                                      un momento despues
 
-    PENDIENTE DE DECIDIR (lo marca la spec): la politica de cancelacion. Si se
-    reembolsa el total siempre, o si hay un plazo minimo. Hoy asume total.
+    Devuelve la forma de CancelarOut, con reembolso = {"estado": "liberado" |
+    "en_proceso", "importe": total}.
+
+    POLITICA DE CANCELACION, PENDIENTE DE DECIDIR (seccion 11.2 de la
+    documentacion): si se reembolsa el total siempre, o si hay un plazo minimo
+    (por ejemplo, cancelar con menos de 24 horas). Hoy se devuelve el TOTAL
+    siempre, la cancele quien la cancele.
+
+    Errores: 404 clase_no_existe, 403 no_es_tuyo, 409 estado_invalido (ya
+    estaba cancelada, dictada o no_asistida).
     """
-    raise NotImplementedError("P4 - clases: cancelar")
+    clase = _clase(db, clase_id)
+    actor = _actor(clase, quien_id)
+    _exigir_estado(clase, EstadoClase.pendiente, EstadoClase.aprobada)
+
+    cobro = pagos.cobro_de(db, clase.id) or {}
+    if cobro.get("estado") == "retenido":
+        pagos.liberar(db, clase.id)
+        reembolso = {"estado": "liberado", "importe": cobro["importe"]}
+    elif cobro.get("estado") == "cobrado":
+        # Corre despues de que la ruta hizo el commit y respondio: para
+        # entonces la clase ya figura cancelada. Ver pagos.reembolsar().
+        tareas.add_task(pagos.reembolsar, clase.id)
+        reembolso = {"estado": "en_proceso", "importe": cobro["importe"]}
+    else:
+        raise conflicto("estado_invalido")
+
+    clase.estado = EstadoClase.cancelada
+    clase.cancelada_por = actor
+    clase.motivo = _limpio(motivo)
+    db.flush()
+    return {"id": clase.id, "estado": clase.estado.value, "cancelada_por": actor.value, "reembolso": reembolso}
 
 
-def reprogramar(db: Session, clase_id: int, quien_id: int, inicio_nuevo: datetime) -> object:
+def reprogramar(db: Session, clase_id: int, quien_id: int, inicio_nuevo: datetime,
+                duracion_min: int | None = None) -> Clase:
     """Cambia la fecha y VUELVE A PENDIENTE, para que el profesor apruebe de nuevo.
 
-    TODO (P4): implementar.
-      1. 403 si no es parte de la clase.
-      2. agenda.logica.verificar() en el horario nuevo -> 409 si esta ocupado.
-      3. Cambiar inicio y fin, estado = pendiente.
-      4. Los importes NO se recalculan: siguen congelados. Es la misma clase
-         movida de lugar, no una nueva.
+    Lo puede pedir cualquiera de las dos partes, sobre una pendiente o una
+    aprobada. Los importes NO se recalculan: siguen congelados. Es la misma
+    clase movida de lugar, no una nueva. Por eso la duracion no se puede
+    cambiar (cambiaria el importe): si viene y es otra, 400.
+
+    Si estaba aprobada, el cobro queda cobrado: al aprobarla de nuevo,
+    pagos.cobrar() no hace nada.
+
+    Errores: 404 clase_no_existe, 403 no_es_tuyo, 409 estado_invalido,
+    400 duracion_no_modificable, 409 horario_ocupado.
     """
-    raise NotImplementedError("P4 - clases: reprogramar")
+    clase = _clase(db, clase_id)
+    _actor(clase, quien_id)
+    _exigir_estado(clase, EstadoClase.pendiente, EstadoClase.aprobada)
+    if duracion_min is not None and duracion_min != clase.duracion_min:
+        raise ErrorAPI(400, "duracion_no_modificable")
+    inicio = fechas.con_zona(inicio_nuevo)
+
+    # 1. Primero vuelve a pendiente, y se manda a la base. Asi, si estaba
+    #    aprobada, su propio horario viejo deja de contar como ocupado para
+    #    agenda.verificar() (que mira las aprobadas): moverla media hora no
+    #    choca consigo misma. Si el horario nuevo esta ocupado, el error de
+    #    abajo impide el commit y no queda nada cambiado.
+    clase.estado = EstadoClase.pendiente
+    db.flush()
+
+    # 2. Que el horario nuevo este libre.
+    if not _horario_libre(db, clase.profesor_id, inicio, clase.duracion_min):
+        raise conflicto("horario_ocupado")
+
+    # 3. Moverla. fin se recalcula: es lo que cruza la restriccion EXCLUDE.
+    clase.inicio = inicio
+    clase.fin = inicio + timedelta(minutes=clase.duracion_min)
+    db.flush()
+    return clase
 
 
-def completar(db: Session, clase_id: int, profesor_id: int, estado: str) -> object:
-    """El profesor la marca como dictada o no_asistida.
+def completar(db: Session, clase_id: int, profesor_id: int, estado: str) -> Clase:
+    """El profesor la marca como dictada o no_asistida. Solo una aprobada.
 
-    TODO (P4): implementar.
-      1. 403 si no es de este profesor; 409 si no esta aprobada.
-      2. Si es dictada, incrementar clases_dictadas del perfil del profesor.
-      3. Habilita resenar: resenas.tuvieron_clase() empieza a devolver True.
+    Si es dictada, suma uno a clases_dictadas de su perfil, y desde ahora
+    tuvieron_clase() da True para el par: el alumno ya puede resenarlo.
+    El cobro queda cobrado en los dos casos (si el alumno no vino, la clase
+    se cobra igual).
+
+    Errores: 404 clase_no_existe, 403 no_es_tuyo, 400 estado_no_permitido
+    (`estado` no es dictada ni no_asistida), 409 estado_invalido.
     """
-    raise NotImplementedError("P4 - clases: marcar dictada")
+    clase = _clase_del_profesor(db, clase_id, profesor_id)
+    if estado not in (EstadoClase.dictada.value, EstadoClase.no_asistida.value):
+        raise ErrorAPI(400, "estado_no_permitido")
+    _exigir_estado(clase, EstadoClase.aprobada)
+
+    clase.estado = EstadoClase(estado)
+    db.flush()
+    if clase.estado == EstadoClase.dictada:
+        perfiles.sumar_clase_dictada(db, profesor_id)
+    return clase
 
 
 # ---------------------------------------------------------------------------
@@ -583,6 +685,69 @@ def _horario_libre(db: Session, profesor_id: int, inicio: datetime, duracion_min
         return agenda.verificar(db, profesor_id, inicio, duracion_min)["libre"]
     except NotImplementedError:
         return True
+
+
+def _clase(db: Session, clase_id: int) -> Clase:
+    """La clase, bloqueada (FOR UPDATE) hasta el commit. 404 si no existe."""
+    clase = db.get(Clase, clase_id, with_for_update=True)
+    if clase is None:
+        raise no_existe("clase")
+    return clase
+
+
+def _clase_del_profesor(db: Session, clase_id: int, profesor_id: int) -> Clase:
+    """Para aprobar, rechazar y completar: solo el profesor de la clase (403)."""
+    clase = _clase(db, clase_id)
+    if clase.profesor_id != profesor_id:
+        raise no_es_tuyo()
+    return clase
+
+
+def _actor(clase: Clase, usuario_id: int) -> Actor:
+    """Quien de los dos es `usuario_id` en esta clase. 403 si no es ninguno.
+
+    Es el cancelada_por: sale de quien pide la accion (el token), no del cuerpo.
+    """
+    if usuario_id == clase.estudiante_id:
+        return Actor.estudiante
+    if usuario_id == clase.profesor_id:
+        return Actor.profesor
+    raise no_es_tuyo()
+
+
+def _exigir_estado(clase: Clase, *estados: EstadoClase) -> None:
+    """409 estado_invalido si la clase no esta en uno de esos estados.
+
+    Pasa, por ejemplo, si el alumno cancelo mientras el profesor miraba la
+    solicitud: el frontend dice "la clase cambio de estado, recarga".
+    """
+    if clase.estado not in estados:
+        raise conflicto("estado_invalido")
+
+
+def _hay_bloqueo(db: Session, profesor_id: int, inicio: datetime, fin: datetime) -> bool:
+    """Pregunta a agenda (P3) si el profesor bloqueo ese rato.
+
+    Igual que _horario_libre(): mientras P3 no implemente
+    agenda.hay_bloqueo_encima(), levanta NotImplementedError y se sigue como
+    si no hubiera bloqueos (todavia no hay como cargarlos). Cuando este, se
+    usa sola. OJO: agenda trabaja con el id del PERFIL, no del usuario.
+    """
+    try:
+        perfil_id = perfiles.condiciones_de_reserva(db, profesor_id)["perfil_id"]
+        return agenda.hay_bloqueo_encima(db, perfil_id, inicio, fin)
+    except NotImplementedError:
+        return False
+
+
+def _restriccion(error: IntegrityError) -> str | None:
+    """El nombre de la restriccion que hizo fallar el INSERT o el UPDATE.
+
+    Para distinguir la EXCLUDE de la superposicion de cualquier otro error de
+    integridad, que no es un 409 sino un error de verdad.
+    """
+    diagnostico = getattr(error.orig, "diag", None)
+    return getattr(diagnostico, "constraint_name", None)
 
 
 def _columna_propia(db: Session, usuario_id: int):
