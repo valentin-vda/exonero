@@ -1,0 +1,186 @@
+.buscar-pagina {
+  width: 100%;
+  padding-top: 18px;
+}
+
+.buscar-contenido {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.filtros-panel {
+  width: 264px;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  border-radius: 28px;
+  background: var(--color-surface);
+}
+
+.filtros-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.filtros-cabecera h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.filtros-limpiar {
+  border: 0;
+  padding: 4px 0;
+  color: var(--color-accent);
+  background: transparent;
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.filtros-limpiar:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.filtros-panel .field { margin: 0 0 12px; }
+
+.filtros-panel .field > label,
+.filtro-bloque > label,
+.filtro-grupo legend {
+  display: block;
+  margin-bottom: 5px;
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+  font-size: 12px;
+}
+
+.filtros-panel .input {
+  min-height: 36px;
+  padding-inline: 14px 36px;
+  border-color: var(--color-divider);
+  background: var(--color-surface);
+  font-size: 14px;
+}
+
+/* En Windows el menu nativo del select puede abrirse con fondo blanco aunque
+   la pagina este en modo oscuro. Definir ambos colores en cada option evita
+   que el texto claro quede ilegible sobre ese fondo. */
+.filtros-panel select option {
+  color: var(--color-text);
+  background: var(--color-neutral-100);
+}
+
+.filtro-bloque {
+  display: grid;
+  margin-bottom: 12px;
+}
+
+.filtro-rango {
+  width: 100%;
+  height: 20px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--color-accent);
+}
+
+.filtro-grupo {
+  min-width: 0;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+}
+
+.filtro-grupo:last-child { margin-bottom: 0; }
+
+.filtro-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.filtro-radio input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.filtro-puntajes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filtro-puntajes label { cursor: pointer; }
+
+.filtro-puntajes span {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.filtro-puntajes input:checked + span {
+  color: var(--color-accent-800);
+  background: var(--color-accent-100);
+}
+
+.mapa-profesores {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.mapa-profesores .leaflet-container {
+  width: 100%;
+  height: 420px;
+  background: var(--color-neutral-200);
+}
+
+.mapa-ayuda {
+  position: absolute;
+  z-index: 500;
+  left: 14px;
+  bottom: 14px;
+  max-width: calc(100% - 28px);
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-bg) 93%, transparent);
+  box-shadow: var(--shadow-sm);
+  font-size: 11.5px;
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .buscar-contenido { grid-template-columns: 1fr; }
+
+  .filtros-panel { width: 100%; }
+}
+
+@media (max-width: 520px) {
+  .buscar-pagina { padding-top: var(--space-3); }
+
+  .filtros-panel {
+    padding: 18px;
+    border-radius: 28px;
+  }
+
+  .mapa-profesores { border-radius: 28px; }
+
+  .mapa-profesores .leaflet-container { height: 360px; }
+}

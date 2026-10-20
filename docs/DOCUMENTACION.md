@@ -13,10 +13,11 @@ cuando uno viene de backend.
 5. [El frontend](#5-el-frontend)
 6. [Login y registro, paso a paso](#6-login-y-registro-paso-a-paso)
 7. [Cuentas y perfiles (P1), de punta a punta](#7-cuentas-y-perfiles-p1-de-punta-a-punta)
-8. [El sistema de diseño](#8-el-sistema-de-diseño)
-9. [Flujos completos](#9-flujos-completos)
-10. [Qué está hecho y qué falta](#10-qué-está-hecho-y-qué-falta)
-11. [Cosas que hay que decidir](#11-cosas-que-hay-que-decidir)
+8. [Catálogos y búsqueda (P2), de punta a punta](#8-catálogos-y-búsqueda-p2-de-punta-a-punta)
+9. [El sistema de diseño](#9-el-sistema-de-diseño)
+10. [Flujos completos](#10-flujos-completos)
+11. [Qué está hecho y qué falta](#11-qué-está-hecho-y-qué-falta)
+12. [Cosas que hay que decidir](#12-cosas-que-hay-que-decidir)
 
 ---
 
@@ -701,7 +702,7 @@ Expone seis cosas:
 
 Además, cada vez que cambia el usuario, el contexto escribe su tema en
 `<html data-tema="claro|oscuro">`. Así funciona el modo oscuro (ver la
-sección 8).
+sección 9).
 
 **Por qué existe `cargando`:** al recargar la página, el token está en
 `sessionStorage` pero todavía no sabemos si sigue siendo válido. Hay que
@@ -734,7 +735,7 @@ estudiante, y la pantalla va a salir con la barra de navegación arriba.
 | `/registro` | Registro | — | Hecha |
 | `/recuperar` | Recuperar contraseña | — | Hecha |
 | `/inicio` | Inicio del estudiante | 1a | Pendiente, P2 |
-| `/buscar` | Buscar profes | 1c | Pendiente, P2 |
+| `/buscar` | Buscar profes | 1c | En progreso, P2: filtros y mapa base hechos |
 | `/profesor/:id` | Detalle del profesor | 1f | Pendiente, P2 |
 | `/checkout` | Checkout | 1g | Pendiente, P4 |
 | `/mis-clases` | Mis clases | 1b | Pendiente, P3 |
@@ -1250,12 +1251,208 @@ opción con el valor actual → los campos se deshabilitan y aparece el aviso.
 | "Cuentas de cobro" del profesor (BROU, Mercado Pago) | El modelo no tiene cuenta bancaria del profesor: los ingresos son la suma de sus cobros |
 | "Precio por alumno en grupal" y "misma etapa" | No están en el modelo, y lo grupal está fuera de la v1 |
 | "Ver mi ficha pública" (1j) | La ficha pública es la pantalla 1f, que es de P2 y solo pueden abrirla los estudiantes |
-| La etapa "Primaria" | Las etapas salen del catálogo, y la lista que manda no la tiene (sección 11) |
+| La etapa "Primaria" | Las etapas salen del catálogo, y la lista que manda no la tiene (sección 12) |
 | Arrastrar fotos a cada espacio | Se elige el archivo con un clic: más simple y funciona igual con teclado |
 
 ---
 
-## 8. El sistema de diseño
+## 8. Catálogos y búsqueda (P2), de punta a punta
+
+P2 es dueño de `catalogos`, `busqueda` y las pantallas 1a, 1c y 1f. Esta
+sección documenta lo que ya está implementado de 1c y marca con precisión qué
+parte todavía no busca profesores de verdad.
+
+### Probar el panel en dos minutos
+
+1. Levantar PostgreSQL, backend y frontend como explica la sección 1.
+2. Entrar con un estudiante.
+3. Abrir `http://localhost:5173/buscar`.
+4. Comprobar que materia, etapa, barrio y centro educativo tienen datos.
+5. Elegir un barrio: el selector de centros debe mostrar solo los de ese
+   barrio y limpiar cualquier centro elegido anteriormente.
+6. Cambiar precio, modalidad o puntaje; el botón "Limpiar" debe habilitarse.
+7. Pulsar "Limpiar": todos los controles deben volver a su valor inicial.
+8. Elegir un barrio o centro y comprobar que el mapa se acerca a esa zona.
+
+El panel todavía no muestra resultados. El endpoint de búsqueda sigue
+pendiente, como se explica al final de esta sección.
+
+### Los archivos de P2 que participan
+
+| Archivo | Responsabilidad |
+|---|---|
+| `backend/app/modulos/catalogos/modelos.py` | Tablas de materias, etapas, barrios, centros, idiomas y parámetros |
+| `backend/app/modulos/catalogos/esquemas.py` | Contratos que devuelve la API de catálogos |
+| `backend/app/modulos/catalogos/logica.py` | Parámetros vigentes, centroide de barrio y validación de ids |
+| `backend/app/modulos/catalogos/rutas.py` | `GET /api/catalogos/todo` y las listas individuales |
+| `backend/app/modulos/busqueda/esquemas.py` | Contrato de filtros, resultados y pines del mapa |
+| `backend/app/modulos/busqueda/logica.py` | Consulta combinada de búsqueda; todavía pendiente |
+| `backend/app/modulos/busqueda/rutas.py` | Endpoints HTTP de búsqueda; todavía pendientes |
+| `frontend/src/paginas/BuscarProfesores.jsx` | Carga catálogos y coordina el estado del panel 1c |
+| `frontend/src/componentes/busqueda/MapaProfesores.jsx` | Mapa Leaflet centrado en el barrio o centro seleccionado |
+| `frontend/src/estilos/busqueda.css` | Diseño adaptable del panel, incluido el modo oscuro |
+| `frontend/src/componentes/CampoSelect.jsx` | Selector reutilizable que ya compartían los perfiles |
+| `frontend/src/api/perfiles.js` | Contiene temporalmente `obtenerCatalogos()` |
+
+`obtenerCatalogos()` está en `api/perfiles.js` porque P1 lo necesitó primero
+para 1e y 1j. Cuando P2 cree `api/catalogos.js`, se mueve ahí y se actualizan
+los tres imports; no se duplica la función.
+
+### Cómo está armada la pantalla 1c
+
+```
+App.jsx
+  Route /buscar, estudiante
+    Layout
+      BuscarProfesores.jsx
+        GET /api/catalogos/todo
+        estado de carga y error
+        panel de filtros
+          CampoSelect: materia
+          CampoSelect: etapa
+          rango: precio máximo
+          CampoSelect: barrio
+          CampoSelect: centro educativo
+          radios: modalidad
+          radios: puntaje mínimo
+        botón Limpiar
+        MapaProfesores
+          mapa base de OpenStreetMap
+          centro del barrio o centro educativo elegido
+```
+
+`BuscarProfesores.jsx` es el coordinador. Guarda el estado general y pasa a
+`CampoSelect` el valor actual, la función que lo cambia y las opciones. No
+hace `fetch()` directo: las llamadas HTTP pasan por las funciones de `src/api/`
+y, finalmente, por `api/cliente.js`.
+
+### Qué ocurre al entrar
+
+```
+  Usuario             BuscarProfesores            Backend
+     |                       |                        |
+     | abre /buscar          |                        |
+     |---------------------->|                        |
+     |                       | GET /catalogos/todo    |
+     |                       |----------------------->|
+     |                       | materias, etapas,      |
+     |                       | barrios, centros...    |
+     |                       |<-----------------------|
+     | ve el panel           |                        |
+     |<----------------------|                        |
+```
+
+Mientras espera se ve "Cargando opciones...". Si la llamada falla, se muestra
+el error y no se intenta leer propiedades de un catálogo inexistente. El panel
+se renderiza solamente cuando `catalogos` tiene datos.
+
+La respuesta de `/catalogos/todo` tiene esta forma:
+
+```json
+{
+  "materias": [],
+  "etapas": [],
+  "barrios": [],
+  "centros": [],
+  "idiomas": []
+}
+```
+
+### Los filtros y el dato que guardan
+
+| Control visible | Estado de React | Dato para la API |
+|---|---|---|
+| Materia | `materiaId` | `materia` |
+| Etapa educativa | `etapaId` | `etapa` |
+| Precio por hora | `precioMax` | `precio_max` |
+| Barrio | `barrioId` | `barrio` |
+| Centro educativo | `centroId` | `centro` |
+| Modalidad | `modalidad` | `modalidad` |
+| Puntaje mínimo | `puntajeMin` | `puntaje_min` |
+
+Los ids de un `<select>` llegan como texto. Eso sirve directamente para
+`URLSearchParams`; si una operación numérica los necesitara, se convierten con
+`Number(...)` en ese límite y no antes.
+
+### Barrio y centro son dependientes
+
+Los centros traen `barrio_id`. La pantalla filtra la lista antes de convertirla
+en opciones:
+
+```jsx
+catalogos.centros
+  .filter((centro) => !barrioId || String(centro.barrio_id) === barrioId)
+  .map((centro) => ({ valor: centro.id, texto: centro.nombre }))
+```
+
+Si no hay barrio se ven todos. Si lo hay, se ven solo sus centros. Además,
+`cambiarBarrio()` limpia `centroId`; así nunca queda guardado un centro del
+barrio anterior.
+
+### El mapa que ya funciona sin la búsqueda
+
+`MapaProfesores.jsx` usa `MapContainer` y `TileLayer` de React Leaflet. Parte
+del centro general de Montevideo. `BuscarProfesores.jsx` busca con `find()` el
+barrio o centro seleccionado y le pasa ese objeto mediante la prop
+`ubicacion`. Como ambos catálogos incluyen latitud y longitud, un componente
+interno con `useMap()` llama a `flyTo()` y acerca el mapa sin necesitar el
+endpoint de búsqueda.
+
+El mapa es real, pero aún no muestra profesores. Los pines dependen de
+`GET /api/busqueda/profesores/mapa`, que continúa pendiente.
+
+### Limpiar sin duplicar estado
+
+`limpiarFiltros()` devuelve cada control a su valor inicial. El botón se
+deshabilita con `hayFiltros`, un booleano calculado a partir de los estados
+existentes. No se guarda otro `useState` para eso: sería información duplicada
+que podría quedar desincronizada.
+
+### El diseño y el modo oscuro
+
+`busqueda.css` se limita con clases como `.filtros-panel`; no cambia los
+formularios de P1. Usa variables de `tokens.css`, por lo que acompaña el tema
+del usuario y mantiene el panel adaptable en anchos chicos.
+
+La composición replica `Exonero Demo.html`: columna de filtros de `264px`,
+separación de `18px`, panel con `18px` de relleno y mapa de `420px` de alto.
+No lleva un título introductorio sobre ambas columnas. Debajo de 900 px pasa
+a una sola columna para evitar desplazamiento horizontal.
+
+La lista abierta de un `<select>` la dibujan el navegador y Windows. Para que
+no quede texto claro sobre fondo blanco en modo oscuro, las opciones definen
+explícitamente ambos colores con variables del tema.
+
+### Acentos en los catálogos
+
+El frontend ya era UTF-8. Los nombres sin tildes venían de `app/seeds.py`, no
+de React. Se corrigieron los datos fuente (`Matemática`, `Español`, `Cordón`,
+etc.) y sus referencias internas. Una base ya sembrada conserva los textos
+viejos hasta volver a ejecutar los seeds o actualizar esas filas. Ejecutar
+`python -m app.seeds` vacía y reconstruye las tablas.
+
+### Qué es real y qué falta
+
+Precio, modalidad y puntaje existen como columnas de `perfil_profesor` y como
+parámetros de `FiltrosBusqueda`. El panel ya guarda valores compatibles con
+ese contrato.
+
+Lo que falta es la consulta: `busqueda.logica.buscar()` y
+`GET /api/busqueda/profesores` todavía terminan en `NotImplementedError`. Por
+eso hoy los controles funcionan, se limpian y centran el mapa, pero no producen
+una lista ni pines de profesores.
+
+El orden para terminar 1c es:
+
+1. Implementar `busqueda.logica.buscar()`.
+2. Hacer que la ruta `/busqueda/profesores` llame a esa función.
+3. Crear `frontend/src/api/busqueda.js` y serializar solo los filtros activos.
+4. Agregar estado de resultados, carga de búsqueda y error.
+5. Dibujar tarjetas, paginación y pines sobre el mapa ya creado.
+
+---
+
+## 9. El sistema de diseño
 
 Los mockups usan un sistema llamado **Organic**. Está copiado tal cual en
 `src/estilos/`, así que cualquier pantalla nueva que use estas clases se va a
@@ -1380,7 +1577,7 @@ la aplicación.
 
 ---
 
-## 9. Flujos completos
+## 10. Flujos completos
 
 ### Registrarse
 
@@ -1509,7 +1706,7 @@ legítimas. El profesor elige cuál aprueba.
 
 ---
 
-## 10. Qué está hecho y qué falta
+## 11. Qué está hecho y qué falta
 
 ### Hecho
 
@@ -1532,7 +1729,9 @@ legítimas. El profesor elige cuál aprueba.
 - **Todo lo de P1** (ver la sección 7): `usuario_actual()`, los módulos
   `cuentas` y `perfiles` completos, y las pantallas **1e** y **1j**, con
   modo oscuro
-- Las otras ocho pantallas enrutadas con un marcador
+- **Catálogos de P2**, el panel de filtros y el mapa base de **1c** (ver la
+  sección 8), todavía sin la consulta, pines ni resultados de búsqueda
+- Las pantallas restantes enrutadas con un marcador
 
 ### Verificado
 
@@ -1556,12 +1755,12 @@ legítimas. El profesor elige cuál aprueba.
 
 ### Falta
 
-Los cuerpos de las funciones del backend de **P2, P3 y P4** (las de P1 ya
-están). Cada una tiene su docstring con lo que debería hacer, numerado paso a
-paso, y termina con:
+Todavía faltan funciones del backend de **P2, P3 y P4** (las de P1 y los
+catálogos de P2 ya están). Cada pendiente tiene su docstring con lo que debería
+hacer, numerado paso a paso, y termina con:
 
 ```python
-raise NotImplementedError("P2 - catalogos: GET /catalogos/todo")
+raise NotImplementedError("P2 - busqueda: la busqueda con los nueve filtros")
 ```
 
 Ese texto dice **quién** la tiene que escribir y **de qué módulo** es.
@@ -1603,7 +1802,7 @@ de 1e.
 
 ---
 
-## 11. Cosas que hay que decidir
+## 12. Cosas que hay que decidir
 
 La spec marca tres cosas sin cerrar. Las tres bloquean trabajo.
 
@@ -1617,7 +1816,7 @@ En `app/seeds.py` está puesta la lista del mockup, que es la que manda:
 
 ```python
 ETAPAS = [
-    ("Ciclo basico", 1, ["1.o", "2.o", "3.o"]),
+    ("Ciclo básico", 1, ["1.o", "2.o", "3.o"]),
     ("Bachillerato", 2, ["4.o", "5.o", "6.o"]),
     ("UTU", 3, ["1.o", "2.o", "3.o"]),
     ("Universidad", 4, ["1.o", "2.o", "3.o", "4.o", "5.o"]),

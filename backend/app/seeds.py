@@ -91,30 +91,30 @@ SEMILLA = 2026
 
 BARRIOS = [
     # (nombre, latitud, longitud) - centroide aproximado
-    ("Cordon", -34.9011, -56.1780),
+    ("Cordón", -34.9011, -56.1780),
     ("Centro", -34.9059, -56.1913),
     ("Pocitos", -34.9139, -56.1560),
     ("Punta Carretas", -34.9260, -56.1600),
-    ("Parque Rodo", -34.9160, -56.1700),
+    ("Parque Rodó", -34.9160, -56.1700),
     ("Tres Cruces", -34.8940, -56.1660),
     ("La Blanqueada", -34.8850, -56.1560),
     ("Buceo", -34.9020, -56.1370),
-    ("Malvin", -34.8930, -56.1180),
+    ("Malvín", -34.8930, -56.1180),
     ("Ciudad Vieja", -34.9070, -56.2050),
     ("Prado", -34.8580, -56.1950),
-    ("Union", -34.8730, -56.1250),
+    ("Unión", -34.8730, -56.1250),
 ]
 
 MATERIAS = [
-    ("Matematica", "Mate"),
-    ("Fisica", "Fisica"),
-    ("Quimica", "Quimica"),
-    ("Idioma Espanol", "Espanol"),
-    ("Ingles", "Ingles"),
+    ("Matemática", "Mate"),
+    ("Física", "Física"),
+    ("Química", "Química"),
+    ("Idioma Español", "Español"),
+    ("Inglés", "Inglés"),
     ("Historia", "Historia"),
-    ("Biologia", "Biologia"),
+    ("Biología", "Biología"),
     ("Literatura", "Literatura"),
-    ("Geografia", "Geografia"),
+    ("Geografía", "Geografía"),
     ("Dibujo", "Dibujo"),
 ]
 
@@ -125,7 +125,7 @@ MATERIAS = [
 # Es una de las dos cosas que la spec marca como "decidir antes de la semana 2".
 # =======================================================================
 ETAPAS = [
-    ("Ciclo basico", 1, ["1.o", "2.o", "3.o"]),
+    ("Ciclo básico", 1, ["1.o", "2.o", "3.o"]),
     ("Bachillerato", 2, ["4.o", "5.o", "6.o"]),
     ("UTU", 3, ["1.o", "2.o", "3.o"]),
     ("Universidad", 4, ["1.o", "2.o", "3.o", "4.o", "5.o"]),
@@ -134,15 +134,15 @@ ETAPAS = [
 
 CENTROS = [
     # (nombre, tipo, barrio)
-    ("Liceo Bauza", "liceo", "Cordon"),
+    ("Liceo Bauzá", "liceo", "Cordón"),
     ("Liceo N 8", "liceo", "Pocitos"),
     ("IAVA", "liceo", "Centro"),
     ("UTU Buceo", "utu", "Buceo"),
     ("Liceo 14", "liceo", "La Blanqueada"),
-    ("Facultad de Ingenieria", "facultad", "Parque Rodo"),
+    ("Facultad de Ingeniería", "facultad", "Parque Rodó"),
 ]
 
-IDIOMAS = ["Espanol", "Ingles", "Portugues"]
+IDIOMAS = ["Español", "Inglés", "Portugués"]
 
 # Comision de la plataforma e IVA. En tabla y no como constante para poder
 # cambiarlos sin recompilar. El IVA uruguayo basico es 22 %.
@@ -159,16 +159,16 @@ PROFESORES = [
     dict(
         nombre="Lucia", apellido="Fernandez", barrio="Pocitos", direccion="Benito Blanco 1120",
         modalidad=Modalidad.ambas, lugar=LugarClase.espacio_propio,
-        materias=["Matematica", "Fisica"], etapas=["Bachillerato", "Examen de ingreso"],
-        idiomas=["Espanol"], precio_presencial=900, precio_online=800,
+        materias=["Matemática", "Física"], etapas=["Bachillerato", "Examen de ingreso"],
+        idiomas=["Español"], precio_presencial=900, precio_online=800,
         titular="Matematica y Fisica para bachillerato y examenes de ingreso",
         titulo="Profesora de Matematica (IPA)", anios=8, ficha=EstadoFicha.publicada,
     ),
     dict(
-        nombre="Martin", apellido="Rodriguez", barrio="Cordon", direccion=None,
+        nombre="Martin", apellido="Rodriguez", barrio="Cordón", direccion=None,
         modalidad=Modalidad.presencial, lugar=LugarClase.a_domicilio,
-        materias=["Quimica", "Biologia"], etapas=["Ciclo basico", "Bachillerato"],
-        idiomas=["Espanol"], precio_presencial=850, precio_online=None,
+        materias=["Química", "Biología"], etapas=["Ciclo básico", "Bachillerato"],
+        idiomas=["Español"], precio_presencial=850, precio_online=None,
         titular="Quimica sin miedo, a domicilio",
         titulo="Quimico Farmaceutico (Udelar)", anios=5, ficha=EstadoFicha.publicada,
         duracion_max=90,
@@ -176,41 +176,41 @@ PROFESORES = [
     dict(
         nombre="Sofia", apellido="Pereira", barrio="Centro", direccion=None,
         modalidad=Modalidad.online, lugar=LugarClase.espacio_propio,
-        materias=["Ingles"], etapas=["Ciclo basico", "Bachillerato", "Universidad"],
-        idiomas=["Espanol", "Ingles"], precio_presencial=None, precio_online=700,
+        materias=["Inglés"], etapas=["Ciclo básico", "Bachillerato", "Universidad"],
+        idiomas=["Español", "Inglés"], precio_presencial=None, precio_online=700,
         titular="Ingles conversacional y preparacion de examenes internacionales",
         titulo="Profesora de Ingles (IPA)", anios=10, ficha=EstadoFicha.publicada,
     ),
     dict(
-        nombre="Diego", apellido="Silva", barrio="Parque Rodo", direccion="Jackson 1045",
+        nombre="Diego", apellido="Silva", barrio="Parque Rodó", direccion="Jackson 1045",
         modalidad=Modalidad.ambas, lugar=LugarClase.ambos,
-        materias=["Matematica"], etapas=["Universidad", "UTU"],
-        idiomas=["Espanol", "Ingles", "Portugues"], precio_presencial=1100, precio_online=1000,
+        materias=["Matemática"], etapas=["Universidad", "UTU"],
+        idiomas=["Español", "Inglés", "Portugués"], precio_presencial=1100, precio_online=1000,
         titular="Calculo y Algebra para facultad",
         titulo="Ingeniero en Computacion (Udelar)", anios=6, ficha=EstadoFicha.publicada,
     ),
     dict(
         nombre="Valentina", apellido="Gomez", barrio="Buceo", direccion="Rivera 4410",
         modalidad=Modalidad.presencial, lugar=LugarClase.espacio_propio,
-        materias=["Literatura", "Idioma Espanol", "Historia"], etapas=["Ciclo basico", "Bachillerato"],
-        idiomas=["Espanol"], precio_presencial=750, precio_online=None,
+        materias=["Literatura", "Idioma Español", "Historia"], etapas=["Ciclo básico", "Bachillerato"],
+        idiomas=["Español"], precio_presencial=750, precio_online=None,
         titular="Literatura, Espanol e Historia para liceo",
         titulo="Profesora de Literatura (IPA)", anios=12, ficha=EstadoFicha.publicada,
     ),
     dict(
         nombre="Joaquin", apellido="Sosa", barrio="Tres Cruces", direccion=None,
         modalidad=Modalidad.ambas, lugar=LugarClase.a_domicilio,
-        materias=["Fisica", "Matematica"], etapas=["Bachillerato", "Examen de ingreso"],
-        idiomas=["Espanol"], precio_presencial=950, precio_online=850,
+        materias=["Física", "Matemática"], etapas=["Bachillerato", "Examen de ingreso"],
+        idiomas=["Español"], precio_presencial=950, precio_online=850,
         titular="Fisica y Matematica para salvar el examen",
         titulo="Estudiante avanzado de Ingenieria", anios=3, ficha=EstadoFicha.publicada,
         duracion_max=90,
     ),
     dict(
-        nombre="Camila", apellido="Martinez", barrio="Malvin", direccion=None,
+        nombre="Camila", apellido="Martinez", barrio="Malvín", direccion=None,
         modalidad=Modalidad.online, lugar=LugarClase.espacio_propio,
-        materias=["Geografia", "Historia"], etapas=["Ciclo basico"],
-        idiomas=["Espanol"], precio_presencial=None, precio_online=650,
+        materias=["Geografía", "Historia"], etapas=["Ciclo básico"],
+        idiomas=["Español"], precio_presencial=None, precio_online=650,
         titular="Geografia e Historia para ciclo basico",
         titulo="Estudiante de profesorado de Historia", anios=2, ficha=EstadoFicha.borrador,
     ),
@@ -218,7 +218,7 @@ PROFESORES = [
         nombre="Nicolas", apellido="Acosta", barrio="Prado", direccion="Plaza Fabini",
         modalidad=Modalidad.presencial, lugar=LugarClase.espacio_publico,
         materias=["Dibujo"], etapas=["Bachillerato", "UTU"],
-        idiomas=["Espanol"], precio_presencial=800, precio_online=None,
+        idiomas=["Español"], precio_presencial=800, precio_online=None,
         titular="Dibujo tecnico y geometria descriptiva",
         titulo="Arquitecto (Udelar)", anios=7, ficha=EstadoFicha.pausada,
     ),
@@ -226,18 +226,18 @@ PROFESORES = [
 
 ESTUDIANTES = [
     # (nombre, apellido, nacimiento, etapa, nivel, centro, barrio)
-    ("Mateo", "Lopez", date(2009, 3, 14), "Bachillerato", "5.o", "Liceo Bauza", "Cordon"),
+    ("Mateo", "Lopez", date(2009, 3, 14), "Bachillerato", "5.o", "Liceo Bauzá", "Cordón"),
     ("Emma", "Gonzalez", date(2010, 7, 2), "Bachillerato", "4.o", "Liceo N 8", "Pocitos"),
-    ("Thiago", "Ramirez", date(2011, 11, 20), "Ciclo basico", "3.o", "IAVA", "Centro"),
-    ("Isabella", "Suarez", date(2012, 1, 9), "Ciclo basico", "2.o", "Liceo 14", "La Blanqueada"),
+    ("Thiago", "Ramirez", date(2011, 11, 20), "Ciclo básico", "3.o", "IAVA", "Centro"),
+    ("Isabella", "Suarez", date(2012, 1, 9), "Ciclo básico", "2.o", "Liceo 14", "La Blanqueada"),
     ("Bruno", "Mendez", date(2008, 5, 30), "Bachillerato", "6.o", "IAVA", "Tres Cruces"),
     ("Julieta", "Castro", date(2007, 9, 12), "Examen de ingreso", None, None, "Punta Carretas"),
-    ("Santiago", "Vazquez", date(2005, 2, 25), "Universidad", "2.o", "Facultad de Ingenieria", "Parque Rodo"),
-    ("Martina", "Olivera", date(2004, 12, 3), "Universidad", "3.o", "Facultad de Ingenieria", "Cordon"),
+    ("Santiago", "Vazquez", date(2005, 2, 25), "Universidad", "2.o", "Facultad de Ingeniería", "Parque Rodó"),
+    ("Martina", "Olivera", date(2004, 12, 3), "Universidad", "3.o", "Facultad de Ingeniería", "Cordón"),
     ("Agustin", "Nunez", date(2009, 8, 17), "UTU", "2.o", "UTU Buceo", "Buceo"),
     ("Catalina", "Rios", date(2010, 4, 6), "Bachillerato", "4.o", "Liceo N 8", "Pocitos"),
-    ("Benjamin", "Cabrera", date(2006, 6, 21), "Universidad", "1.o", "Facultad de Ingenieria", "Malvin"),
-    ("Paula", "Dominguez", date(2011, 10, 28), "Ciclo basico", "3.o", "Liceo Bauza", "Union"),
+    ("Benjamin", "Cabrera", date(2006, 6, 21), "Universidad", "1.o", "Facultad de Ingeniería", "Malvín"),
+    ("Paula", "Dominguez", date(2011, 10, 28), "Ciclo básico", "3.o", "Liceo Bauzá", "Unión"),
 ]
 
 # Para el adulto responsable de los menores (ver usuario.fecha_nacimiento).
@@ -418,7 +418,7 @@ def sembrar_usuarios(db, catalogos: dict) -> dict:
             ProfesorEtapa(
                 perfil_profesor_id=perfil.id,
                 etapa_id=catalogos["etapas"][e].id,
-                programa="Plan 2006 y reformulacion 2023" if e in ("Ciclo basico", "Bachillerato") else None,
+                programa="Plan 2006 y reformulacion 2023" if e in ("Ciclo básico", "Bachillerato") else None,
             )
             for e in datos["etapas"]
         )
