@@ -34,7 +34,7 @@ QUE NO CARGA (todavia): mensajes, resenas, bloqueos de agenda ni fotos del lugar
 
 import random
 from datetime import date, datetime, time, timedelta
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import text
@@ -65,6 +65,7 @@ from app.modulos.catalogos.modelos import (
     Materia,
     ParametroPlataforma,
 )
+from app.modulos.clases.logica import desglosar, importes_congelados
 from app.modulos.clases.modelos import Clase
 from app.modulos.cuentas.modelos import Usuario
 from app.modulos.pagos.modelos import Cobro, Tarjeta
@@ -575,12 +576,12 @@ def sembrar_clases(db, usuarios: dict, catalogos: dict) -> None:
                 modalidad=modalidad,
                 ubicacion=ubicacion,
                 estado=estado,
-                precio_hora=precio_hora,
-                costo_traslado=traslado,
-                pct_comision=catalogos["comision"],
-                pct_iva=catalogos["iva"],
                 creado_el=creada_el,
-                **_desglose(precio_hora, duracion, traslado, catalogos["comision"], catalogos["iva"]),
+                # El MISMO calculo que cotiza el checkout: hay una sola cuenta
+                # de plata en todo el sistema (clases.logica.desglosar).
+                **importes_congelados(
+                    desglosar(precio_hora, duracion, traslado, catalogos["comision"], catalogos["iva"])
+                ),
             )
             if estado == EstadoClase.cancelada:
                 clase.cancelada_por = Actor.estudiante if n % 2 else Actor.profesor
@@ -597,22 +598,6 @@ def sembrar_clases(db, usuarios: dict, catalogos: dict) -> None:
 # ---------------------------------------------------------------------------
 # Auxiliares
 # ---------------------------------------------------------------------------
-
-def _desglose(precio_hora: Decimal, duracion_min: int, traslado: Decimal,
-              pct_comision: Decimal, pct_iva: Decimal) -> dict:
-    """Subtotal, impuesto y total, con el MISMO orden de calculo que documenta
-    clases.logica.cotizar(). Cuando P4 la implemente, conviene que los seeds
-    la usen a ella y borrar esto, para que no haya dos calculos de plata.
-    """
-    def redondear(valor: Decimal) -> Decimal:
-        return valor.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-    subtotal = redondear(precio_hora * Decimal(duracion_min) / Decimal(60))
-    comision = redondear((subtotal + traslado) * pct_comision / 100)
-    impuesto = redondear((subtotal + traslado + comision) * pct_iva / 100)
-    total = subtotal + traslado + comision + impuesto
-    return {"subtotal": subtotal, "impuesto": impuesto, "total": total}
-
 
 def _cobro(clase: Clase, tarjeta: Tarjeta, retenido_el: datetime, ahora: datetime) -> Cobro:
     """El cobro de una clase, con los timestamps de cada transicion por la que paso."""

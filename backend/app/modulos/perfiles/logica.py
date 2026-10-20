@@ -8,7 +8,10 @@ Quien consume que:
   - cuentas  -> pausar_ficha() cuando un profesor se da de baja
   - busqueda -> ficha_resumida() para armar resultados
   - agenda   -> perfil_profesor_de() y reglas_profesor() para los huecos libres
-  - clases   -> precio_vigente() para cotizar
+  - clases   -> precio_vigente(), reglas_profesor() y condiciones_de_reserva()
+                para cotizar; direccion_estudiante() para la ubicacion;
+                ficha_resumida() y cabeceras_estudiantes() para la contraparte;
+                sumar_clase_dictada() al marcar una clase como dictada
   - resenas  -> escribir_puntaje() al recalcular el promedio
 
 Como en cuentas: estas funciones validan y guardan, pero NO hacen commit. El
@@ -25,10 +28,10 @@ perfil_profesor_de() es el puente: recibe el usuario.id y devuelve el perfil.
 
 from decimal import Decimal
 
-from sqlalchemy import column, delete, func, select, table
+from sqlalchemy import column, delete, func, select, table, update
 from sqlalchemy.orm import Session
 
-from app.enums import EstadoFicha, Modalidad, Rol
+from app.enums import EstadoFicha, LugarClase, Modalidad, Rol
 from app.errores import ErrorAPI, no_es_tuyo, no_existe
 from app.modulos.cuentas import logica as cuentas
 from app.modulos.perfiles.modelos import (
@@ -274,6 +277,98 @@ def escribir_puntaje(db: Session, usuario_id: int, promedio: Decimal, cantidad: 
         perfil = perfil_estudiante_de(db, usuario_id)
     perfil.puntaje_promedio = promedio
     perfil.cantidad_resenas = cantidad
+    db.flush()
+
+
+# ---------------------------------------------------------------------------
+# Lo que pide clases (P4): reservar, mostrar la contraparte, contar dictadas.
+# Se agregaron con P4; ninguna de las de arriba cambio.
+# ---------------------------------------------------------------------------
+
+def condiciones_de_reserva(db: Session, usuario_profesor_id: int) -> dict | None:
+    """Lo que clases necesita del profesor para cotizar y crear una clase.
+
+    El precio sale de precio_vigente() y las duraciones de reglas_profesor();
+    esto es el resto. Devuelve None si el usuario no es profesor.
+
+      perfil_id          para llamar a reglas_profesor() (ojo: los dos ids)
+      publicada          solo se le puede reservar a una ficha publicada
+      modalidad          presencial, online o ambas
+      lugar_clase        espacio_propio, a_domicilio, ambos o espacio_publico
+      hace_traslado      True si va a la casa del alumno (a_domicilio o ambos)
+      costo_traslado     lo que cobra por ir
+      direccion_espacio  donde da la clase cuando no se traslada
+    """
+    perfil = perfil_profesor_de(db, usuario_profesor_id)
+    if perfil is None:
+        return None
+    return {
+        "perfil_id": perfil.id,
+        "publicada": perfil.estado_ficha == EstadoFicha.publicada,
+        "modalidad": perfil.modalidad.value,
+        "lugar_clase": perfil.lugar_clase.value,
+        "hace_traslado": perfil.lugar_clase in (LugarClase.a_domicilio, LugarClase.ambos),
+        "costo_traslado": perfil.costo_traslado,
+        "direccion_espacio": perfil.direccion_espacio,
+    }
+
+
+def direccion_estudiante(db: Session, usuario_id: int) -> str | None:
+    """La direccion del alumno, o None. Es donde va el profesor cuando se traslada.
+
+    clases la copia en la clase al crearla (clase.ubicacion).
+    """
+    perfil = perfil_estudiante_de(db, usuario_id)
+    return perfil.direccion if perfil else None
+
+
+def cabeceras_estudiantes(db: Session, ids_usuario: list[int]) -> dict[int, dict]:
+    """Lo mismo que cabecera_estudiante() pero para varios alumnos, en lote.
+
+    Devuelve {usuario_id: {etapa, nivel, centro, barrio, puntaje_promedio,
+    cantidad_resenas}}; los ids que no son alumnos no aparecen. Lo usa clases
+    para la contraparte de cada fila cuando mira el profesor (el panel 1d
+    muestra "Bachillerato - Liceo Bauza" debajo del nombre del alumno). Con
+    cabecera_estudiante() en un for serian cuatro consultas por fila; asi son
+    cuatro en total, como ficha_resumida().
+    """
+    if not ids_usuario:
+        return {}
+    perfiles = db.scalars(
+        select(PerfilEstudiante).where(PerfilEstudiante.usuario_id.in_(ids_usuario))
+    ).all()
+    etapas = _nombres(db, "etapa_educativa", [p.etapa_id for p in perfiles])
+    centros = _nombres(db, "centro_educativo", [p.centro_id for p in perfiles])
+    barrios = _nombres(db, "barrio", [p.barrio_id for p in perfiles])
+    return {
+        p.usuario_id: {
+            "etapa": etapas.get(p.etapa_id),
+            "nivel": p.nivel,
+            "centro": centros.get(p.centro_id),
+            "barrio": barrios.get(p.barrio_id),
+            "puntaje_promedio": p.puntaje_promedio,
+            "cantidad_resenas": p.cantidad_resenas,
+        }
+        for p in perfiles
+    }
+
+
+def sumar_clase_dictada(db: Session, usuario_profesor_id: int) -> None:
+    """Suma uno a clases_dictadas del profesor. La llama clases al marcar una
+    clase como dictada.
+
+    Es la unica puerta por la que cambia ese contador (lo muestra la ficha
+    publica). Va con un UPDATE ... SET x = x + 1 y no leyendo y escribiendo
+    desde Python: si dos clases se marcan a la vez, ninguna de las dos sumas
+    se pierde.
+    """
+    resultado = db.execute(
+        update(PerfilProfesor)
+        .where(PerfilProfesor.usuario_id == usuario_profesor_id)
+        .values(clases_dictadas=PerfilProfesor.clases_dictadas + 1)
+    )
+    if resultado.rowcount == 0:
+        raise no_existe("perfil")
     db.flush()
 
 

@@ -32,15 +32,30 @@ class TarjetaOut(BaseModel):
 
 
 class MovimientoOut(BaseModel):
-    """Una fila del historial de pagos de 1e. Incluye los reembolsos."""
+    """Una fila del historial de pagos de 1e. Incluye los reembolsos.
+
+    fecha es la del ULTIMO movimiento del cobro (reembolsado, liberado, cobrado
+    o retenido, el que haya pasado ultimo): es lo que le importa al alumno.
+
+    clase_id, materia y contraparte vienen en null cuando el profesor RECHAZO
+    la solicitud: la clase se borro y el cobro liberado quedo solo. El
+    frontend lo muestra como "Solicitud rechazada".
+    """
 
     id: int
     fecha: datetime
-    clase_id: int
+    clase_id: int | None = None
     materia: str | None = None
     contraparte: str | None = None
     importe: Decimal
     estado: str
+
+
+class PuntoIngreso(BaseModel):
+    """Un tramo del grafico de ingresos: etiqueta = "AAAA-MM-DD" (inicio del tramo)."""
+
+    etiqueta: str
+    importe: Decimal
 
 
 class IngresosOut(BaseModel):
@@ -53,7 +68,7 @@ class IngresosOut(BaseModel):
     cobrado: Decimal
     pendiente: Decimal
     promedio_por_clase: Decimal
-    serie: list[dict] = []
+    serie: list[PuntoIngreso] = []
 
 
 class OkOut(BaseModel):

@@ -50,6 +50,29 @@ const MENSAJES = {
   etapa_educativa_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
   centro_educativo_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
 
+  // --- Reservas y clases (1g, 1b, 1i) ---
+  sin_precio: 'Este profe no da clases en esa modalidad. Elegi otra.',
+  duracion_invalida: 'Este profe no da clases de esa duracion. Elegi una de las que ofrece.',
+  modalidad_invalida: 'La clase tiene que ser presencial u online.',
+  horario_ocupado: 'Ese horario ya no esta libre. Volve al perfil del profe y elegi otro.',
+  estado_invalido: 'La clase cambio de estado mientras tanto. Recarga la pagina.',
+  clase_no_existe: 'Esa clase ya no existe. Recarga la pagina.',
+  profesor_no_existe: 'Ese profe no existe o pauso su ficha.',
+  duracion_no_modificable:
+    'Al reprogramar no se puede cambiar la duracion: el importe ya quedo fijo. Cancela y reserva de nuevo.',
+  estado_no_permitido: 'Ese estado no corresponde para esta clase.',
+
+  // --- Panel del profesor (1d) ---
+  periodo_invalido: 'Ese periodo no existe. Elegi mes, trimestre o anio.',
+  agrupacion_invalida: 'Esa agrupacion no existe. Elegi semana, mes o anio.',
+
+  // --- Pagos y tarjetas (1g, 1e) ---
+  cobro_no_existe: 'No encontramos el pago de esa clase. Recarga la pagina.',
+  cobro_rechazado: 'La tarjeta rechazo el pago. Proba con otra.',
+  tarjeta_vencida: 'Esa tarjeta esta vencida. Usa otra o agrega una nueva.',
+  tarjeta_invalida: 'El numero de tarjeta no es valido.',
+  tarjeta_no_existe: 'Esa tarjeta ya no esta guardada. Recarga la pagina.',
+
   // --- Generales ---
   datos_invalidos: 'Revisa los datos: hay algo que no esta bien.',
   error_servidor:
