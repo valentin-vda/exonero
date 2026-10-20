@@ -240,7 +240,7 @@ ok("cotizar: las partes suman el total",
 
 
 seccion("Crear")
-MATE = sql("SELECT id FROM materia WHERE nombre = 'Matematica'")
+MATE = sql("SELECT id FROM materia WHERE nombre = 'Matemática'")
 BACHI = sql("SELECT id FROM etapa_educativa WHERE nombre = 'Bachillerato'")
 reserva = {"profesor_id": ID["profe4"], "materia_id": MATE, "etapa_id": BACHI, "tema": "  Integrales  ",
            "inicio": futuro(15, 16), "duracion_min": 90, "modalidad": "presencial", "tarjeta_id": TARJETA_A1}
@@ -263,7 +263,7 @@ ok("crear: una clase mas", cantidad_clases() == antes + 1)
 estado, online = pedir("POST", "/clases", {**reserva, "modalidad": "online", "inicio": futuro(16, 16)}, token=alumno1)
 ok("crear online: enlace de la videollamada", estado == 201 and sql("SELECT ubicacion FROM clase WHERE id = :i", i=online["id"]) == f"https://meet.exonero.test/clase-{online['id']}", online)
 estado, domicilio = pedir("POST", "/clases", {**reserva, "profesor_id": ID["profe2"], "duracion_min": 60, "con_traslado": True,
-                                              "inicio": futuro(16, 18), "materia_id": sql("SELECT id FROM materia WHERE nombre = 'Quimica'")}, token=alumno1)
+                                              "inicio": futuro(16, 18), "materia_id": sql("SELECT id FROM materia WHERE nombre = 'Química'")}, token=alumno1)
 ok("crear a domicilio: total con traslado", estado == 201 and domicilio["total"] == "1342.00", domicilio)
 ok("crear a domicilio: ubicacion = casa del alumno",
    sql("SELECT c.ubicacion = p.direccion FROM clase c JOIN perfil_estudiante p ON p.usuario_id = c.estudiante_id WHERE c.id = :i", i=domicilio["id"]))
@@ -295,7 +295,7 @@ ok("historial: forma de MovimientoOut",
    set(historial[0]) == {"id", "fecha", "clase_id", "materia", "contraparte", "importe", "estado"}, historial[0])
 ok("historial: del mas nuevo al mas viejo", [m["fecha"] for m in historial] == sorted((m["fecha"] for m in historial), reverse=True))
 ok("historial: la clase recien creada, retenida, con materia y profesor",
-   any(m["clase_id"] == CLASE_DECIMALES and m["estado"] == "retenido" and m["materia"] == "Matematica"
+   any(m["clase_id"] == CLASE_DECIMALES and m["estado"] == "retenido" and m["materia"] == "Matemática"
        and m["contraparte"] == "Diego Silva" and m["importe"] == "1758.26" for m in historial), historial[:3])
 error("historial como profesor", pedir("GET", "/pagos/historial", token=profe1), 403, "no_es_tuyo")
 hoy = fechas.ahora().date()
@@ -347,7 +347,7 @@ ok("GET /clases alumno: la contraparte es el profesor, con puntaje",
        and c["contraparte"]["puntaje_promedio"] is not None and c["contraparte"]["telefono"] is None for c in clases_a1))
 fila = next(c for c in clases_a1 if c["id"] == CLASE_DECIMALES)
 ok("GET /clases: la clase de 1g con materia, etapa, total y cobro",
-   fila["materia"] == "Matematica" and fila["etapa"] == "Bachillerato" and fila["total"] == "1758.26"
+   fila["materia"] == "Matemática" and fila["etapa"] == "Bachillerato" and fila["total"] == "1758.26"
    and fila["cobro_estado"] == "retenido" and fila["contraparte"]["nombre"] == "Diego", fila)
 
 estado, clases_p1 = pedir("GET", "/clases", token=profe1)
