@@ -303,9 +303,12 @@ CREATE TABLE tarjeta (
     CONSTRAINT mes_valido CHECK (vence_mes BETWEEN 1 AND 12)
 );
 
+-- clase_id admite NULL y es ON DELETE SET NULL, no CASCADE: al rechazar, la
+-- clase se borra y el cobro liberado tiene que quedar registrado. El UNIQUE
+-- sigue valiendo (PostgreSQL permite varios NULL).
 CREATE TABLE cobro (
     id              bigserial PRIMARY KEY,
-    clase_id        bigint NOT NULL UNIQUE REFERENCES clase(id) ON DELETE CASCADE,
+    clase_id        bigint UNIQUE REFERENCES clase(id) ON DELETE SET NULL,
     tarjeta_id      bigint REFERENCES tarjeta(id),
     importe         numeric(10,2) NOT NULL,
     estado          cobro_enum NOT NULL DEFAULT 'retenido',

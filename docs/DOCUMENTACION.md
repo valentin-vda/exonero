@@ -13,10 +13,11 @@ cuando uno viene de backend.
 5. [El frontend](#5-el-frontend)
 6. [Login y registro, paso a paso](#6-login-y-registro-paso-a-paso)
 7. [Cuentas y perfiles (P1), de punta a punta](#7-cuentas-y-perfiles-p1-de-punta-a-punta)
-8. [El sistema de diseño](#8-el-sistema-de-diseño)
-9. [Flujos completos](#9-flujos-completos)
-10. [Qué está hecho y qué falta](#10-qué-está-hecho-y-qué-falta)
-11. [Cosas que hay que decidir](#11-cosas-que-hay-que-decidir)
+8. [Clases y pagos (P4), de punta a punta](#8-clases-y-pagos-p4-de-punta-a-punta)
+9. [El sistema de diseño](#9-el-sistema-de-diseño)
+10. [Flujos completos](#10-flujos-completos)
+11. [Qué está hecho y qué falta](#11-qué-está-hecho-y-qué-falta)
+12. [Cosas que hay que decidir](#12-cosas-que-hay-que-decidir)
 
 ---
 
@@ -103,6 +104,7 @@ exonero/
 │   ├── .env.example            copiar a .env
 │   ├── alembic.ini
 │   ├── schema.sql              el esquema completo, de referencia
+│   ├── verificar_p4.py         las comprobaciones de P4 (ver la seccion 8)
 │   ├── docker/init.sql         extensiones citext y btree_gist
 │   ├── alembic/
 │   │   ├── env.py              lee la conexion del .env
@@ -114,6 +116,7 @@ exonero/
 │       ├── enums.py            los 12 tipos ENUM de PostgreSQL
 │       ├── seguridad.py        hash bcrypt y firma de tokens
 │       ├── errores.py          ErrorAPI y el formato unico de error
+│       ├── fechas.py           la zona de Montevideo, periodos y ventanas de 1d
 │       ├── dependencias.py     quien es el usuario del token
 │       ├── registro_modelos.py importa los 9 modulos (solo para Alembic)
 │       ├── seeds.py            datos de prueba
@@ -309,10 +312,16 @@ Cerrar sesión no tiene endpoint: es borrar el token del navegador.
   agenda   --> perfiles.reglas_profesor()   descanso, tope, aviso minimo
            --> clases.clases_aprobadas_entre()  descontar lo ocupado
 
-  clases   --> perfiles.precio_vigente()
+  clases   --> perfiles.precio_vigente(), reglas_profesor(),
+               condiciones_de_reserva()     cotizar
            --> catalogos.parametros_vigentes()  comision e IVA
            --> agenda.verificar()           sigue libre el horario?
            --> pagos.retener/cobrar/liberar/reembolsar()
+           --> cuentas y perfiles, en lote  la contraparte de cada clase
+           --> resenas.resena_de()          mi_resena
+
+  pagos    --> cuentas.datos_basicos_varios()  el profesor de cada pago
+               (lee la tabla clase "de lejos", ver la seccion 8)
 
   resenas  --> clases.tuvieron_clase()      solo resena quien tuvo clase
            --> perfiles.escribir_puntaje()  guardar el promedio
@@ -377,7 +386,9 @@ la respuesta de la API, no borrando el dato.
 **Una sola tabla de plata: `cobro`.** Los ingresos del profesor son
 `sum(importe)` sobre sus cobros en estado `cobrado`. El estado del pago no
 puede vivir en `clase` porque la clase rechazada se borra y el cobro liberado
-tiene que quedar registrado.
+tiene que quedar registrado. Por eso `cobro.clase_id` admite NULL, con
+`ON DELETE SET NULL`: la migración inicial lo tenía con `CASCADE` y borraba el
+cobro junto con la clase; lo arregló la segunda migración (sección 8).
 
 **La restricción `EXCLUDE`.** Es lo único que impide de verdad que dos alumnos
 confirmen el mismo horario en el mismo instante:
@@ -701,7 +712,7 @@ Expone seis cosas:
 
 Además, cada vez que cambia el usuario, el contexto escribe su tema en
 `<html data-tema="claro|oscuro">`. Así funciona el modo oscuro (ver la
-sección 8).
+sección 9).
 
 **Por qué existe `cargando`:** al recargar la página, el token está en
 `sessionStorage` pero todavía no sabemos si sigue siendo válido. Hay que
@@ -1250,12 +1261,381 @@ opción con el valor actual → los campos se deshabilitan y aparece el aviso.
 | "Cuentas de cobro" del profesor (BROU, Mercado Pago) | El modelo no tiene cuenta bancaria del profesor: los ingresos son la suma de sus cobros |
 | "Precio por alumno en grupal" y "misma etapa" | No están en el modelo, y lo grupal está fuera de la v1 |
 | "Ver mi ficha pública" (1j) | La ficha pública es la pantalla 1f, que es de P2 y solo pueden abrirla los estudiantes |
-| La etapa "Primaria" | Las etapas salen del catálogo, y la lista que manda no la tiene (sección 11) |
+| La etapa "Primaria" | Las etapas salen del catálogo, y la lista que manda no la tiene (sección 12) |
 | Arrastrar fotos a cada espacio | Se elige el archivo con un clic: más simple y funciona igual con teclado |
 
 ---
 
-## 8. El sistema de diseño
+## 8. Clases y pagos (P4), de punta a punta
+
+El backend de P4 está hecho: los módulos `clases` y `pagos`, la migración que
+arregla la tabla `cobro` y los seeds con el mismo cálculo de plata que el
+checkout. Las pantallas de P4 (**1g**, la pestaña "Medios de pago" de **1e** y
+el panel **1d**) se arman sobre este backend. Esta sección es el mapa, con la
+misma forma que la 7.
+
+### Probarlo en dos minutos
+
+En `http://localhost:8000/docs`, con los seeds cargados:
+
+1. `POST /api/auth/login` con `alumno1@example.com` / `exonero123`, y pegá el
+   token en el campo `authorization` (`Bearer <el token>`).
+2. `POST /api/clases/cotizar` con
+   `{"profesor_id": 1, "duracion_min": 60, "modalidad": "presencial"}`. Devuelve
+   el desglose, con `"total": "1207.80"`. No pide token.
+3. `GET /api/pagos/tarjetas` muestra la tarjeta de prueba (`"ultimos4": "1111"`).
+   Con su `id`, `POST /api/clases` crea la clase en `pendiente` con el cobro
+   `retenido`.
+4. Entrá como `profe1@example.com`: `GET /api/clases/pendientes` muestra la
+   solicitud, y `POST /api/clases/{id}/aprobar` la pasa a `aprobada` (cobro
+   `cobrado`).
+5. `POST /api/clases/{id}/cancelar`, con cualquiera de los dos tokens, responde
+   al instante con el reembolso `en_proceso`. Un momento después el cobro ya
+   está `reembolsado`: se ve en `GET /api/pagos/historial` con el token del
+   alumno.
+
+Para ver el error de pago de 1g: agregá una tarjeta terminada en `0000`
+(`POST /api/pagos/tarjetas` con `"numero": "4000 0000 0000 0000"`) y reservá con
+ella. Responde 402 `cobro_rechazado` y la clase no se crea.
+
+**Las 276 comprobaciones.** `backend/verificar_p4.py` recorre todos los
+endpoints de P4 con los usuarios de los seeds: los flujos de la plata de punta a
+punta, los errores de cada uno (roles cruzados, ids que no existen, estados
+inválidos), que los importes cuadren al centésimo, la migración de ida y vuelta
+y los seeds dos veces seguidas. **Ensucia la base** (crea y cancela clases,
+cambia el precio de profe4) y al final la vuelve a sembrar, así que se corre
+contra una base aparte, nunca contra la de todos los días (si el `.env` apunta a
+`exonero`, se niega a correr):
+
+```bash
+docker exec exonero_db psql -U exonero -d exonero -c "CREATE DATABASE exonero_p4"
+# BASE_URL apuntando a la base nueva, en las dos terminales (o en el .env de
+# otra copia del repo). En PowerShell: $env:BASE_URL = "..."
+export BASE_URL=postgresql+psycopg://exonero:exonero@localhost:5433/exonero_p4
+cd backend
+python -m alembic upgrade head
+python -m app.seeds
+python -m uvicorn app.main:app --port 8001     # en otra terminal, con el mismo BASE_URL
+python verificar_p4.py                          # "276 de 276 comprobaciones pasaron."
+```
+
+### El ciclo de vida, en una tabla
+
+| Acción | Quién | La clase | El cobro |
+|---|---|---|---|
+| `POST /clases` | Alumno | Se crea en `pendiente` | `retenido` |
+| `POST /clases/{id}/aprobar` | Profesor | `aprobada`: ocupa el horario | `cobrado` |
+| `DELETE /clases/{id}` (rechazar) | Profesor | **Se borra** | `liberado`, con `clase_id` en NULL |
+| `POST /clases/{id}/cancelar`, si estaba pendiente | Cualquiera de los dos | `cancelada` | `liberado`, en el momento |
+| `POST /clases/{id}/cancelar`, si estaba aprobada | Cualquiera de los dos | `cancelada` | `reembolsado`, en segundo plano |
+| `POST /clases/{id}/reprogramar` | Cualquiera de los dos | Otro horario, y vuelve a `pendiente` | No cambia |
+| `POST /clases/{id}/completar` | Profesor | `dictada` o `no_asistida` | Sigue `cobrado` |
+
+Solo una `pendiente` se aprueba o se rechaza; solo una `pendiente` o una
+`aprobada` se cancela o se reprograma; solo una `aprobada` se completa. Si no,
+409 `estado_invalido`.
+
+### Los archivos de P4 en el backend
+
+| Archivo | Qué hay adentro |
+|---|---|
+| `clases/logica.py` | `desglosar()` y `cotizar()`, crear y las cinco acciones, el calendario, la próxima clase, las solicitudes, las métricas y las series de 1d, y lo que leen agenda y reseñas |
+| `clases/rutas.py` | Los 14 endpoints de `/api/clases` |
+| `clases/esquemas.py` | Los contratos. `ClaseOut` suma `etapa` |
+| `pagos/logica.py` | Las cuatro transiciones del cobro, el reembolso en segundo plano, tarjetas, historial e ingresos |
+| `pagos/rutas.py` | Los 5 endpoints de `/api/pagos` |
+| `pagos/modelos.py` | `cobro.clase_id` ahora admite NULL (ver abajo) |
+| `app/fechas.py` | La zona de Montevideo: rangos de días, los períodos de 1d, las ventanas de los gráficos y el `date_trunc` |
+| `alembic/versions/6d0c95b67436_cobro_sobrevive_al_rechazo.py` | La migración de `cobro` |
+| `verificar_p4.py` | Las 276 comprobaciones |
+
+### Los endpoints de `clases`
+
+| Método y ruta | Rol | Qué hace | Errores propios |
+|---|---|---|---|
+| `POST /clases/cotizar` | — (sin token) | El desglose del importe. 1f y 1g | 400 `modalidad_invalida`, 404 `profesor_no_existe`, 400 `duracion_invalida`, 400 `sin_precio` |
+| `GET /clases/proxima` | Los dos | La siguiente aprobada, con `minutos_restantes`. **204 sin cuerpo** si no hay | — |
+| `GET /clases/pendientes` | Profesor | Las solicitudes por aprobar (1i) | — |
+| `GET /clases/metricas?periodo=mes` | Profesor | Los indicadores de 1d con su variación | 400 `periodo_invalido` |
+| `GET /clases/series?agrupar=semana` | Profesor | El gráfico de 1d: clases por tramo y por estado | 400 `agrupacion_invalida` |
+| `GET /clases/mis-profesores` | Estudiante | Profesores con alguna clase dictada, con `mi_resena` (1b) | — |
+| `GET /clases/mis-alumnos` | Profesor | Lo mismo, del otro lado (1i) | — |
+| `GET /clases?desde=&hasta=&estado=&pagina=` | Los dos | El calendario, de a 50, por inicio | 400 `estado_no_permitido` |
+| `POST /clases` | Estudiante | Crea la clase y retiene el cobro (1g). 201 | Los de cotizar, 400 `materia_no_existe`, 400 `etapa_educativa_no_existe`, 409 `horario_ocupado`, 404 `tarjeta_no_existe`, 402 `tarjeta_vencida`, 402 `cobro_rechazado` |
+| `POST /clases/{id}/aprobar` | Profesor | Pendiente → aprobada; cobro → cobrado | 409 `horario_ocupado` |
+| `DELETE /clases/{id}` | Profesor | Rechaza: borra la clase y libera el cobro. 204 | — |
+| `POST /clases/{id}/cancelar` | Los dos | Pendiente o aprobada → cancelada, con el reembolso | — |
+| `POST /clases/{id}/reprogramar` | Los dos | Otro horario; vuelve a pendiente | 400 `duracion_no_modificable`, 409 `horario_ocupado` |
+| `POST /clases/{id}/completar` | Profesor | Aprobada → dictada o no_asistida | 400 `estado_no_permitido` |
+
+Las cinco rutas con `{id}` responden además 404 `clase_no_existe`, 403
+`no_es_tuyo` (no es parte de la clase) y 409 `estado_invalido` (la clase no
+está en el estado que la acción necesita).
+
+### Los endpoints de `pagos`
+
+| Método y ruta | Rol | Qué hace | Errores propios |
+|---|---|---|---|
+| `GET /pagos/tarjetas` | Estudiante | Las tarjetas activas. **Nunca** el número completo ni el CCV | — |
+| `POST /pagos/tarjetas` | Estudiante | Alta. Acepta el número con espacios. 201 | 400 `tarjeta_invalida`, 402 `tarjeta_vencida` |
+| `DELETE /pagos/tarjetas/{id}` | Estudiante | Baja lógica. 204 | 404 `tarjeta_no_existe`, 403 `no_es_tuyo` |
+| `GET /pagos/historial?desde=&hasta=&pagina=` | Estudiante | Los movimientos de plata, del más nuevo al más viejo (1e) | — |
+| `GET /pagos/ingresos?periodo=&agrupar=` | Profesor | Cobrado, pendiente, promedio y la serie del gráfico (1d y 1j) | 400 `periodo_invalido`, 400 `agrupacion_invalida` |
+
+Como en la sección 7: "Rol" quiere decir que con el otro rol la respuesta es
+403 `no_es_tuyo`, y toda ruta con token puede responder 401 `sin_token`.
+
+Los importes viajan como **texto** (`"1758.26"`): Pydantic serializa `Decimal`
+así para no perder centésimos. Las fechas, en ISO con zona.
+
+### Lo que P4 le ofrece a los otros módulos
+
+| Función | La usa | Devuelve |
+|---|---|---|
+| `clases.clases_entre(db, usuario_id, desde, hasta, estado=None, pagina=None)` | agenda (el calendario semanal de 1i) | Filas con la forma de `ClaseOut`, por inicio. Sin `pagina`, todas |
+| `clases.clases_aprobadas_entre(db, profesor_id, desde, hasta)` | agenda (los huecos libres) | `[{id, inicio, fin, duracion_min, estudiante_id}]` de las **aprobadas** que se cruzan con el rango |
+| `clases.tuvieron_clase(db, a_id, b_id)` | reseñas | `True` si hay al menos una clase **dictada** entre los dos, en cualquier sentido |
+| `clases.desglosar(precio_hora, duracion_min, costo_traslado, pct_comision, pct_iva)` | seeds | El desglose del importe: el único cálculo de plata del sistema |
+
+Todas reciben ids de **usuario** (no de perfil) e instantes con zona.
+
+### Lo que P4 necesita de otros, y cómo anda mientras no está
+
+| Qué | De quién | Mientras no está |
+|---|---|---|
+| `agenda.verificar()` | P3 | Crear y reprogramar siguen como si el horario estuviera libre (`_horario_libre` en `clases/logica.py`). No es un agujero: la defensa real es la restricción `EXCLUDE`, que salta al aprobar. Lo que se pierde es el aviso temprano (franjas, bloqueos, aviso mínimo, tope diario) |
+| `agenda.hay_bloqueo_encima()` | P3 | Aprobar sigue como si no hubiera bloqueos (`_hay_bloqueo`) |
+| `resenas.resena_de()` | P3 | `mi_resena` viene en `null` en mis-profesores y mis-alumnos (`_mis_resenas`) |
+
+Es el mismo truco que usa P1 con `mensajeria.contar_no_leidos()`: un
+`try/except NotImplementedError`. Cuando P3 las implemente, P4 las empieza a usar
+**sin cambiar nada**.
+
+De P1 hacían falta cinco funciones que no existían. Se **agregaron**, en el
+mismo estilo, y ninguna de las que había cambió:
+
+| Función | Para qué |
+|---|---|
+| `perfiles.condiciones_de_reserva(db, usuario_id)` | Si la ficha está publicada, su modalidad, si se traslada, cuánto cobra por ir y la dirección de su espacio: lo que cotizar necesita además del precio |
+| `perfiles.direccion_estudiante(db, usuario_id)` | La ubicación de la clase cuando el profesor va a la casa del alumno |
+| `perfiles.cabeceras_estudiantes(db, ids)` | `cabecera_estudiante()` en lote, para la contraparte |
+| `perfiles.sumar_clase_dictada(db, usuario_id)` | `clases_dictadas + 1` al completar (P4 no puede tocar esa tabla) |
+| `cuentas.telefonos_varios(db, ids)` | El teléfono de varios alumnos en una consulta: 1d lo muestra, y `datos_basicos` no lo trae |
+
+### Decisiones que conviene conocer
+
+**La migración de `cobro`, y por qué.** La migración inicial dejó
+`cobro.clase_id` como `NOT NULL ... ON DELETE CASCADE`. Pero al **rechazar**, la
+clase se borra y el cobro liberado tiene que quedar registrado (es justamente el
+motivo de que la plata viva en su propia tabla, ver la sección 4): con el
+`CASCADE`, borrar la clase se llevaba puesto el cobro. La segunda migración
+(`6d0c95b67436`) la deja **nullable con `ON DELETE SET NULL`**: la clase
+rechazada desaparece y su cobro queda con `clase_id` en NULL. El `UNIQUE` sigue
+valiendo, porque PostgreSQL permite varios NULL. El `downgrade` está escrito a
+mano: borra antes los cobros sin clase, porque el esquema viejo no tiene forma
+de guardarlos. `pagos/modelos.py` y `schema.sql` están al día, y
+`alembic check` no encuentra diferencias.
+
+**Un solo cálculo de plata.** `desglosar()` hace las cuentas y nada más (no toca
+la base); la usan `cotizar()`, `crear()` (que llama a `cotizar()`) y los seeds.
+Todo con `Decimal`, redondeando a dos decimales con `ROUND_HALF_UP` en cada paso,
+en el orden del docstring: subtotal, comisión sobre subtotal más traslado, IVA
+sobre todo lo anterior. Dos detalles:
+
+- El subtotal sale de los **minutos** (`precio * minutos / 60`), no de las horas
+  ya redondeadas: 50 minutos son 0,8333 horas, y con 0,83 una clase de $ 900 la
+  hora saldría $ 747 en vez de $ 750. `horas` se informa solo para mostrar.
+- Con un precio de 873,45 y 90 minutos: subtotal 1310,175 → 1310,18; comisión
+  131,018 → 131,02; IVA 317,064 → 317,06; total **1758,26**. Es el caso con
+  decimales que prueba `verificar_p4.py`, contra una cuenta hecha aparte.
+
+Los seeds ya no tienen su propio `_desglose()`: usan `desglosar()`, y sus treinta
+clases dan los mismos totales que antes.
+
+**Qué valida cotizar, en orden.** Modalidad `presencial` u `online` (400
+`modalidad_invalida`; una clase concreta no puede ser "ambas"); que el profesor
+exista y tenga la ficha **publicada** (404 `profesor_no_existe`: la pausada o en
+borrador no se puede contratar); que la duración sea una de las que ofrece
+(400 `duracion_invalida`); que dé esa modalidad y tenga precio (400
+`sin_precio`).
+
+**El traslado.** Se cobra solo en presencial, si el alumno lo pide
+(`con_traslado`) y si el profesor se traslada (lugar `a_domicilio` o `ambos`). Si
+no, se ignora: no es un error. La ubicación que se guarda en la clase es la
+dirección del alumno si el profesor va (o si solo da clases a domicilio), la del
+espacio del profesor si no, y un enlace simulado
+(`https://meet.exonero.test/clase-<id>`) si es online, igual que en los seeds.
+
+**Crear es una sola transacción.** La clase se inserta, se hace `flush` para
+tener su id, y `pagos.retener()` crea el cobro. Si la tarjeta falla, el error
+corta antes del commit (que está en la ruta) y la sesión se cierra con rollback:
+no queda ni la clase ni el cobro. La tarjeta tiene que ser del alumno y estar
+activa; si es de otro, también 404 `tarjeta_no_existe` (no hace falta confirmarle
+que existe).
+
+**Dos controles propios, mientras agenda no está.** Un horario que **ya pasó**
+nunca está libre: sin agenda nada impediría reservar ayer (cuando P3 implemente
+`verificar()` lo rechaza igual, por el aviso mínimo). Y el **mismo alumno** no
+puede pedirle dos veces un rato que se cruza al mismo profesor: es un doble clic
+en confirmar, y dejaría dos cobros retenidos. Los dos responden 409
+`horario_ocupado`. Alumnos distintos sí pueden pedir el mismo horario: el
+profesor elige cuál aprueba.
+
+**El cobro simulado y su gancho.** `retener()` siempre sale bien, salvo con una
+tarjeta **terminada en `0000`** (402 `cobro_rechazado`) o vencida (402
+`tarjeta_vencida`). Es la forma de probar el error de 1g sin tocar código.
+
+**Aprobar: la restricción `EXCLUDE` hace el trabajo.** El `UPDATE` a `aprobada`
+va dentro de un `SAVEPOINT` (`db.begin_nested()`). Si ya hay otra aprobada del
+mismo profesor que se cruza, PostgreSQL rechaza el `UPDATE` con la restricción
+`clase_sin_superposicion`; se atrapa ese `IntegrityError` (solo ese: se mira el
+nombre de la restricción) y se responde 409 `horario_ocupado`. El `SAVEPOINT`
+deshace solo ese `UPDATE` y deja la sesión sana para responder. Dos pendientes
+sobre el mismo horario son legítimas; la segunda que se intenta aprobar es la que
+choca.
+
+**Las acciones leen la clase con `FOR UPDATE`.** Si el profesor aprueba y el
+alumno cancela en el mismo instante, la segunda espera a que termine la primera y
+ve el estado nuevo (y responde 409 `estado_invalido`), en vez de pisarlo.
+
+**Rechazar libera antes de borrar.** Después del `DELETE` ya no habría cómo
+encontrar el cobro por la clase. El historial del alumno filtra por
+`tarjeta.usuario_id` (la tarjeta es suya, `retener` siempre la guarda y su baja es
+lógica) con un `LEFT JOIN` a `clase`: así aparecen también los cobros liberados de
+las rechazadas, con `clase_id`, `materia` y `contraparte` en `null`. El frontend
+los muestra como "Solicitud rechazada".
+
+**Cancelar: liberado o en proceso.** La decisión la toma el estado del cobro, no
+el de la clase. Si estaba `retenido` (la clase todavía pendiente), se **libera en
+el momento** y `reembolso.estado` es `"liberado"`. Si estaba `cobrado` (ya
+aprobada), se encola `pagos.reembolsar()` como `BackgroundTask` y la respuesta
+vuelve al instante con `"en_proceso"`. La tarea corre después del commit de la
+ruta, abre su propia `SesionLocal()`, bloquea la fila con `FOR UPDATE`, es
+idempotente (si el cobro ya está reembolsado no hace nada) y cierra la sesión
+siempre, en un `finally`. El importe es **el total, siempre** (ver la sección
+12.2).
+
+**Reprogramar.** Cualquiera de las dos partes, sobre una pendiente o una
+aprobada. La clase vuelve a `pendiente` y el profesor la tiene que aprobar de
+nuevo; los importes **no** se recalculan (es la misma clase movida de lugar). Por
+eso no se puede cambiar la duración: si viene una distinta, 400
+`duracion_no_modificable`. Si estaba aprobada, el cobro queda `cobrado`, y por eso
+`cobrar()` no hace nada si ya está cobrado: así se puede volver a aprobar sin
+cobrar dos veces. Antes de preguntarle a agenda si el horario nuevo está libre,
+la clase pasa a pendiente con un `flush`: si no, su propio horario viejo contaría
+como ocupado y moverla media hora chocaría consigo misma.
+
+Un caso borde: el profesor **rechaza** la reprogramación de una clase que ya
+estaba cobrada. No hay retención que soltar: la plata se cobró y hay que
+devolverla. `liberar()` la marca `reembolsado` en el momento (no en segundo
+plano, porque la clase se borra enseguida y la tarea no tendría por dónde
+encontrar el cobro).
+
+**Completar.** Solo el profesor y solo una aprobada. `dictada` suma uno a
+`clases_dictadas` (con `perfiles.sumar_clase_dictada()`, un
+`UPDATE ... SET x = x + 1` para que dos a la vez no pierdan una suma) y desde ahí
+`tuvieron_clase()` da `True`: el alumno ya puede reseñar. En `no_asistida` no se
+suma nada. En los dos casos el cobro queda `cobrado`.
+
+**Las fechas son de Montevideo.** La base guarda `timestamptz` (UTC por dentro),
+pero "el 21 de octubre", "la semana" o "el mes" son de acá: una clase a las 23:30
+de Montevideo ya es el día siguiente en UTC. Todo eso está en `app/fechas.py`, que
+usan `clases` y `pagos` (está afuera de los dos porque `clases` ya importa `pagos`,
+y al revés sería una importación circular):
+
+- `?desde=` y `?hasta=` son fechas sin hora, de Montevideo, y **`hasta` es
+  inclusive**: el rango es `[desde 00:00, hasta + 1 día 00:00)`.
+- Un `inicio` que llega sin zona se interpreta en Montevideo.
+- Los períodos de las métricas son **calendario**: el mes en curso contra el
+  anterior, el trimestre en curso contra el anterior, el año contra el pasado.
+- Las ventanas de los gráficos son las últimas 10 semanas, 12 meses o 5 años,
+  **incluido el actual**, enteros.
+- Se agrupa con `date_trunc` sobre la hora de Montevideo. La unidad y la zona van
+  como texto literal en el SQL y no como parámetros: con parámetros, el `SELECT`
+  dice `date_trunc($1, ...)` y el `GROUP BY` `date_trunc($3, ...)`, y PostgreSQL no
+  los reconoce como la misma expresión.
+
+**Las métricas de 1d.** Las clases caen en un período por su `inicio`.
+`alumnos_atendidos` son los alumnos distintos con alguna clase dictada;
+`horas_dictadas`, la suma de las duraciones dictadas; `alumnos_recurrentes`, los
+que tuvieron dos o más dictadas; `tasa_cancelacion`, canceladas sobre canceladas
+más dictadas, en porcentaje (0 a 100) con un decimal. `variacion` trae el cambio
+de cada uno contra el período anterior, en porcentaje con un decimal, o `null` si
+el anterior fue 0.
+
+**Los ingresos.** `cobrado` es la suma de los cobros en estado `cobrado` del
+profesor, por la fecha en que se cobraron (`cobrado_el`); un reembolsado deja de
+contar solo, sin "descontar" nada. `pendiente` es lo retenido en el período (lo
+que espera que apruebe). `promedio_por_clase` es cobrado sobre las clases dictadas
+del período, o 0. `serie` es lo cobrado por tramo, con la misma ventana y la misma
+agrupación que `/clases/series`. Los tramos sin nada no vienen en ninguna de las
+dos series: el frontend los completa.
+
+**La contraparte, en lote.** Cada fila del calendario trae a la otra persona: si
+mira el profesor, el alumno con etapa, centro, teléfono y puntaje; si mira el
+alumno, el profesor con su puntaje y cantidad de reseñas. `armar_clases()` pide
+los nombres de materia y etapa, el estado de los cobros y las personas **todos
+juntos**, no uno por fila: con 50 clases son unas ocho consultas, no 300.
+
+**Las tablas ajenas, "de lejos".** Igual que perfiles con los catálogos (sección
+7): `clases` lee los nombres de materia y etapa, y `pagos` lee la `clase` y la
+`materia` del historial y los ingresos, describiendo esas tablas a mano por su
+nombre con `table()` y `column()`, solo para leer. `pagos` no puede importar
+`clases/logica.py`, porque `clases` ya importa `pagos`.
+
+**Tarjetas.** El número se guarda sin espacios; `GET` y `POST` devuelven solo la
+marca (empieza con 4 → Visa, con 5 → Mastercard, el resto → Otra), los últimos
+cuatro, el titular y el vencimiento como `"MM/AA"`. Una tarjeta vale hasta el
+último día de su mes. El año va con cuatro cifras: con `28`, 400
+`tarjeta_invalida`. La baja es lógica: los cobros viejos siguen apuntando a la
+fila.
+
+### Cambios respecto de los contratos originales
+
+Al implementar hubo que ajustar algunos contratos. Los que consume el frontend
+están marcados:
+
+- **`ClaseOut` suma `etapa`** (y por herencia `ProximaClaseOut`): el nombre de la
+  etapa **de la clase**, que la tabla "Reservas de hoy" de 1d muestra como
+  "Matemática · Bachillerato". *(frontend)*
+- **`MovimientoOut.clase_id` puede venir en `null`**, igual que `materia` y
+  `contraparte`: son los cobros de las clases rechazadas. `fecha` es la del
+  último movimiento del cobro. *(frontend)*
+- **`MetricasOut.variacion`** es `{indicador: número | null}`: los porcentajes
+  van como número, no como texto, porque no son plata. *(frontend)*
+- `IngresosOut.serie` quedó tipada (`PuntoIngreso`: `etiqueta` e `importe`),
+  con la misma forma que antes.
+- `ReprogramarIn.duracion_min` sigue siendo opcional, pero si viene tiene que
+  ser la de la clase.
+- `pagos.retener()` recibe además el `estudiante_id` (para validar que la
+  tarjeta sea suya); `pagos.ingresos_de()`, la agrupación de la serie;
+  `clases.clases_entre()`, la página; `clases.reprogramar()`, la duración.
+- Funciones públicas nuevas: en `pagos`, `cobro_de()` y `estados_de_cobro()`
+  (para que `clases` sepa en qué anda la plata sin leer la tabla) y las de
+  tarjetas, historial e ingresos; en `clases`, `desglosar()`,
+  `importes_congelados()`, `armar_clases()` y las de cada pantalla.
+- **Códigos de error nuevos**, que todavía no están en `mensajes.js`:
+  400 `periodo_invalido`, 400 `agrupacion_invalida`, 400 `estado_no_permitido`
+  (un estado que no corresponde, en el filtro de `/clases` o al completar),
+  400 `duracion_no_modificable` y 404 `cobro_no_existe` (defensivo: una clase sin
+  cobro solo puede salir de tocar la base a mano). Además se reusan dos que ya
+  estaban: 400 `materia_no_existe` y 400 `etapa_educativa_no_existe`.
+
+### Lo que quedó afuera, y por qué
+
+| Qué | Por qué |
+|---|---|
+| Reembolsos parciales según la anticipación | La política de cancelación no está decidida (sección 12.2). Hoy se devuelve el total |
+| Que la materia de la reserva sea una de las que dicta el profesor | Se valida que exista en el catálogo, no que el profesor la dé: `ficha_resumida()` trae los nombres y no los ids. Se puede sumar con una función chica en perfiles |
+| Que las solicitudes pendientes venzan solas | La spec dice "sin expiración automática" |
+| Validar el horario contra la agenda | Es de P3 (`agenda.verificar()`); P4 ya la llama y la va a usar sola |
+| Reintentar un reembolso que falló | La `BackgroundTask` corre una vez. Si justo se cae el servidor entre la respuesta y la tarea, el cobro queda `cobrado` con la clase `cancelada`. Con un cobro simulado no vale la complejidad; con una pasarela real haría falta una cola con reintentos o un barrido de esos casos |
+| Que el promedio por clase cuente solo lo dictado | `promedio_por_clase` es lo cobrado del período sobre las dictadas del período, como pide la spec. Lo cobrado incluye las aprobadas que todavía no se dieron, así que a principio de mes puede salir alto |
+| Que el profesor marque como dictada solo una clase que ya pasó | No se exige: con los seeds, las aprobadas están todas en el futuro, y no se podría probar completar |
+
+---
+
+## 9. El sistema de diseño
 
 Los mockups usan un sistema llamado **Organic**. Está copiado tal cual en
 `src/estilos/`, así que cualquier pantalla nueva que use estas clases se va a
@@ -1380,7 +1760,7 @@ la aplicación.
 
 ---
 
-## 9. Flujos completos
+## 10. Flujos completos
 
 ### Registrarse
 
@@ -1460,16 +1840,22 @@ La spec lo marca como "el más peligroso de duplicar".
   El alumno confirma        -> cobro: retenido
        |
        +-- el profe aprueba -> cobro: cobrado      cuenta en sus ingresos
+       |        |
+       |        +-- alguien cancela -> cobro: reembolsado  la clase queda en
+       |                                                    cancelada, en el
+       |                                                    historial
        |
        +-- el profe rechaza -> cobro: liberado     la clase SE BORRA,
-       |                                            el cobro queda
+       |                                            el cobro queda (sin clase)
        |
-       +-- alguien cancela  -> cobro: reembolsado  la clase queda en
-                                                    cancelada, en el historial
+       +-- alguien cancela  -> cobro: liberado     todavia no se habia cobrado
+           antes de aprobar
 ```
 
 El reembolso corre como `BackgroundTask`: la respuesta del cancelar vuelve al
-instante y el cobro pasa a `reembolsado` unos segundos después.
+instante (con el reembolso `en_proceso`) y el cobro pasa a `reembolsado` un
+momento después. Si la clase todavía estaba pendiente no hay nada que
+reembolsar: la retención se libera en el momento.
 
 **Ojo con esa función:** no recibe la sesión de la request, porque corre
 después de que la respuesta ya se envió y para entonces esa sesión está
@@ -1509,7 +1895,7 @@ legítimas. El profesor elige cuál aprueba.
 
 ---
 
-## 10. Qué está hecho y qué falta
+## 11. Qué está hecho y qué falta
 
 ### Hecho
 
@@ -1523,8 +1909,11 @@ legítimas. El profesor elige cuál aprueba.
 - **La migración inicial** (`alembic/versions/79d6aea11ac3_esquema_inicial.py`):
   las 24 tablas, los 12 ENUM, los 13 índices de `schema.sql` y la restricción
   `EXCLUDE`
+- **La segunda migración** (`6d0c95b67436_cobro_sobrevive_al_rechazo.py`, de
+  P4): `cobro.clase_id` nullable con `ON DELETE SET NULL` (ver la sección 8)
 - **Los seeds** (`app/seeds.py`): catálogos, veinte usuarios con sus perfiles
-  y su oferta, franjas de disponibilidad y treinta clases con su cobro
+  y su oferta, franjas de disponibilidad y treinta clases con su cobro, con los
+  importes calculados por `clases.logica.desglosar()`
 - `schema.sql` completo, de referencia
 - El frontend entero: proxy, rutas, contexto de autenticación, sistema de
   diseño y componentes
@@ -1532,6 +1921,9 @@ legítimas. El profesor elige cuál aprueba.
 - **Todo lo de P1** (ver la sección 7): `usuario_actual()`, los módulos
   `cuentas` y `perfiles` completos, y las pantallas **1e** y **1j**, con
   modo oscuro
+- **El backend de P4** (ver la sección 8): los módulos `clases` y `pagos`
+  completos, los 19 endpoints, el cobro simulado con su reembolso en segundo
+  plano, las métricas y series del panel, y lo que leen agenda y reseñas
 - Las otras ocho pantallas enrutadas con un marcador
 
 ### Verificado
@@ -1553,12 +1945,28 @@ legítimas. El profesor elige cuál aprueba.
 - P1, frontend: recorrido completo en el navegador de 1e y 1j (guardar cada
   sección, subir fotos, publicar y pausar, modo oscuro, cerrar sesión), con y
   sin los catálogos de P2, y en ancho de celular sin scroll horizontal
+- P4, backend: **276 comprobaciones** (`backend/verificar_p4.py`) contra una base
+  real recién sembrada, que recorren los 19 endpoints con tokens de los usuarios
+  de los seeds: el flujo cotizar → crear → aprobar → cancelar con el reembolso
+  llegando en segundo plano; crear → rechazar con el cobro liberado en el
+  historial; que el total de cotizar y el de la clase sean idénticos y que un
+  precio con centavos cuadre al centésimo; dos solicitudes sobre el mismo horario
+  (la segunda aprobación da 409); la tarjeta terminada en 0000 y la vencida, sin
+  que la clase quede creada; roles cruzados, ids inexistentes y estados
+  inválidos; que las tarjetas no filtren el número ni el CCV; reprogramar una
+  aprobada y volver a aprobarla; completar (sube `clases_dictadas` y
+  `tuvieron_clase` da `True`); métricas, series e ingresos con los tres
+  períodos y las tres agrupaciones, contra cuentas hechas en SQL; los bordes de
+  los días en Montevideo. Y además: la app importa, `alembic downgrade -1` /
+  `upgrade head` / `check` sin diferencias, y los seeds dos veces seguidas sin
+  duplicar, con las treinta clases cuadrando con `desglosar()` y los mismos
+  totales que antes
 
 ### Falta
 
-Los cuerpos de las funciones del backend de **P2, P3 y P4** (las de P1 ya
-están). Cada una tiene su docstring con lo que debería hacer, numerado paso a
-paso, y termina con:
+Los cuerpos de las funciones del backend de **P2 (búsqueda) y P3** (las de P1,
+P4 y los catálogos ya están). Cada una tiene su docstring con lo que debería
+hacer, numerado paso a paso, y termina con:
 
 ```python
 raise NotImplementedError("P2 - catalogos: GET /catalogos/todo")
@@ -1597,13 +2005,19 @@ y 1c. No depende de nadie.
 **P3**: `mensajeria/logica.py` → `contar_no_leidos()`. Hoy el contador de la
 barra de arriba muestra siempre 0. Y una función pública en `agenda` para
 saber si un profesor tiene franjas, para sumarla al chequeo de publicar.
+Además, P4 ya llama a tres funciones de P3 y las va a usar apenas existan, sin
+cambiar nada (sección 8): `agenda.verificar()` (hoy crear y reprogramar no
+saben de franjas ni bloqueos), `agenda.hay_bloqueo_encima()` y
+`resenas.resena_de()`. Lo que agenda y reseñas necesitan de `clases`
+(`clases_entre`, `clases_aprobadas_entre`, `tuvieron_clase`) ya está.
 
-**P4**: `GET /api/pagos/tarjetas`, para llenar la pestaña "Medios de pago"
-de 1e.
+**P4**: el backend está terminado. Faltan sus pantallas (1g, "Medios de pago" de
+1e y 1d), que van sobre los endpoints de la sección 8, y sumar a `mensajes.js`
+los cinco códigos de error nuevos.
 
 ---
 
-## 11. Cosas que hay que decidir
+## 12. Cosas que hay que decidir
 
 La spec marca tres cosas sin cerrar. Las tres bloquean trabajo.
 
@@ -1632,8 +2046,20 @@ Si la cambian, hay que cambiarla ahí y recargar los seeds.
 ¿Se reembolsa el total siempre, o hay un plazo mínimo? Por ejemplo: si cancela
 con menos de 24 horas, ¿se le devuelve todo?
 
-P4 lo necesita para escribir `pagos.logica.reembolsar()`. Hoy el código asume
-**total siempre**, y está marcado con un comentario en esa función.
+**Sigue sin decidir.** Hoy el código hace esto, la cancele quien la cancele:
+
+- Si la clase estaba **pendiente**, no se había cobrado nada: la retención se
+  **libera** en el momento.
+- Si estaba **aprobada**, se devuelve el **total**, en segundo plano
+  (`pagos.logica.reembolsar()`), y la respuesta lo informa como
+  `{"estado": "en_proceso", "importe": <total>}`.
+
+Está marcado con un comentario "PENDIENTE DE DECIDIR" en
+`pagos.logica.reembolsar()` y en `clases.logica.cancelar()`. Si se decide un
+plazo, el lugar es `cancelar()`, que tiene la clase y sabe quién cancela.
+Ojo: un reembolso **parcial** no entra en el modelo actual, porque el cobro
+tiene un solo `importe` y un estado; haría falta una columna nueva en `cobro`
+(por ejemplo, `importe_reembolsado`), o sea una migración.
 
 ### 3. Los acentos y las eñes
 
