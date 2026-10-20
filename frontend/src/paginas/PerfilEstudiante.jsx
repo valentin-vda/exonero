@@ -10,7 +10,7 @@
  *   +-- la seccion elegida:
  *         SeccionPersonalEstudiante   datos de la cuenta y del perfil
  *         SeccionClave                cambiar la contrasena, darse de baja
- *         (Medios de pago)            de P4: todavia pendiente
+ *         SeccionMediosPago           tarjetas e historial de pagos (P4)
  *         (Mis resenas)               de P3: todavia pendiente
  *
  * Que llamadas hace al entrar:
@@ -18,6 +18,8 @@
  *   GET /api/catalogos/todo           las opciones de los desplegables (P2)
  * Los datos de la cuenta (nombre, foto, correo) no se piden: ya estan en
  * useAuth(), que los trajo de GET /api/usuarios/yo al entrar a la app.
+ * Las tarjetas y los pagos los pide SeccionMediosPago recien cuando se abre
+ * esa pestania: no hace falta cargarlos para ver los datos personales.
  */
 
 import { useEffect, useState } from 'react'
@@ -32,6 +34,7 @@ import CabeceraPerfil from './perfil/CabeceraPerfil.jsx'
 import MenuLateral from './perfil/MenuLateral.jsx'
 import { AVISO_SIN_CATALOGOS } from './perfil/opciones.js'
 import SeccionClave from './perfil/SeccionClave.jsx'
+import SeccionMediosPago from './perfil/SeccionMediosPago.jsx'
 import SeccionPersonalEstudiante from './perfil/SeccionPersonalEstudiante.jsx'
 
 // Las pestanias del menu lateral, en orden. El id es lo que se guarda en el
@@ -101,16 +104,7 @@ export default function PerfilEstudiante() {
           <SeccionPersonalEstudiante perfil={perfil} catalogos={catalogos} alGuardar={recargarPerfil} />
         )}
         {pestania === 'clave' && <SeccionClave />}
-        {pestania === 'pagos' && (
-          <div className="panel">
-            <EnConstruccion
-              codigo="1e"
-              nombre="Medios de pago"
-              dueno="P4"
-              descripcion="Las tarjetas guardadas para pagar las reservas (GET /api/pagos/tarjetas) y el historial de pagos."
-            />
-          </div>
-        )}
+        {pestania === 'pagos' && <SeccionMediosPago />}
         {pestania === 'resenas' && (
           <div className="panel">
             <EnConstruccion

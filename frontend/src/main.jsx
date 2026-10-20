@@ -13,6 +13,7 @@
  *   3. auth         los estilos propios de login y registro
  *   4. perfil       los de las pantallas de perfil (1e y 1j)
  *   5. panel        los del panel del profesor (1d) y sus graficos
+ *   6. pagos        los del checkout (1g) y de "Medios de pago" (1e)
  */
 
 import { StrictMode } from 'react'
@@ -27,6 +28,7 @@ import './estilos/componentes.css'
 import './estilos/auth.css'
 import './estilos/perfil.css'
 import './estilos/panel.css'
+import './estilos/pagos.css'
 
 createRoot(document.getElementById('root')).render(
   // StrictMode solo corre en desarrollo. Hace que los efectos se ejecuten dos

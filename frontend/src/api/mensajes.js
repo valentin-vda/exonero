@@ -52,6 +52,8 @@ const MENSAJES = {
 
   // --- Reservas y clases (1g, 1b, 1i) ---
   sin_precio: 'Este profe no da clases en esa modalidad. Elegi otra.',
+  duracion_invalida: 'Este profe no da clases de esa duracion. Elegi una de las que ofrece.',
+  modalidad_invalida: 'La clase tiene que ser presencial u online.',
   horario_ocupado: 'Ese horario ya no esta libre. Volve al perfil del profe y elegi otro.',
   estado_invalido: 'La clase cambio de estado mientras tanto. Recarga la pagina.',
   clase_no_existe: 'Esa clase ya no existe. Recarga la pagina.',
