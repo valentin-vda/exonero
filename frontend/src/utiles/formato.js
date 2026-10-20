@@ -31,6 +31,36 @@ export function mesYAnio(fechaIso) {
   return new Date(fechaIso).toLocaleDateString('es-UY', { month: 'long', year: 'numeric' })
 }
 
+// La zona de la aplicacion (la misma que ZONA_HORARIA del backend). Se fija
+// en vez de usar la del navegador para que una clase de las 18:00 se vea a
+// las 18:00 aunque la computadora este configurada en otra zona.
+const ZONA = 'America/Montevideo'
+
+/** "2026-10-21T21:00:00Z" -> "martes 21 de octubre, 18:00". */
+export function diaYHora(fechaIso) {
+  if (!fechaIso) return ''
+  const fecha = new Date(fechaIso)
+  const dia = fecha.toLocaleDateString('es-UY', { weekday: 'long', day: 'numeric', month: 'long', timeZone: ZONA })
+  return `${dia}, ${hora(fechaIso)}`
+}
+
+/** "2026-10-21T21:00:00Z" -> "18:00". */
+export function hora(fechaIso) {
+  if (!fechaIso) return ''
+  return new Date(fechaIso).toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', timeZone: ZONA })
+}
+
+/**
+ * Un importe -> "$ 1.913,18" (o "$ 1.200" si es entero).
+ * El backend manda los importes como texto ("1913.18") para no perder
+ * centesimos: aca solo se le da formato, NUNCA se hacen cuentas de plata.
+ */
+export function pesos(valor) {
+  const numero = Number(valor || 0)
+  const decimales = Number.isInteger(numero) ? 0 : 2
+  return `$ ${numero.toLocaleString('es-UY', { minimumFractionDigits: decimales, maximumFractionDigits: 2 })}`
+}
+
 /** 4.8 -> "4,8". El backend manda los decimales como texto ("4.80") o numero. */
 export function puntaje(valor) {
   return Number(valor || 0).toLocaleString('es-UY', {
