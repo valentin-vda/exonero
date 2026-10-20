@@ -15,6 +15,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import RutaProtegida from './auth/RutaProtegida.jsx'
 import EnConstruccion from './componentes/EnConstruccion.jsx'
 import Layout from './componentes/Layout.jsx'
+import Checkout from './paginas/Checkout.jsx'
 import Login from './paginas/Login.jsx'
 import PerfilEstudiante from './paginas/PerfilEstudiante.jsx'
 import PerfilProfesor from './paginas/PerfilProfesor.jsx'
@@ -69,17 +70,8 @@ export default function App() {
               />
             }
           />
-          <Route
-            path="/checkout"
-            element={
-              <EnConstruccion
-                codigo="1g"
-                nombre="Checkout"
-                dueno="P4"
-                descripcion="Resumen de la clase, desglose del importe y tarjeta."
-              />
-            }
-          />
+          {/* 1g - P4. Se llega desde 1f con los datos en la URL (ver Checkout.jsx). */}
+          <Route path="/checkout" element={<Checkout />} />
           <Route
             path="/mis-clases"
             element={

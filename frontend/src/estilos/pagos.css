@@ -1,0 +1,416 @@
+/* ===========================================================================
+   Estilos de lo que es de pagos (P4): el checkout (1g) y la pestania
+   "Medios de pago" del perfil del estudiante (1e).
+
+   El checkout tiene el esqueleto del mockup:
+
+     +------------------------------------------+-----------------+
+     | tarjeta verde: la clase elegida          | Resumen         |
+     +------------------------------------------+ (352 px, queda  |
+     | Medio de pago: radios y tarjeta nueva    |  fijo al bajar) |
+     +------------------------------------------+-----------------+
+
+   Las tarjetas guardadas se ven igual en las dos pantallas: el recuadrito
+   de la marca, el nombre con los cuatro puntitos y "Vence MM/AA".
+
+   Todo con las variables de tokens.css, asi el modo oscuro funciona solo.
+   =========================================================================== */
+
+/* --- El esqueleto del checkout -------------------------------------------- */
+
+.checkout { padding-top: 14px; }
+
+.checkout-volver { font-size: 12.5px; }
+
+.checkout-titulo { padding-top: 10px; }
+.checkout-titulo h2 { margin: 10px 0 0; }
+.checkout-titulo p {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.checkout-columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 352px;
+  gap: 22px;
+  align-items: start;
+  padding-top: 20px;
+}
+
+.checkout-principal {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  /* Sin esto, un texto largo sin espacios estira la columna y rompe la grilla. */
+  min-width: 0;
+}
+
+/* Lo que se ve cuando la URL no alcanza para armar la reserva */
+.checkout-sin-reserva { max-width: 620px; margin: 40px auto 0; }
+
+/* --- La tarjeta verde con la clase elegida -------------------------------- */
+
+.checkout-clase {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px;
+  border-radius: 36px;
+  background: var(--color-accent-2-100);
+}
+.checkout-clase-datos { min-width: 0; }
+.checkout-clase-titulo {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  line-height: 1.15;
+}
+.checkout-clase-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-text) 65%, transparent);
+}
+.checkout-clase-cambiar { margin-left: auto; flex: none; }
+
+/* --- Los medios de pago (ElegirMedio.jsx) --------------------------------- */
+
+/* El fieldset agrupa los radios para el lector de pantalla; a la vista no
+   tiene que tener ni borde ni margen. */
+.medios {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Cada opcion es un <label> entero con su radio adentro: se puede tocar en
+   cualquier parte de la fila. */
+.medio {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-divider);
+  border-radius: 28px;
+  background: var(--color-bg);
+  cursor: pointer;
+}
+.medio input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+/* La elegida, con el borde y el fondo del acento. */
+.medio:has(input:checked) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-100);
+}
+.medio:has(input:disabled) { opacity: 0.55; cursor: not-allowed; }
+/* El foco del teclado se marca en toda la fila, no solo en el circulito. */
+.medio:has(input:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.medio-datos { display: flex; flex-direction: column; min-width: 0; }
+.medio-nombre {
+  font-family: var(--font-heading);
+  font-size: 16.5px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.medio-meta {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  overflow-wrap: anywhere;
+}
+.medio-tag { margin-left: auto; flex: none; }
+
+/* El recuadrito con la marca: VISA, MC, OCA, o el + de la tarjeta nueva. */
+.marca-tarjeta {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 52px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--color-accent-2-200);
+  color: var(--color-accent-2-900);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.marca-tarjeta-mas { font-size: 16px; }
+
+/* El formulario de la tarjeta nueva, debajo de los radios */
+.medio-nueva {
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: 28px;
+  background: var(--color-bg);
+}
+/* Adentro de un panel, los inputs van en el color del fondo (perfil.css).
+   Aca el recuadro ya es de ese color: los inputs vuelven a "surface" para
+   que se distingan. */
+.medio-nueva .input,
+.tarjeta-nueva .input { background: var(--color-surface); }
+
+/* Vencimiento y codigo de seguridad, uno al lado del otro (son cortos:
+   entran juntos aun en el celular). */
+.formulario-tarjeta-fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 14px;
+}
+
+/* La casilla "Guardar esta tarjeta en mi perfil". .casilla esta en perfil.css. */
+.medio-nueva .casilla { margin-top: 4px; font-size: 13px; }
+
+/* --- El resumen (Resumen.jsx) --------------------------------------------- */
+
+.checkout-resumen {
+  padding: 22px;
+  border-radius: 36px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-md);
+  /* sticky: al bajar con el scroll, el resumen se queda a la vista. */
+  position: sticky;
+  top: 16px;
+}
+.checkout-resumen h4 { margin: 0 0 16px; }
+
+.resumen-lineas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  font-size: 13.5px;
+}
+.resumen-lineas > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.resumen-lineas dt { color: color-mix(in srgb, var(--color-text) 65%, transparent); }
+.resumen-lineas dd { margin: 0; white-space: nowrap; }
+/* "1,5 h x $ 900", debajo de "Subtotal" */
+.resumen-detalle { display: block; font-size: 11.5px; }
+
+.resumen-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-divider);
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+.resumen-total-importe {
+  font-family: var(--font-heading);
+  font-size: 30px;
+  line-height: 1.1;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+.resumen-aviso { margin-bottom: 16px; }
+
+/* El boton grande del mockup: mas alto y con la letra de los titulos. */
+.resumen-confirmar {
+  margin: 0;
+  padding: 14px 0;
+  border-radius: var(--radius-sm);
+  font-size: 19px;
+}
+.resumen-cancelar {
+  display: block;
+  margin-top: 12px;
+  font-size: 12.5px;
+  text-align: center;
+}
+
+/* --- El cartel "Reserva enviada" (ReservaEnviada.jsx) --------------------- */
+
+/* Tapa toda la pantalla, incluida la barra de arriba, con el fondo velado. */
+.exito-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  backdrop-filter: blur(3px);
+}
+
+.exito {
+  width: min(420px, 100%);
+  padding: 36px 32px;
+  border-radius: 40px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  animation: exito-subir 0.4s ease both;
+}
+
+.exito-icono {
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  margin: 0 auto 20px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  /* El trazo del reloj usa currentColor: el color del texto del boton primario. */
+  color: var(--color-bg);
+  animation: exito-aparecer 0.45s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+.exito-icono svg { width: 56px; height: 56px; }
+.exito-icono circle,
+.exito-icono path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.exito-icono-pista { stroke-opacity: 0.35; }
+/* Un arco de la vuelta, girando: "esperando al profe". */
+.exito-icono-arco {
+  stroke-dasharray: 107;
+  stroke-dashoffset: 80;
+  transform-origin: 26px 26px;
+  animation: exito-girar 1.4s linear 0.3s infinite;
+}
+
+.exito-titulo { margin: 0; font-size: 28px; }
+.exito-texto {
+  margin: 8px 0 0;
+  font-size: 13.5px;
+  color: color-mix(in srgb, var(--color-text) 62%, transparent);
+}
+.exito-detalle {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 24px;
+  background: var(--color-accent-100);
+  color: var(--color-accent-800);
+  font-size: 13px;
+}
+.exito-botones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.exito-botones .btn { flex: 1; }
+
+@keyframes exito-subir {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes exito-aparecer {
+  from { transform: scale(0.4); }
+  to { transform: scale(1); }
+}
+@keyframes exito-girar {
+  from { transform: rotate(-90deg); }
+  to { transform: rotate(270deg); }
+}
+
+/* Quien pidio menos movimiento en su sistema, no ve animaciones. */
+@media (prefers-reduced-motion: reduce) {
+  .exito,
+  .exito-icono,
+  .exito-icono-arco { animation: none; }
+}
+
+/* --- Medios de pago en el perfil (SeccionMediosPago.jsx) ------------------ */
+
+.tarjetas-lista,
+.movimientos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Una tarjeta guardada: marca, datos y "Quitar". Si no entra en una linea
+   (el celular, o mientras pide confirmar), los botones bajan. */
+.tarjeta-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 16px 18px;
+  border-radius: 28px;
+  background: var(--color-bg);
+}
+.tarjeta-fila .medio-datos { flex: 1 1 180px; }
+.tarjeta-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* El formulario de "Agregar medio de pago" */
+.tarjeta-nueva {
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: 28px;
+  background: var(--color-bg);
+}
+.tarjeta-nueva h5 { margin: 0 0 12px; }
+
+/* El estado vacio: sin tarjetas o sin pagos */
+.vacio {
+  padding: 18px;
+  border: 1px dashed var(--color-divider);
+  border-radius: 28px;
+  font-size: 13px;
+  text-align: center;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+
+/* --- Historial de pagos (HistorialPagos.jsx) ------------------------------ */
+
+.movimiento {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 14px 18px;
+  border-radius: 24px;
+  background: var(--color-bg);
+}
+.movimiento .medio-datos { flex: 1 1 200px; }
+.movimiento-importe {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+/* --- Celular y tablet ------------------------------------------------------ */
+
+/* Debajo de 900 px el resumen pasa abajo, a todo el ancho, y deja de quedar
+   fijo (fijo taparia el formulario). */
+@media (max-width: 900px) {
+  .checkout-columnas { grid-template-columns: 1fr; }
+  .checkout-resumen { position: static; }
+  .checkout-clase { flex-wrap: wrap; }
+  .checkout-clase-cambiar { margin-left: 0; }
+}
+
+@media (max-width: 480px) {
+  .medio { padding: 14px; gap: 10px; }
+  .medio-nueva,
+  .tarjeta-nueva { padding: 14px; }
+  .exito { padding: 28px 20px; }
+}
