@@ -11,6 +11,9 @@
  * Como esta hecho:
  *   - Las barras van en un <svg> con viewBox de 620 x 170 y ancho 100 %: el
  *     navegador lo escala solo, asi que en el celular se achica sin hacer nada.
+ *     El alto lo fija el CSS (panel.css) y preserveAspectRatio="none" deja que
+ *     el dibujo se estire distinto a lo ancho y a lo alto: si no, en una
+ *     pantalla ancha el grafico quedaria altisimo, y en el celular, chatito.
  *   - Las etiquetas de los ejes NO van adentro del SVG sino en HTML, al lado y
  *     abajo. El texto de un SVG se escala con el dibujo: en un celular de
  *     375 px quedaria de 5 px y no se leeria. En HTML queda siempre de 11 px.
@@ -109,7 +112,13 @@ export default function GraficoBarras({ titulo, series, columnas, formato, enter
         ))}
       </div>
 
-      <svg className="grafico-lienzo" viewBox={`0 0 ${ANCHO} ${ALTO}`} role="img" aria-label={titulo}>
+      <svg
+        className="grafico-lienzo"
+        viewBox={`0 0 ${ANCHO} ${ALTO}`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={titulo}
+      >
         {marcas.map((m) => (
           <line key={m.valor} className="grafico-linea" x1="0" x2={ANCHO} y1={m.y} y2={m.y} />
         ))}
@@ -143,7 +152,13 @@ export default function GraficoBarras({ titulo, series, columnas, formato, enter
         })}
       </svg>
 
-      <div className="grafico-eje-x" style={{ '--columnas': columnas.length }} aria-hidden="true">
+      {/* Con mas de 10 columnas (los 12 meses), en el celular no entran todas
+          las etiquetas: "denso" hace que el CSS muestre una si y una no. */}
+      <div
+        className={`grafico-eje-x${columnas.length > 10 ? ' grafico-eje-x-denso' : ''}`}
+        style={{ '--columnas': columnas.length }}
+        aria-hidden="true"
+      >
         {columnas.map((columna) => (
           <span key={columna.clave}>{columna.corta}</span>
         ))}

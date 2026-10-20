@@ -42,6 +42,11 @@
   color: color-mix(in srgb, var(--color-text) 60%, transparent);
 }
 
+/* Un cartel de error que es lo ultimo de su tarjeta no lleva el margen de
+   abajo: el padding de la tarjeta ya lo separa del borde. */
+.tablero-proxima > .alerta,
+.tablero-bloque > .alerta:last-child { margin-bottom: 0; }
+
 /* Mientras un selector recarga su bloque, lo de antes queda atenuado. */
 .tablero-recargando { opacity: 0.55; transition: opacity 0.15s ease; }
 
@@ -234,10 +239,12 @@
   column-gap: 8px;
   margin-top: 14px;
 }
+/* El ancho es el de la tarjeta y el alto crece con la pantalla, entre 150 y
+   230 px (ver preserveAspectRatio en GraficoBarras.jsx). */
 .grafico-lienzo {
   display: block;
   width: 100%;
-  height: auto;
+  height: clamp(150px, 20vw, 230px);
 }
 
 /* El eje de la izquierda: las etiquetas van en absolute, a la altura de su
@@ -277,6 +284,11 @@
   color: color-mix(in srgb, var(--color-text) 55%, transparent);
 }
 .grafico-eje-x span { overflow: hidden; }
+/* Con muchas columnas en una pantalla angosta, una etiqueta si y una no,
+   contando desde la ultima para que la del tramo en curso siempre se vea. */
+@media (max-width: 520px) {
+  .grafico-eje-x-denso span:nth-last-child(even) { visibility: hidden; }
+}
 
 /* Las lineas guia: finitas y apagadas. non-scaling-stroke las deja de 1 px
    aunque el SVG se agrande o se achique. */

@@ -48,7 +48,10 @@ function diasEntre(desde, hasta) {
 
 /** 'AAAA-MM-DD' -> "jueves 3 de septiembre". */
 export function diaLargo(dia) {
-  return aFecha(dia).toLocaleDateString('es-UY', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
+  // El navegador escribe "jueves, 3 de septiembre": la coma se saca, como en el mockup.
+  return aFecha(dia)
+    .toLocaleDateString('es-UY', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
+    .replace(',', '')
 }
 
 /** Un instante + minutos -> el instante del final, en ISO (para hora()). */
