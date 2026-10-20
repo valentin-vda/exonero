@@ -16,6 +16,7 @@ import RutaProtegida from './auth/RutaProtegida.jsx'
 import EnConstruccion from './componentes/EnConstruccion.jsx'
 import Layout from './componentes/Layout.jsx'
 import Login from './paginas/Login.jsx'
+import PanelProfesor from './paginas/PanelProfesor.jsx'
 import PerfilEstudiante from './paginas/PerfilEstudiante.jsx'
 import PerfilProfesor from './paginas/PerfilProfesor.jsx'
 import RecuperarClave from './paginas/RecuperarClave.jsx'
@@ -101,17 +102,8 @@ export default function App() {
           --------------------------------------------------------------- */}
       <Route element={<RutaProtegida rol="profesor" />}>
         <Route element={<Layout />}>
-          <Route
-            path="/panel"
-            element={
-              <EnConstruccion
-                codigo="1d"
-                nombre="Panel del profesor"
-                dueno="P4"
-                descripcion="Proxima clase, cinco indicadores, clases del dia y graficos."
-              />
-            }
-          />
+          {/* 1d - P4 */}
+          <Route path="/panel" element={<PanelProfesor />} />
           <Route
             path="/agenda"
             element={

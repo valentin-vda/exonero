@@ -1,0 +1,393 @@
+/* ===========================================================================
+   Estilos del panel del profesor (1d).
+
+     Hola, Lucia                                   [Editar] [Bloquear]
+     +------------------------------------------------------------------+
+     | (18:00) PROXIMA CLASE                       [Mensaje] [Ver]       |  naranja
+     +------------------------------------------------------------------+
+     [ indicador ][ indicador ][ indicador ][ indicador ][ ingresos ]
+     +------------------------------------------------------------------+
+     | Reservas de hoy (tabla; en el celular, tarjetas)                  |
+     +------------------------------------------------------------------+
+     | Ingresos (cifras + grafico)                                       |  naranja
+     +------------------------------------------------------------------+
+     | Reservas en el tiempo (grafico apilado + leyenda)                 |
+     +------------------------------------------------------------------+
+
+   Las clases empiezan con "tablero-" porque "panel" ya es la tarjeta de las
+   secciones de perfil (perfil.css). Los graficos usan "grafico-".
+
+   Todo con las variables de tokens.css, asi el modo oscuro funciona solo.
+   =========================================================================== */
+
+.tablero {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 8px;
+}
+
+/* Los titulos de cada bloque: h3 por la jerarquia (la pantalla es h2), con
+   el tamanio del h4 del mockup. */
+.tablero h3 { font-size: 20px; margin: 0; }
+
+/* Un texto chico y apagado: el resumen de un bloque, "cargando", "no hay". */
+.tablero-resumen {
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.tablero-vacio {
+  margin: 8px 0;
+  font-size: 13.5px;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+
+/* Mientras un selector recarga su bloque, lo de antes queda atenuado. */
+.tablero-recargando { opacity: 0.55; transition: opacity 0.15s ease; }
+
+.tablero-botones { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Titulo a la izquierda y el selector (o el resumen) a la derecha. */
+.tablero-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+}
+.tablero-encabezado-texto {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+/* Las tarjetas grandes: la tabla y los dos graficos. */
+.tablero-bloque {
+  padding: 20px 22px;
+  border-radius: 32px;
+  background: var(--color-surface);
+}
+.tablero-bloque-acento { background: var(--color-accent-100); }
+
+/* --- Saludo ------------------------------------------------------------- */
+
+.tablero-saludo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.tablero-saludo h2 { margin: 0; }
+.tablero-subtitulo {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+/* --- Proxima clase ------------------------------------------------------ */
+
+.tablero-proxima {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 22px;
+  border-radius: 32px;
+  background: var(--color-accent-100);
+}
+.tablero-proxima-hora {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-family: var(--font-heading);
+  font-size: 15px;
+}
+.tablero-proxima-datos { flex: 1; min-width: 0; }
+/* Es el h3 del bloque, pero se ve como el renglon chico en mayusculas. */
+.tablero .tablero-proxima-titulo {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent-800);
+}
+.tablero-proxima-quien {
+  margin-top: 3px;
+  font-family: var(--font-heading);
+  font-size: 23px;
+  line-height: 1.15;
+}
+.tablero-proxima-detalle {
+  margin-top: 3px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  /* Una direccion o un tema larguisimo corta el renglon en vez de desbordar. */
+  overflow-wrap: anywhere;
+}
+.tablero-proxima .tablero-botones { flex: none; margin-left: auto; }
+
+/* --- Indicadores -------------------------------------------------------- */
+
+.tablero-indicadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+}
+.tablero-indicador {
+  min-width: 0;
+  padding: 18px;
+  border-radius: 28px;
+  background: var(--color-surface);
+}
+.tablero-indicador-destacado { background: var(--color-accent-100); }
+.tablero-indicador-titulo {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.tablero-indicador-destacado .tablero-indicador-titulo { color: var(--color-accent-800); }
+.tablero-indicador-valor {
+  margin: 8px 0 4px;
+  font-family: var(--font-heading);
+  font-size: 34px;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+.tablero-indicador-nota {
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+/* La variacion: verde si es buena, rojo si es mala. El texto igual dice el
+   signo, asi que el color nunca es la unica pista. */
+.tablero-variacion-buena { color: var(--color-ok); }
+.tablero-variacion-mala { color: var(--color-error); }
+
+/* --- Reservas de hoy (la tabla) ----------------------------------------- */
+
+.tablero-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.tablero-tabla th {
+  padding: 8px 10px;
+  font-size: 11.5px;
+  font-weight: 400;
+  text-align: left;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  border-bottom: 1px solid var(--color-divider);
+}
+.tablero-tabla td {
+  padding: 10px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-divider);
+}
+.tablero-tabla tbody tr:last-child td { border-bottom: 0; }
+.tablero-celda-hora { font-family: var(--font-heading); font-size: 15px; }
+.tablero-celda-accion { text-align: right; }
+/* La fila de la proxima clase, resaltada como en el mockup. */
+.tablero-fila-proxima td { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.tablero-fila-proxima td:first-child { border-radius: 16px 0 0 16px; }
+.tablero-fila-proxima td:last-child { border-radius: 0 16px 16px 0; }
+
+/* --- Ingresos ----------------------------------------------------------- */
+
+.tablero-cifras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 14px 34px;
+  margin-top: 4px;
+}
+.tablero-cifra-grande { font-family: var(--font-heading); font-size: 36px; line-height: 1; }
+.tablero-cifra { font-family: var(--font-heading); font-size: 22px; line-height: 1; }
+.tablero-cifra-nota {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+.tablero-nota {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  color: var(--color-accent-800);
+}
+
+/* ===========================================================================
+   Graficos (GraficoBarras.jsx)
+
+     [eje y] [            svg con las barras            ]
+             [ S1 ][ S2 ][ S3 ] ...  <- grilla de etiquetas
+     [ leyenda                                          ]
+   =========================================================================== */
+
+.grafico {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 8px;
+  margin-top: 14px;
+}
+.grafico-lienzo {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* El eje de la izquierda: las etiquetas van en absolute, a la altura de su
+   linea guia (el porcentaje lo calcula el componente). */
+.grafico-eje-y {
+  position: relative;
+  font-size: 11px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.grafico-eje-y-medida {
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  white-space: nowrap;
+}
+.grafico-eje-y-marca {
+  position: absolute;
+  right: 0;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+/* Las etiquetas de abajo: una columna por barra (--columnas lo pone el
+   componente), asi cada una queda debajo de la suya. */
+.grafico-eje-x {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: repeat(var(--columnas), minmax(0, 1fr));
+  margin-top: 6px;
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.grafico-eje-x span { overflow: hidden; }
+
+/* Las lineas guia: finitas y apagadas. non-scaling-stroke las deja de 1 px
+   aunque el SVG se agrande o se achique. */
+.grafico-linea {
+  stroke: var(--color-divider);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* La zona del mouse de cada columna: invisible, y apenas marcada al pasar. */
+.grafico-zona { fill: transparent; }
+.grafico-columna:hover .grafico-zona { fill: color-mix(in srgb, var(--color-text) 6%, transparent); }
+
+/* El color de cada serie va en la variable --serie, que usan tanto la barra
+   (fill) como el cuadradito de la leyenda (background). Las de reservas son
+   pasos de luminosidad distintos (oscuro, medio, claro, gris): se distinguen
+   aun sin ver bien los colores. */
+.serie-dictada { --serie: var(--color-accent-700); }
+.serie-confirmada { --serie: var(--color-accent); }
+.serie-pendiente { --serie: var(--color-accent-300); }
+.serie-no-se-dio { --serie: color-mix(in srgb, var(--color-text) 40%, var(--color-surface)); }
+.serie-ingresos { --serie: var(--color-accent); }
+
+.grafico-barra { fill: var(--serie); }
+/* En las barras simples (ingresos) se destaca el tramo en curso. */
+.grafico-columna:not(.grafico-columna-actual) .serie-ingresos { opacity: 0.6; }
+
+.grafico-leyenda {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.grafico-leyenda li { display: flex; align-items: center; gap: 6px; }
+.grafico-muestra {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--serie);
+}
+
+/* --- Celular y tablet ----------------------------------------------------- */
+
+@media (max-width: 700px) {
+  .tablero-bloque { padding: 18px 16px; border-radius: 28px; }
+
+  /* La proxima clase: la hora y los datos arriba, los botones en un renglon. */
+  .tablero-proxima { flex-wrap: wrap; gap: 14px 16px; padding: 18px 16px; border-radius: 28px; }
+  .tablero-proxima .tablero-botones { margin-left: 0; width: 100%; }
+  .tablero-proxima-quien { font-size: 19px; }
+
+  /* Los indicadores de a dos, y el de ingresos (el numero mas largo) solo. */
+  .tablero-indicadores { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tablero-indicador { padding: 14px 16px; border-radius: 24px; }
+  .tablero-indicador-valor { font-size: 28px; }
+  .tablero-indicador-destacado { grid-column: 1 / -1; }
+
+  .tablero-cifra-grande { font-size: 30px; }
+}
+
+/* Debajo de 640 px las seis columnas no entran: cada fila de la tabla pasa a
+   ser una tarjeta.
+
+     18:00  Martina Silva          [En 40 min]
+            Matematica · Bachillerato
+            Presencial                   [Ver]
+
+   La cabecera se esconde a la vista (como oculto-visual) pero queda para el
+   lector de pantalla. */
+@media (max-width: 640px) {
+  .tablero-tabla thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .tablero-tabla,
+  .tablero-tabla tbody { display: block; }
+  .tablero-tabla tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'hora alumno estado'
+      'hora materia materia'
+      'hora modalidad accion';
+    align-items: center;
+    gap: 2px 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--color-divider);
+  }
+  .tablero-tabla tbody tr:last-child { border-bottom: 0; }
+  .tablero-tabla td { padding: 0; border: 0; }
+  .tablero-celda-hora { grid-area: hora; align-self: start; }
+  .tablero-celda-alumno { grid-area: alumno; font-weight: 600; }
+  .tablero-celda-materia { grid-area: materia; }
+  .tablero-celda-modalidad { grid-area: modalidad; font-size: 12.5px; }
+  .tablero-celda-estado { grid-area: estado; justify-self: end; }
+  .tablero-celda-accion { grid-area: accion; justify-self: end; }
+
+  /* La proxima: la tarjeta entera resaltada, y no celda por celda. */
+  .tablero-fila-proxima {
+    padding: 12px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  }
+  .tablero-fila-proxima td,
+  .tablero-fila-proxima td:first-child,
+  .tablero-fila-proxima td:last-child { background: none; border-radius: 0; }
+}
