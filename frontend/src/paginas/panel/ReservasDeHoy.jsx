@@ -31,8 +31,9 @@ import { ESTADOS_CLASE, MODALIDAD_CLASE } from './opciones.js'
 function resumen(clases) {
   const activas = clases.filter((c) => c.estado !== 'cancelada')
   const minutos = activas.reduce((suma, c) => suma + c.duracion_min, 0)
+  const cuantas = { 0: 'Sin clases', 1: '1 clase' }[activas.length] || `${activas.length} clases`
   return unir([
-    activas.length === 1 ? '1 clase' : `${activas.length} clases`,
+    cuantas,
     minutos > 0 && duracion(minutos),
     diaLargo(hoy()),
   ])
