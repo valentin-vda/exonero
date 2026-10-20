@@ -4,76 +4,90 @@ Todo cuelga de /api/pagos.
 
 Las tarjetas son el mismo recurso desde dos pantallas: el alta desde el
 checkout (1g) y la administracion desde el perfil (1e). No se duplica.
+
+Tarjetas e historial son solo del alumno (`Estudiante`) y los ingresos solo
+del profesor (`Profesor`): con el otro rol, 403 no_es_tuyo.
+
+Igual que en P1: cada ruta llama a logica.py, hace el commit y responde.
 """
 
 from datetime import date
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Query, status
 
-from app.dependencias import Db, Yo
-from app.modulos.pagos import esquemas
+from app import fechas
+from app.dependencias import Db, Estudiante, Profesor
+from app.modulos.pagos import esquemas, logica
 
 router = APIRouter(prefix="/pagos", tags=["pagos"])
 
 
 @router.get("/tarjetas", response_model=list[esquemas.TarjetaOut])
-def listar_tarjetas(yo: Yo, db: Db):
+def listar_tarjetas(yo: Estudiante, db: Db):
     """Las tarjetas activas del alumno. Compartido por 1e y 1g.
 
     No hay tarjeta principal: el alumno elige una en cada compra.
 
-    NUNCA devuelve el numero completo ni el CCV, aunque esten guardados.
-
-    TODO (P4): implementar. 403 si el rol no es estudiante.
+    NUNCA devuelve el numero completo ni el CCV, aunque esten guardados: solo
+    marca, ultimos4, titular y vence ("MM/AA").
     """
-    raise NotImplementedError("P4 - pagos: GET /pagos/tarjetas")
+    return logica.tarjetas_de(db, yo.id)
 
 
 @router.post("/tarjetas", response_model=esquemas.TarjetaOut, status_code=status.HTTP_201_CREATED)
-def agregar_tarjeta(datos: esquemas.TarjetaIn, yo: Yo, db: Db):
+def agregar_tarjeta(datos: esquemas.TarjetaIn, yo: Estudiante, db: Db):
     """Alta de tarjeta. Compartido por 1e y 1g.
 
     Se guarda tal cual, sin pasarela. Ver la advertencia de pagos/modelos.py.
+    Devuelve la version segura, la misma forma que GET.
 
-    TODO (P4): implementar.
-      1. Validar que el numero sea solo digitos y que no este vencida.
-      2. Deducir la marca con logica.marca_de().
-      3. Guardar y devolver la version segura, solo con ultimos4.
+    Errores: 400 tarjeta_invalida (numero o CCV con algo que no son digitos;
+             los espacios del numero se aceptan y se sacan),
+             402 tarjeta_vencida.
     """
-    raise NotImplementedError("P4 - pagos: POST /pagos/tarjetas")
+    tarjeta = logica.agregar_tarjeta(db, yo.id, datos)
+    db.commit()
+    return tarjeta
 
 
 @router.delete("/tarjetas/{tarjeta_id}", status_code=status.HTTP_204_NO_CONTENT)
-def borrar_tarjeta(tarjeta_id: int, yo: Yo, db: Db):
+def borrar_tarjeta(tarjeta_id: int, yo: Estudiante, db: Db):
     """Da de baja una tarjeta. Compartido por 1e y 1g.
 
     Baja LOGICA (activa = false), no DELETE: los cobros viejos apuntan a esta
     fila y el historial de 1e tiene que poder decir con que se pago.
 
-    TODO (P4): implementar. 403 si la tarjeta no es de este usuario.
+    Errores: 404 tarjeta_no_existe, 403 no_es_tuyo (es de otro alumno).
     """
-    raise NotImplementedError("P4 - pagos: DELETE /pagos/tarjetas/{id}")
+    logica.dar_de_baja_tarjeta(db, yo.id, tarjeta_id)
+    db.commit()
+    return None
 
 
 @router.get("/historial", response_model=list[esquemas.MovimientoOut])
-def historial(yo: Yo, db: Db, desde: date | None = None, hasta: date | None = None, pagina: int = 1):
-    """El historial de pagos del alumno. 1e.
+def historial(yo: Estudiante, db: Db, desde: date | None = None, hasta: date | None = None,
+              pagina: int = Query(1, ge=1)):
+    """El historial de pagos del alumno. 1e. De a 50 por pagina.
 
     Son las filas de cobro de sus clases, con fecha, clase, importe y estado.
-    Incluye los reembolsos de las canceladas.
+    Incluye los reembolsos de las canceladas y los liberados de las rechazadas
+    (esos vienen con clase_id, materia y contraparte en null: la clase ya no
+    existe).
 
-    TODO (P4): implementar. Join con clase para traer materia y contraparte.
+    desde y hasta son fechas (AAAA-MM-DD) de Montevideo; hasta es inclusive.
     """
-    raise NotImplementedError("P4 - pagos: GET /pagos/historial")
+    desde_dt, hasta_dt = fechas.rango_de_dias(desde, hasta)
+    return logica.historial_de(db, yo.id, desde_dt, hasta_dt, pagina)
 
 
 @router.get("/ingresos", response_model=esquemas.IngresosOut)
-def ingresos(yo: Yo, db: Db, periodo: str = "mes", agrupar: str = "semana"):
+def ingresos(yo: Profesor, db: Db, periodo: str = "mes", agrupar: str = "semana"):
     """Los ingresos del profesor. Compartido por 1d y 1j.
 
     El grafico del panel y el resumen del perfil salen del mismo endpoint.
+    periodo: mes, trimestre o anio (el calendario en curso).
+    agrupar: semana, mes o anio (los tramos de la serie del grafico).
 
-    TODO (P4): implementar. Envolver logica.ingresos_de().
-    403 si el rol no es profesor.
+    Errores: 400 periodo_invalido, 400 agrupacion_invalida.
     """
-    raise NotImplementedError("P4 - pagos: GET /pagos/ingresos")
+    return logica.ingresos_de(db, yo.id, periodo, agrupar)

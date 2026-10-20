@@ -14,7 +14,12 @@ from pydantic import BaseModel
 # --- Cotizar ----------------------------------------------------------------
 
 class CotizarIn(BaseModel):
-    """POST /clases/cotizar - 1f y 1g."""
+    """POST /clases/cotizar - 1f y 1g.
+
+    modalidad: presencial u online (una clase concreta no puede ser "ambas").
+    con_traslado: que el profesor vaya a la casa del alumno. Solo cuenta en
+    presencial y si el profesor se traslada; si no, se ignora.
+    """
 
     profesor_id: int
     duracion_min: int
@@ -24,6 +29,9 @@ class CotizarIn(BaseModel):
 
 class CotizacionOut(BaseModel):
     """El desglose completo. No crea nada: es solo el calculo.
+
+    Los importes viajan como texto ("1913.18"): Pydantic serializa Decimal asi
+    para no perder centesimos.
 
     Orden del calculo:
       subtotal  = precio_hora * horas
@@ -91,13 +99,19 @@ class Contraparte(BaseModel):
 
 
 class ClaseOut(BaseModel):
-    """Una fila del calendario. GET /clases - 1b, 1d, 1i."""
+    """Una fila del calendario. GET /clases - 1b, 1d, 1i.
+
+    etapa es la etapa DE LA CLASE (clase.etapa_id), no la del alumno: la tabla
+    "Reservas de hoy" de 1d muestra "Matematica - Bachillerato". La agrego P4;
+    no estaba en el contrato original.
+    """
 
     id: int
     estado: str
     inicio: datetime
     duracion_min: int
     materia: str | None = None
+    etapa: str | None = None
     tema: str | None = None
     modalidad: str
     ubicacion: str | None = None
@@ -155,6 +169,13 @@ class CancelarOut(BaseModel):
 
 
 class ReprogramarIn(BaseModel):
+    """POST /clases/{id}/reprogramar.
+
+    duracion_min es opcional y, si viene, tiene que ser la misma que ya tiene
+    la clase: el importe esta congelado y depende de la duracion (400
+    duracion_no_modificable). Para cambiarla hay que cancelar y reservar otra.
+    """
+
     inicio: datetime
     duracion_min: int | None = None
 
@@ -168,16 +189,28 @@ class CompletarIn(BaseModel):
 # --- Panel del profesor - 1d ------------------------------------------------
 
 class MetricasOut(BaseModel):
-    """Los cinco indicadores de 1d, con la variacion contra el periodo anterior."""
+    """Los cinco indicadores de 1d, con la variacion contra el periodo anterior.
+
+    tasa_cancelacion va en porcentaje (0 a 100). variacion tiene una clave por
+    indicador ({"alumnos_atendidos": 12.5, ...}): el cambio contra el periodo
+    anterior, en porcentaje con un decimal, o null si el anterior fue 0 (no se
+    puede dividir por cero, y "infinito por ciento" no le dice nada a nadie).
+    """
 
     alumnos_atendidos: int
     horas_dictadas: Decimal
     alumnos_recurrentes: int
     tasa_cancelacion: Decimal
-    variacion: dict
+    variacion: dict[str, float | None]
 
 
 class PuntoSerie(BaseModel):
+    """Un punto del grafico de 1d: cuantas clases en ese estado en ese tramo.
+
+    etiqueta es "AAAA-MM-DD", el inicio del tramo (el lunes, el dia 1 o el 1
+    de enero). Los tramos sin clases no vienen: el frontend los completa.
+    """
+
     etiqueta: str
     cantidad: int
     estado: str | None = None

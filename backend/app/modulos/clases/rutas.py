@@ -11,8 +11,8 @@ from datetime import date
 
 from fastapi import APIRouter, BackgroundTasks, Response, status
 
-from app.dependencias import Db, Yo
-from app.modulos.clases import esquemas
+from app.dependencias import Db, Estudiante, Yo
+from app.modulos.clases import esquemas, logica
 
 router = APIRouter(prefix="/clases", tags=["clases"])
 
@@ -30,9 +30,10 @@ def cotizar(datos: esquemas.CotizarIn, db: Db):
 
     No crea nada. No pide token: el alumno ve el estimado en 1f antes de entrar.
 
-    TODO (P4): implementar. Envolver logica.cotizar().
+    Errores: 400 modalidad_invalida, 404 profesor_no_existe,
+             400 duracion_invalida, 400 sin_precio.
     """
-    raise NotImplementedError("P4 - clases: POST /clases/cotizar")
+    return logica.cotizar(db, datos.profesor_id, datos.duracion_min, datos.modalidad, datos.con_traslado)
 
 
 @router.get("/proxima")
@@ -131,16 +132,21 @@ def listar_clases(yo: Yo, db: Db, desde: date | None = None, hasta: date | None 
 
 
 @router.post("", response_model=esquemas.ClaseCreadaOut, status_code=status.HTTP_201_CREATED)
-def crear_clase(datos: esquemas.CrearClaseIn, yo: Yo, db: Db):
+def crear_clase(datos: esquemas.CrearClaseIn, yo: Estudiante, db: Db):
     """El confirmar de 1g. Crea la clase en pendiente y retiene el cobro.
 
     Aparece enseguida en las solicitudes del profesor (1i).
 
-    Errores: 409 horario_ocupado, 402 cobro_rechazado.
+    Un solo commit para la clase y el cobro: si la tarjeta falla, logica
+    levanta el error antes de llegar aca y no queda ninguna de las dos cosas.
 
-    TODO (P4): implementar. 403 si el rol no es estudiante.
+    Errores: los de cotizar, 400 materia_no_existe, 409 horario_ocupado,
+             404 tarjeta_no_existe, 402 tarjeta_vencida, 402 cobro_rechazado.
     """
-    raise NotImplementedError("P4 - clases: POST /clases")
+    clase = logica.crear(db, yo.id, datos)
+    respuesta = logica.resumen(db, clase)
+    db.commit()
+    return respuesta
 
 
 # ============================================================================

@@ -67,8 +67,14 @@ class Cobro(Base, Marcas):
     __table_args__ = (Index("ix_cobro_estado", "estado"),)
 
     # UNIQUE: una clase tiene exactamente un cobro.
-    clase_id: Mapped[int] = mapped_column(
-        ForeignKey("clase.id", ondelete="CASCADE"), nullable=False, unique=True
+    #
+    # NULLABLE y SET NULL, no CASCADE: al RECHAZAR se borra la clase, y el
+    # cobro liberado tiene que quedar registrado (es el motivo de que la plata
+    # viva en esta tabla y no en clase). Con CASCADE, borrar la clase se
+    # llevaba puesto el cobro. Lo cambio la segunda migracion (P4). El UNIQUE
+    # sigue valiendo: PostgreSQL permite varios NULL.
+    clase_id: Mapped[int | None] = mapped_column(
+        ForeignKey("clase.id", ondelete="SET NULL"), unique=True
     )
     tarjeta_id: Mapped[int | None] = mapped_column(ForeignKey("tarjeta.id"))
     # Copia del total de la clase al momento de retener. Si la clase cambiara,
