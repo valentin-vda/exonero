@@ -4,9 +4,11 @@ Los de registro y login son los que consume la pantalla de login/registro del
 frontend; estan copiados tal cual de la seccion 9 de la spec.
 """
 
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+from app.enums import Tema
 
 
 # --- Registro ---------------------------------------------------------------
@@ -78,7 +80,11 @@ class RestablecerIn(BaseModel):
 
 class EstudianteEnCabecera(BaseModel):
     """Los datos del estudiante que muestra la cabecera de 1a:
-    '5.º de Bachillerato · Liceo Bauza · Cordon'."""
+    '5.º de Bachillerato · Liceo Bauza · Cordon'.
+
+    Vienen con los NOMBRES ya resueltos, no los ids. `nivel` es solo el anio
+    dentro de la etapa ("5.o"): el frontend arma "5.o de Bachillerato".
+    """
 
     etapa: str | None = None
     nivel: str | None = None
@@ -93,6 +99,10 @@ class YoOut(BaseModel):
 
     Trae el contador de mensajes no leidos adentro para que la cabecera se
     arme con un solo llamado al entrar.
+
+    documento, telefono y fecha_nacimiento estan para que 1e y 1j puedan
+    llenar el formulario de "Informacion personal" sin otro llamado.
+    creado_el es el "Miembro desde marzo de 2026" de la cabecera de 1e.
     """
 
     id: int
@@ -102,6 +112,10 @@ class YoOut(BaseModel):
     rol: str
     foto_base64: str | None = None
     tema: str
+    documento: str | None = None
+    telefono: str | None = None
+    fecha_nacimiento: date | None = None
+    creado_el: datetime | None = None
     mensajes_no_leidos: int = 0
     estudiante: EstudianteEnCabecera | None = None
 
@@ -110,13 +124,14 @@ class ActualizarUsuarioIn(BaseModel):
     """Cuerpo de PATCH /usuarios/yo — 1e · 1j.
 
     El correo NO esta en la lista, a proposito: es la credencial y no se cambia.
-    Todos los campos son opcionales; solo se tocan los que vienen.
+    Todos los campos son opcionales; solo se tocan los que vienen. Los topes de
+    largo son los mismos que los de RegistroIn.
     """
 
-    nombre: str | None = None
-    apellido: str | None = None
-    telefono: str | None = None
-    documento: str | None = None
+    nombre: str | None = Field(default=None, max_length=80)
+    apellido: str | None = Field(default=None, max_length=80)
+    telefono: str | None = Field(default=None, max_length=30)
+    documento: str | None = Field(default=None, max_length=20)
     fecha_nacimiento: date | None = None
 
 
@@ -135,9 +150,13 @@ class ClaveIn(BaseModel):
 
 
 class TemaIn(BaseModel):
-    """PUT /usuarios/yo/tema."""
+    """PUT /usuarios/yo/tema.
 
-    tema: str  # 'claro' | 'oscuro'
+    Con el tipo Tema (el enum de app/enums.py), FastAPI rechaza solo cualquier
+    valor que no sea 'claro' u 'oscuro', con un 422.
+    """
+
+    tema: Tema
 
 
 class OkOut(BaseModel):

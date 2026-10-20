@@ -203,6 +203,33 @@ textarea.input { min-height: 90px; resize: vertical; border-radius: var(--radius
 .tag-accent { background: var(--color-accent-100); color: var(--color-accent-800); }
 .tag-accent-2 { background: var(--color-accent-2-100); color: var(--color-accent-2-800); }
 .tag-neutral { background: var(--color-neutral-100); color: var(--color-neutral-800); }
+/* Borde punteado y sin relleno: "esto se puede agregar" (+ Agregar materia) */
+.tag-outline {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px dashed var(--color-divider);
+}
+/* Para cuando la etiqueta es un <button> o un <select> que se puede tocar */
+.tag-boton {
+  font: inherit;
+  font-size: 12px;
+  border: 0;
+  cursor: pointer;
+}
+.tag-outline.tag-boton { border: 1px dashed var(--color-divider); }
+/* Una etiqueta-boton prendida (aria-pressed="true"), por ejemplo una duracion
+   elegida: color de acento lleno, para que se distinga de las apagadas. */
+.tag-boton[aria-pressed='true'] { background: var(--color-accent); color: var(--color-bg); }
+.tag-boton:hover { filter: brightness(0.95); }
+
+/* Una fila de etiquetas que salta de renglon si no entran */
+.etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-height: 36px;
+}
 
 /* --- Navegacion --------------------------------------------------------- */
 
@@ -222,6 +249,16 @@ textarea.input { min-height: 90px; resize: vertical; border-radius: var(--radius
   color: var(--color-text);
 }
 .nav a { color: inherit; text-decoration: none; font-size: 14px; }
+
+/* En el celular no entran la marca, los cinco enlaces y el avatar en una
+   linea: la barra pasa a ocupar dos renglones en vez de desbordarse. */
+@media (max-width: 700px) {
+  .nav {
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4);
+  }
+}
 .nav a:hover,
 .nav a[aria-current='page'] { color: var(--color-accent); }
 
@@ -253,3 +290,23 @@ textarea.input { min-height: 90px; resize: vertical; border-radius: var(--radius
 }
 .alerta-error { background: var(--color-error-fondo); color: var(--color-error); }
 .alerta-ok { background: var(--color-ok-fondo); color: var(--color-ok); }
+.alerta-info { background: var(--color-neutral-100); color: var(--color-neutral-800); }
+
+/* --- Accesibilidad ------------------------------------------------------- */
+
+/* Esconde algo a la vista pero lo deja para el teclado y el lector de
+   pantalla. Se usa en los <input type="file">: lo que se ve es el boton (un
+   <label>), pero el input sigue existiendo y se puede enfocar con Tab. */
+.oculto-visual {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+/* Si el input escondido tiene el foco, se le marca el borde al boton. */
+label:has(.oculto-visual:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

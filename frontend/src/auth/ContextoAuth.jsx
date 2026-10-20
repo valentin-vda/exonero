@@ -78,11 +78,33 @@ export function ProveedorAuth({ children }) {
     setUsuario(null)
   }, [])
 
+  /**
+   * Vuelve a pedir GET /usuarios/yo y actualiza el usuario de toda la app.
+   *
+   * Se llama despues de editar algo de la cuenta (nombre, foto, tema): asi la
+   * barra de arriba, el menu lateral y la cabecera muestran lo nuevo sin
+   * recargar la pagina. Como `usuario` vive en este contexto, al cambiarlo se
+   * redibujan solos todos los componentes que lo usan.
+   */
+  const refrescar = useCallback(async () => {
+    const yo = await obtenerYo()
+    setUsuario(yo)
+    return yo
+  }, [])
+
+  // El tema (claro u oscuro) se guarda en la cuenta. Cada vez que cambia el
+  // usuario, se escribe en <html data-tema="..."> y tokens.css hace el resto:
+  // redefine las variables de color, y como todo el CSS usa variables, toda
+  // la app cambia de color. Sin sesion (en el login) siempre es claro.
+  useEffect(() => {
+    document.documentElement.dataset.tema = usuario?.tema || 'claro'
+  }, [usuario])
+
   // useMemo evita que el objeto se cree de nuevo en cada render, lo que
   // volveria a renderizar toda la app sin motivo.
   const valor = useMemo(
-    () => ({ usuario, cargando, entrar, registrarse, salir }),
-    [usuario, cargando, entrar, registrarse, salir],
+    () => ({ usuario, cargando, entrar, registrarse, salir, refrescar }),
+    [usuario, cargando, entrar, registrarse, salir, refrescar],
   )
 
   return <ContextoAuth.Provider value={valor}>{children}</ContextoAuth.Provider>

@@ -83,4 +83,56 @@
   --shadow-sm: 0 1px 2px color-mix(in srgb, #2e2b25 14%, transparent);
   --shadow-md: 0 3px 10px color-mix(in srgb, #2e2b25 16%, transparent);
   --shadow-lg: 0 12px 32px color-mix(in srgb, #2e2b25 22%, transparent);
+
+  /* Le avisa al navegador que el tema es claro: los controles nativos (el
+     calendario de un input date, las flechas de un select) se dibujan claros. */
+  color-scheme: light;
+}
+
+/* ===========================================================================
+   Tema oscuro.
+
+   Se activa cuando <html> tiene data-tema="oscuro". Ese atributo lo pone
+   ContextoAuth.jsx segun usuario.tema, que se cambia con el interruptor del
+   menu lateral de los perfiles (PUT /usuarios/yo/tema).
+
+   Solo se REDEFINEN variables. Como todo el resto del CSS usa variables y
+   nunca colores sueltos, con esto alcanza para que toda la app cambie.
+   Los valores son los del modo oscuro del mockup.
+   =========================================================================== */
+
+:root[data-tema='oscuro'] {
+  --color-bg: #172235;
+  --color-surface: #1c283d;
+  --color-text: #e6edf5;
+  --color-divider: rgba(245, 234, 216, 0.2);
+
+  --color-neutral-100: #223047;
+  --color-neutral-200: #293851;
+  --color-neutral-300: #30405b;
+  --color-neutral-800: #dfdbd3;
+
+  /* En oscuro el acento pasa de terracota a azul, como en el mockup. */
+  --color-accent: #6a95c4;
+  --color-accent-100: #1d3350;
+  --color-accent-200: #254263;
+  --color-accent-300: #2e5078;
+  --color-accent-600: #8fb3db;
+  --color-accent-700: #a9c6e6;
+  --color-accent-800: #bdd3ec;
+  --color-accent-900: #dce8f5;
+
+  --color-accent-2: #b3876a;
+  --color-accent-2-100: #3a2c24;
+  --color-accent-2-200: #4a3829;
+  --color-accent-2-300: #5c4533;
+  --color-accent-2-800: #e0c6b2;
+  --color-accent-2-900: #efe0d4;
+
+  --color-error: #f0a090;
+  --color-error-fondo: #3d1f1a;
+  --color-ok: #c5d6a8;
+  --color-ok-fondo: #2a3320;
+
+  color-scheme: dark;
 }

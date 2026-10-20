@@ -15,29 +15,14 @@ export default function MarcoAuth({ children, ancho = false }) {
       <aside className="auth-panel">
         <div className="auth-marca">Exonero</div>
 
+        {/* Los textos son los de la pantalla "0 Ingreso" del mockup. */}
         <div className="auth-lema">
-          <h1>Clases particulares, cerca tuyo.</h1>
+          <h1>Clases particulares con profes de tu barrio</h1>
           <p>
-            Encontra profes de tu materia en tu barrio, mira su agenda real y
-            reserva la clase. Sin llamadas, sin vueltas.
+            Busca por materia y zona, elegi un horario y paga cuando el profe
+            apruebe la clase.
           </p>
         </div>
-
-        {/* Decorativo: describe la propuesta en tres puntos */}
-        <ul className="auth-puntos">
-          <li className="auth-punto">
-            <span className="auth-punto-icono" aria-hidden="true">1</span>
-            Busca por materia, barrio, precio y horario
-          </li>
-          <li className="auth-punto">
-            <span className="auth-punto-icono" aria-hidden="true">2</span>
-            Elegi un hueco libre de su agenda
-          </li>
-          <li className="auth-punto">
-            <span className="auth-punto-icono" aria-hidden="true">3</span>
-            El profe confirma y listo
-          </li>
-        </ul>
       </aside>
 
       {/* --- Columna derecha: el formulario --- */}

@@ -12,10 +12,11 @@ cuando uno viene de backend.
 4. [El backend](#4-el-backend)
 5. [El frontend](#5-el-frontend)
 6. [Login y registro, paso a paso](#6-login-y-registro-paso-a-paso)
-7. [El sistema de diseño](#7-el-sistema-de-diseño)
-8. [Flujos completos](#8-flujos-completos)
-9. [Qué está hecho y qué falta](#9-qué-está-hecho-y-qué-falta)
-10. [Cosas que hay que decidir](#10-cosas-que-hay-que-decidir)
+7. [Cuentas y perfiles (P1), de punta a punta](#7-cuentas-y-perfiles-p1-de-punta-a-punta)
+8. [El sistema de diseño](#8-el-sistema-de-diseño)
+9. [Flujos completos](#9-flujos-completos)
+10. [Qué está hecho y qué falta](#10-qué-está-hecho-y-qué-falta)
+11. [Cosas que hay que decidir](#11-cosas-que-hay-que-decidir)
 
 ---
 
@@ -56,9 +57,14 @@ npm run dev                     # queda en http://localhost:5173
 Abrí `http://localhost:5173` y te va a recibir el login.
 
 Los seeds dejan cargados veinte usuarios, todos con la clave `exonero123`:
-`profe1@exonero.test` a `profe8@exonero.test` y `alumno1@exonero.test` a
-`alumno12@exonero.test`. Entrar con ellos funciona cuando P1 termine
-`cuentas` (ver la sección 9).
+`profe1@example.com` a `profe8@example.com` y `alumno1@example.com` a
+`alumno12@example.com`. En el login hay dos botones, **Alumno** y **Profe**,
+que completan el formulario con el primero de cada uno.
+
+¿Por qué `example.com` y no un dominio inventado como `exonero.test`? Porque
+el validador de correos del backend rechaza los dominios `.test` (son de "uso
+especial"), y con esos usuarios no se podría entrar. `example.com` está
+reservado para ejemplos: no es de nadie.
 
 **Por qué el 5433 y no el 5432.** El 5432 es el puerto por defecto de
 PostgreSQL, y si alguna vez lo instalaste en Windows (para otra materia, por
@@ -130,30 +136,41 @@ exonero/
         ├── main.jsx            punto de entrada
         ├── App.jsx             el mapa de rutas
         ├── estilos/
-        │   ├── tokens.css      colores, tipografias, espaciado
+        │   ├── tokens.css      colores, tipografias, espaciado (y modo oscuro)
         │   ├── componentes.css .btn .input .card .tag .nav ...
-        │   └── auth.css        login y registro
+        │   ├── auth.css        login y registro
+        │   └── perfil.css      las pantallas de perfil (1e y 1j)
         ├── api/
         │   ├── cliente.js      el fetch con token y manejo de errores
         │   ├── mensajes.js     codigo de error -> texto en espanol
-        │   └── auth.js         una funcion por endpoint de cuentas
+        │   ├── auth.js         una funcion por endpoint de cuentas
+        │   └── perfiles.js     una funcion por endpoint de perfiles
         ├── auth/
-        │   ├── ContextoAuth.jsx  quien esta conectado
+        │   ├── ContextoAuth.jsx  quien esta conectado (y su tema)
         │   └── RutaProtegida.jsx rutas que exigen sesion
         ├── componentes/
         │   ├── Layout.jsx        la barra de navegacion
         │   ├── MarcoAuth.jsx     el layout de dos columnas
         │   ├── Campo.jsx         etiqueta + input + error
         │   ├── CampoClave.jsx    con el boton de mostrar/ocultar
+        │   ├── CampoSelect.jsx   etiqueta + desplegable + error
+        │   ├── ListaEtiquetas.jsx etiquetas que se quitan + "+ Agregar"
+        │   ├── Avatar.jsx        la foto o las iniciales, en tres tamanios
+        │   ├── InterruptorTema.jsx modo claro / modo oscuro
         │   ├── SelectorRol.jsx   las dos tarjetas del registro
-        │   ├── Alerta.jsx        el cartel de error
+        │   ├── Alerta.jsx        el cartel de error, de exito o de aviso
         │   └── EnConstruccion.jsx marcador de las pantallas pendientes
         ├── paginas/
         │   ├── Login.jsx         HECHA
         │   ├── Registro.jsx      HECHA
-        │   └── RecuperarClave.jsx HECHA
+        │   ├── RecuperarClave.jsx HECHA
+        │   ├── PerfilEstudiante.jsx  1e, HECHA
+        │   ├── PerfilProfesor.jsx    1j, HECHA
+        │   └── perfil/           las piezas de 1e y 1j (ver la seccion 7)
         └── utiles/
-            └── validaciones.js
+            ├── validaciones.js
+            ├── formato.js        iniciales, fechas, puntajes, numeros
+            └── imagenes.js       achicar una foto antes de subirla
 ```
 
 ### Cada módulo del backend tiene siempre los mismos cuatro archivos
@@ -281,7 +298,9 @@ Cerrar sesión no tiene endpoint: es borrar el token del navegador.
      +--> mensajeria.contar_no_leidos()     para GET /usuarios/yo
      +--> perfiles.cabecera_estudiante()    para el saludo de 1a
 
-  perfiles --> catalogos.existe()           validar ids
+  perfiles --> lee nombres de los catalogos por nombre de tabla,
+               solo lectura (ver la seccion 7)
+           --> cuentas.datos_basicos(), es_menor()
 
   busqueda --> perfiles.ficha_resumida()    completar los resultados
            --> catalogos.centroide_barrio() calcular distancias
@@ -493,6 +512,113 @@ useEffect(() => {
 }, [])   // <- el array vacio significa "una sola vez, al montarse"
 ```
 
+### Seis ideas más, que aparecen en las pantallas de perfil
+
+Con las cinco de arriba se lee el login. Las pantallas de perfil (1e y 1j)
+usan además estas seis. Todos los ejemplos son del código real.
+
+#### 6. Mostrar algo solo si se cumple una condición
+
+```jsx
+{daOnline && <Campo id="precioOnline" etiqueta="Precio por hora online" ... />}
+{foto.es_portada ? <span className="tag">Portada</span> : null}
+```
+
+`condicion && <X />` se lee "si la condición es verdadera, dibujá X". Si es
+falsa, no se dibuja nada. Para elegir entre dos cosas está el ternario:
+`condicion ? esto : aquello`. Así 1j esconde el precio presencial cuando el
+profesor da clase solo online (`SeccionEnsena.jsx`).
+
+#### 7. Las listas se dibujan con `map`, y nunca se modifican: se reemplazan
+
+```jsx
+{seleccion.map((id) => (
+  <button key={id} onClick={() => quitar(id)}>{nombreDe(id)}</button>
+))}
+```
+
+`map` recorre la lista y devuelve un elemento por cada valor. Para cambiar una
+lista del estado **no** se usa `push` ni `splice`: se arma una lista nueva y
+se le pasa al `set`.
+
+```js
+alCambiar(seleccion.filter((x) => x !== idQuitado))  // sin ese elemento
+alCambiar([...seleccion, idNuevo])                   // con uno mas
+```
+
+React compara la lista vieja con la nueva para saber qué redibujar. Si se
+modifica la misma lista, React no ve el cambio (`ListaEtiquetas.jsx`).
+
+#### 8. `children` es lo que va entre las etiquetas
+
+```jsx
+<MenuLateral pestanias={PESTANIAS} activa={pestania} alElegir={setPestania}>
+  <div>Perfil 82 % completo</div>      {/* <- esto es children */}
+</MenuLateral>
+```
+
+Adentro de `MenuLateral`, `{children}` dibuja ese contenido en el lugar que
+corresponda. Así el mismo menú sirve para 1e (que no pasa nada) y para 1j
+(que pasa la barra de progreso y el botón de publicar).
+
+#### 9. El estado lo guarda quien lo necesita para decidir
+
+```jsx
+// PerfilProfesor.jsx
+const [pestania, setPestania] = useState('datos')
+...
+<MenuLateral activa={pestania} alElegir={setPestania} />
+{pestania === 'bio' && <SeccionBio ... />}
+```
+
+El menú muestra las pestañas, pero **no** guarda cuál está elegida: la que
+decide qué sección dibujar es la pantalla, así que el estado vive ahí. El menú
+recibe el valor (`activa`) y una función para avisar (`alElegir`). A esto se
+le dice "subir el estado". Es la misma idea que un input controlado.
+
+#### 10. `useState` con una función: el valor inicial se calcula una vez
+
+```jsx
+const [campos, setCampos] = useState(() => valoresIniciales(usuario, perfil))
+```
+
+Si se le pasa una función, React la ejecuta solo la primera vez que dibuja el
+componente. Cada sección de perfil arranca así su formulario a partir de lo
+que vino del backend, y "Cancelar" vuelve a llamar a `valoresIniciales()`
+para descartar lo que se escribió.
+
+#### 11. `async`/`await`, `try`/`catch`/`finally` y `Promise.all`
+
+```js
+async function guardar(evento) {
+  evento.preventDefault()
+  setGuardando(true)
+  try {
+    await actualizarYo({...})            // espera a que responda
+    await guardarPerfilEstudiante({...}) // recien despues, esta
+    setMensaje({ tipo: 'ok', texto: 'Listo...' })
+  } catch (error) {
+    setMensaje({ tipo: 'error', texto: mensajeDeError(error.codigo) })
+  } finally {
+    setGuardando(false)                  // pase lo que pase
+  }
+}
+```
+
+`await` espera la respuesta antes de seguir con la línea siguiente. Si el
+backend responde un error, salta al `catch`. El `finally` corre siempre.
+
+Para pedir dos cosas **al mismo tiempo** (y no una detrás de la otra) está
+`Promise.all`. Las pantallas de perfil lo usan al entrar:
+
+```js
+Promise.all([obtenerMiFicha(), obtenerCatalogos().catch(() => null)])
+  .then(([ficha, catalogos]) => { ... })
+```
+
+El `.catch(() => null)` de los catálogos hace que, si fallan, la pantalla
+siga funcionando igual con `catalogos = null` (ver la sección 7).
+
 ### Cómo viaja un dato del formulario al backend
 
 Este es el recorrido completo, con los archivos reales:
@@ -562,15 +688,20 @@ function MiPantalla() {
 }
 ```
 
-Expone cinco cosas:
+Expone seis cosas:
 
 | Qué | Para qué |
 |---|---|
-| `usuario` | El usuario conectado, o `null` |
+| `usuario` | El usuario conectado (lo que devuelve `GET /usuarios/yo`), o `null` |
 | `cargando` | `true` mientras se averigua si hay sesión |
 | `entrar(correo, clave)` | Hace el login y deja la sesión abierta |
 | `registrarse(rol, datos)` | Crea la cuenta y deja la sesión abierta |
 | `salir()` | Borra el token |
+| `refrescar()` | Vuelve a pedir `GET /usuarios/yo`. Se llama después de editar la cuenta (nombre, foto, tema) para que toda la app muestre lo nuevo |
+
+Además, cada vez que cambia el usuario, el contexto escribe su tema en
+`<html data-tema="claro|oscuro">`. Así funciona el modo oscuro (ver la
+sección 8).
 
 **Por qué existe `cargando`:** al recargar la página, el token está en
 `sessionStorage` pero todavía no sabemos si sigue siendo válido. Hay que
@@ -599,7 +730,7 @@ estudiante, y la pantalla va a salir con la barra de navegación arriba.
 
 | URL | Pantalla | Mockup | Estado |
 |---|---|---|---|
-| `/login` | Login | — | Hecha |
+| `/login` | Login | 0 | Hecha |
 | `/registro` | Registro | — | Hecha |
 | `/recuperar` | Recuperar contraseña | — | Hecha |
 | `/inicio` | Inicio del estudiante | 1a | Pendiente, P2 |
@@ -607,10 +738,10 @@ estudiante, y la pantalla va a salir con la barra de navegación arriba.
 | `/profesor/:id` | Detalle del profesor | 1f | Pendiente, P2 |
 | `/checkout` | Checkout | 1g | Pendiente, P4 |
 | `/mis-clases` | Mis clases | 1b | Pendiente, P3 |
-| `/mi-perfil` | Perfil del estudiante | 1e | Pendiente, P1 |
+| `/mi-perfil` | Perfil del estudiante | 1e | **Hecha**, P1 |
 | `/panel` | Panel del profesor | 1d | Pendiente, P4 |
 | `/agenda` | Agenda del profesor | 1i | Pendiente, P3 |
-| `/perfil-profesor` | Perfil del profesor | 1j | Pendiente, P1 |
+| `/perfil-profesor` | Perfil del profesor | 1j | **Hecha**, P1 |
 | `/mensajes` | Mensajes | 1h | Pendiente, P3 |
 
 Las pendientes ya están enrutadas y muestran un cartel de `EnConstruccion`. Se
@@ -678,9 +809,11 @@ variables de `tokens.css`, nunca colores sueltos.
 
 ## 6. Login y registro, paso a paso
 
-Estas dos pantallas **no existían en el prototipo de mockups** (la spec las
-marca como "sin pantalla en el prototipo" y dice que bloquean a P1 en la
-semana 2). Están diseñadas siguiendo el mismo sistema visual que el resto.
+La spec las marcaba como "sin pantalla en el prototipo", así que se diseñaron
+siguiendo el mismo sistema visual que el resto. Después apareció la pantalla
+**"0 Ingreso"** en el mockup (`docs/Exonero Demo.html`), y el login se alineó
+con ella: los mismos textos y el recuadro de usuarios de prueba. El registro y
+recuperar la contraseña siguen sin pantalla en el mockup.
 
 ### El layout
 
@@ -691,17 +824,17 @@ Las tres pantallas de autenticación comparten `MarcoAuth.jsx`:
 │                           │                           │
 │  Panel terracota          │  Fondo crema              │
 │                           │                           │
-│  Exonero                  │      Entrar               │
-│                           │      Bienvenido de vuelta │
-│  Clases particulares,     │                           │
-│  cerca tuyo.              │      Correo               │
-│                           │      [___________]        │
-│  Encontra profes de tu    │                           │
-│  materia en tu barrio...  │      Contrasena           │
-│                           │      [________] Mostrar   │
-│  1 Busca por materia...   │                           │
-│  2 Elegi un hueco...      │      [    Entrar    ]     │
-│  3 El profe confirma      │                           │
+│  Exonero                  │   Ingresa a tu cuenta     │
+│                           │   Entra con tu correo...  │
+│                           │                           │
+│                           │   Correo                  │
+│                           │   [___________]           │
+│                           │   Contrasena              │
+│  Clases particulares      │   [________] Mostrar      │
+│  con profes de tu barrio  │                           │
+│                           │   [    Entrar    ]        │
+│  Busca por materia y      │   Usuarios de prueba      │
+│  zona, elegi un horario.. │   [Alumno] [Profe]        │
 │                           │   No tenes cuenta? Crear  │
 └───────────────────────────┴───────────────────────────┘
 ```
@@ -727,6 +860,12 @@ Lo que hace, en orden:
 
 El botón se deshabilita mientras se envía, para que no se pueda hacer doble
 clic y mandar dos logins.
+
+Abajo está el recuadro verde de **usuarios de prueba**, como en el mockup.
+Sus dos botones (**Alumno** y **Profe**) completan el formulario con
+`alumno1@example.com` o `profe1@example.com` y la clave `exonero123`, los
+usuarios que crea `python -m app.seeds`. Es solo para probar rápido: no
+entran solos, igual hay que apretar "Entrar".
 
 ### Registro
 
@@ -783,6 +922,15 @@ corre `uvicorn`, copiarlo de ahí y pegarlo en el paso 2.
 El paso 1 responde `200` exista o no el correo, para no revelar qué cuentas
 están registradas. Por eso siempre se pasa al paso 2.
 
+Lo que hay que saber del código (`cuentas/logica.py`):
+
+- Vale **15 minutos** y sirve **una sola vez**.
+- Al **quinto intento equivocado se anula**: sin ese tope, un script podría
+  probar el millón de combinaciones de 6 dígitos en esos 15 minutos.
+- Se guarda **en memoria** (un diccionario), no en una tabla. Si `uvicorn`
+  se reinicia, se pierde. Con `--reload`, guardar cualquier archivo `.py`
+  reinicia el servidor: si el código "no anda", pedí otro.
+
 ### Validación: por qué está en los dos lados
 
 El backend valida porque es **el único que no se puede saltear**. Cualquiera
@@ -815,7 +963,299 @@ formulario:
 
 ---
 
-## 7. El sistema de diseño
+## 7. Cuentas y perfiles (P1), de punta a punta
+
+Todo lo de P1 está hecho: los módulos `cuentas` y `perfiles`, la resolución
+del token (`usuario_actual()` en `dependencias.py`) y las pantallas **1e**
+(perfil del estudiante) y **1j** (perfil del profesor). El código está
+comentado línea por línea; esta sección es el mapa para leerlo sin perderse.
+
+### Probarlo en dos minutos
+
+1. Levantá todo como dice la sección 1 y cargá los seeds.
+2. En el login tocá **Alumno**, después **Entrar**, y andá a **Mi perfil**: es 1e.
+3. Cerrá sesión, tocá **Profe**, **Entrar**, y **Mi perfil**: es 1j.
+
+Para probar el backend solo, en `http://localhost:8000/docs`: hacé el
+`POST /api/auth/login`, copiá el `token` de la respuesta, y en cualquier ruta
+con token completá el campo `authorization` con `Bearer <el token>`.
+
+### El backend en una imagen
+
+Toda request de P1 recorre el mismo camino:
+
+```
+  Llega:  PUT /api/perfiles/profesor/yo/precios
+          Authorization: Bearer eyJhbGci...
+          { "precio_hora_presencial": 900 }
+                 |
+                 v
+  dependencias.py   usuario_actual(): lee el token y busca al usuario  -> 401
+                    solo_profesor(): ademas exige el rol              -> 403
+                 |
+                 v
+  esquemas.py       FastAPI valida el JSON contra PreciosIn           -> 422
+                 |
+                 v
+  rutas.py          guardar_precios(): llama a logica y hace el COMMIT
+                 |
+                 v
+  logica.py         guardar_precios(): las reglas, y el cambio en la
+                    tabla con flush (NUNCA commit)                    -> 400/409
+```
+
+**Por qué el commit va en la ruta y no en la lógica.** El registro crea la
+cuenta (en `cuentas`) y el perfil (en `perfiles`). Si cada función hiciera su
+propio commit y la segunda fallara, quedaría una cuenta sin perfil. Con un
+solo commit al final, en la ruta, se guardan las dos cosas o ninguna. Por eso
+las funciones de `logica.py` hacen como mucho `flush()`, que manda el cambio a
+la base sin cerrar la transacción (sirve para que la base asigne el `id`).
+
+### Los archivos de P1 en el backend
+
+| Archivo | Qué hay adentro |
+|---|---|
+| `app/dependencias.py` | `usuario_actual()`, `solo_estudiante()`, `solo_profesor()` y los atajos `Yo`, `Estudiante`, `Profesor` que usan las rutas |
+| `cuentas/logica.py` | Alta, login, recuperar clave, editar la cuenta, foto, tema, baja, y lo que leen los otros módulos (`obtener_usuario`, `datos_basicos`, `es_menor`) |
+| `cuentas/rutas.py` | Los 11 endpoints de `/api/auth` y `/api/usuarios/yo` |
+| `cuentas/esquemas.py` | Las formas de los JSON de entrada y salida |
+| `perfiles/logica.py` | Los dos perfiles, la ficha del profesor y su edición por secciones, las fotos, publicar/pausar, y lo que leen los otros módulos |
+| `perfiles/rutas.py` | Los 15 endpoints de `/api/perfiles` y `/api/profesores` |
+| `perfiles/esquemas.py` | Las formas de los JSON, incluida `MiFichaOut` |
+
+### Los endpoints de `cuentas`
+
+| Método y ruta | Token | Qué hace | Errores propios |
+|---|---|---|---|
+| `POST /auth/registro/estudiante` | No | Crea la cuenta y el perfil vacío. Devuelve el token | 409 `correo_ya_registrado`, 409 `documento_ya_registrado` |
+| `POST /auth/registro/profesor` | No | Igual, con la ficha en borrador | Los mismos |
+| `POST /auth/login` | No | Devuelve el token | 409 `credenciales_invalidas` |
+| `POST /auth/recuperar` | No | Imprime un código en la consola del backend. Responde 200 siempre | — |
+| `POST /auth/restablecer` | No | Con el código, cambia la clave | 409 `codigo_invalido` |
+| `GET /usuarios/yo` | Sí | El usuario, con contador de mensajes y cabecera del estudiante | — |
+| `PATCH /usuarios/yo` | Sí | Nombre, apellido, documento, teléfono, nacimiento | 400 `nombre_requerido`, 400 `fecha_invalida`, 409 `documento_ya_registrado` |
+| `PUT /usuarios/yo/foto` | Sí | Foto de perfil en base64 | 400 `foto_invalida`, 400 `foto_muy_grande` |
+| `PUT /usuarios/yo/clave` | Sí | Cambia la clave (pide la actual) | 403 `clave_actual_incorrecta` |
+| `PUT /usuarios/yo/tema` | Sí | `claro` u `oscuro` | 422 si es otra cosa |
+| `DELETE /usuarios/yo` | Sí | Baja lógica. Si es profesor, pausa su ficha | — |
+
+Todas las rutas con token pueden responder además 401 `sin_token`.
+
+### Los endpoints de `perfiles`
+
+| Método y ruta | Rol | Qué hace | Errores propios |
+|---|---|---|---|
+| `GET /perfiles/estudiante/yo` | Estudiante | Etapa, nivel, centro, barrio, dirección, adulto | — |
+| `PUT /perfiles/estudiante/yo` | Estudiante | Guarda todo eso | 400 `<catalogo>_no_existe`, 400 `adulto_responsable_requerido` |
+| `GET /perfiles/profesor/yo` | Profesor | La ficha propia completa (`MiFichaOut`), aunque esté en borrador | — |
+| `PATCH /perfiles/profesor/yo/personal` | Profesor | Título, años de experiencia, barrio base | 400 `barrio_no_existe` |
+| `PUT /perfiles/profesor/yo/oferta` | Profesor | Materias, etapas con programa, idiomas | 400 `materia_no_existe`, ... |
+| `PUT /perfiles/profesor/yo/modalidad` | Profesor | Modalidad, lugar, dirección, zonas, traslado | 400 `barrio_no_existe` |
+| `PUT /perfiles/profesor/yo/precios` | Profesor | Precio presencial y online | 422 si es negativo |
+| `PUT /perfiles/profesor/yo/reglas` | Profesor | Duraciones, descanso, tope, aviso, formato, cupos | 400 `duraciones_incoherentes`, `duracion_fuera_de_rango`, `cupos_incoherentes` |
+| `PUT /perfiles/profesor/yo/bio` | Profesor | Titular, biografía (600), puntos de método | 422 si pasa de 600 |
+| `POST /perfiles/profesor/yo/fotos` | Profesor | Agrega una foto. Devuelve `{ id }` | 400 `foto_invalida`, 409 `maximo_fotos` |
+| `PUT /perfiles/profesor/yo/fotos/{id}` | Profesor | Epígrafe, orden, portada | 404 `foto_no_existe`, 403 `no_es_tuyo` |
+| `DELETE /perfiles/profesor/yo/fotos/{id}` | Profesor | Borra la foto | Los mismos |
+| `PUT /perfiles/profesor/yo/estado` | Profesor | `borrador`, `publicada` o `pausada` | 400 `ficha_incompleta` |
+| `GET /profesores/resumen?ids=1,2` | — | Versión liviana en lote, en el orden pedido | 400 `ids_invalidos` |
+| `GET /profesores/{id}` | — | La ficha pública. Solo si está publicada | 404 `profesor_no_existe` |
+
+"Rol" quiere decir que, además del token, exige ese rol: con el otro rol la
+respuesta es 403 `no_es_tuyo`.
+
+### Lo que P1 le ofrece a los otros módulos
+
+Estas son las funciones de `logica.py` que los demás pueden llamar (nunca los
+modelos). Están implementadas y probadas:
+
+| Función | La usa | Devuelve |
+|---|---|---|
+| `cuentas.obtener_usuario(db, id)` | Todos | El `Usuario`, o `None` |
+| `cuentas.datos_basicos(db, id)` | mensajería, clases, reseñas | `{id, nombre, apellido, foto_base64, rol}` |
+| `cuentas.es_menor(db, id)` | perfiles | `True` si tiene menos de 18 |
+| `perfiles.perfil_profesor_de(db, usuario_id)` | agenda | El `PerfilProfesor` (ojo: recibe el id del **usuario**) |
+| `perfiles.reglas_profesor(db, perfil_id)` | agenda | Duraciones, descanso, tope y aviso (ojo: recibe el id del **perfil**) |
+| `perfiles.precio_vigente(db, usuario_id, modalidad)` | clases | El precio por hora, o `None` si no da esa modalidad |
+| `perfiles.ficha_resumida(db, ids)` | búsqueda | La lista liviana, en el mismo orden de `ids` |
+| `perfiles.escribir_puntaje(db, usuario_id, promedio, cantidad)` | reseñas | Nada: guarda el puntaje en el perfil que corresponda |
+
+**Los dos ids del profesor.** Un profesor tiene `usuario.id` (la persona: lo
+usan las clases, los hilos, las reseñas y la URL `/profesores/12`) y
+`perfil_profesor.id` (su ficha: de ahí cuelgan las tablas de la oferta y de
+la agenda). Confundirlos es el error más fácil de cometer en todo el sistema.
+
+### Lo que P1 necesita de otros, y cómo anda mientras no está
+
+Se decidió **no tocar los módulos de los demás**. Lo que P1 necesita de ellos
+está hecho para tolerar que todavía no exista:
+
+| Qué | De quién | Mientras no está |
+|---|---|---|
+| `mensajeria.contar_no_leidos()` | P3 | `GET /usuarios/yo` responde `mensajes_no_leidos: 0` (ver `_contar_no_leidos` en `cuentas/rutas.py`). Sin esto, nadie podría entrar a la app |
+| `GET /api/catalogos/todo` | P2 | 1e y 1j muestran un aviso, y los desplegables de barrio, centro, etapa, materias e idiomas quedan con el valor actual y deshabilitados. El resto se puede editar |
+| Saber si el profesor tiene franjas de disponibilidad | P3 | Para publicar se exige materia y precio, pero todavía no franjas. El lugar del chequeo está marcado en `perfiles/logica.py` (`cambiar_estado_ficha`) |
+| Tarjetas guardadas | P4 | La pestaña "Medios de pago" de 1e muestra "pendiente, le toca a P4" |
+| Reseñas recibidas | P3 | La pestaña "Mis reseñas" de 1e muestra "pendiente, le toca a P3" |
+
+Cuando cada uno termine su parte, lo de P1 empieza a usarla **sin cambiar nada**:
+el `try/except NotImplementedError` deja de activarse solo, y los
+desplegables se habilitan apenas `GET /api/catalogos/todo` responda.
+
+### Decisiones que conviene conocer
+
+**Los nombres de los catálogos se leen por nombre de tabla.** La ficha muestra
+"Matemática" y "Cordón", pero las tablas de perfiles solo tienen ids. Como no
+se puede importar `catalogos/modelos.py`, en `perfiles/logica.py` las tablas
+de catálogos se describen a mano, con solo `id` y `nombre`, igual que las
+claves foráneas: `table("materia", column("id"), column("nombre"))`. Solo para
+leer. Con eso también se valida que un id exista (`_validar_catalogo`).
+
+**Una ficha, dos esquemas.** `ficha_completa()` arma un solo diccionario con
+todo, lo público y lo privado. `GET /profesores/{id}` lo devuelve con
+`FichaProfesorOut`, y Pydantic descarta solo los campos privados (descanso,
+tope diario, estado de la ficha). `GET /perfiles/profesor/yo` usa
+`MiFichaOut`, que hereda de la otra y los deja todos. Lo privado nunca sale
+en la ficha pública, y hay una sola función que mantener.
+
+**`MiFichaOut` trae ids además de nombres.** La ficha pública dice
+`"idiomas": ["Español", "Inglés"]`, y con un nombre no se puede guardar.
+Por eso la ficha propia agrega `idioma_ids`, `zona_ids` y `barrio_id`.
+
+**PATCH solo toca lo que viene.** `PATCH /usuarios/yo` y
+`PATCH .../personal` usan `model_dump(exclude_unset=True)`: un campo que no
+vino no se toca, y uno que vino en `null` se borra (por ejemplo, quitar el
+teléfono). Los PUT, en cambio, reemplazan todo.
+
+**Las listas se reemplazan enteras.** Materias, etapas, idiomas, zonas,
+duraciones y puntos de método: el frontend manda la lista completa, el
+backend borra las filas que había y crea las nuevas (`_reemplazar_filas`).
+Más simple y predecible que calcular qué se agregó y qué se quitó.
+
+**Las fotos van en base64 y se achican en el navegador.** Una foto de celular
+pesa 3 a 5 MB. Antes de subirla, `utiles/imagenes.js` la achica (400 px la de
+perfil, 1200 px las del lugar) y queda en unos 100 KB. El backend rechaza más
+de unos 2 MB. Hay un tope de 4 fotos del lugar, la primera que se sube es la
+portada, y solo puede haber una portada.
+
+**El mapa usa el centro del barrio.** No hay geocodificación (pasar una
+dirección a coordenadas). Cuando se elige un barrio, el frontend manda la
+latitud y longitud del centro de ese barrio, que vienen en el catálogo.
+
+**Publicar exige lo mínimo.** Al menos una materia y el precio de cada
+modalidad que ofrece (si da presencial y online, los dos precios). Sin eso no
+se podría cotizar una clase.
+
+**Darse de baja no borra nada.** La cuenta queda `dada_de_baja`: no puede
+entrar y su token deja de servir. Las clases, cobros y reseñas se conservan
+para la otra persona. Si es profesor, su ficha pasa a pausada.
+
+**Cambios respecto de los contratos originales.** Al implementar hubo que
+ajustar algunos esquemas (todos de P1, ninguno lo consumía nadie todavía):
+
+- `YoOut` suma `documento`, `telefono`, `fecha_nacimiento` y `creado_el`,
+  para llenar el formulario de 1e/1j sin otro llamado.
+- `nivel` del estudiante guarda solo el año (`"5.o"`); el frontend arma
+  "5.o de Bachillerato".
+- `FotoEnFicha` suma el `id`, para editar o borrar una foto.
+- `MiFichaOut` es nuevo (la respuesta de `GET /perfiles/profesor/yo`).
+- El barrio base pasó de `ModalidadIn` a `PersonalProfesorIn`, porque en el
+  mockup está en "Información personal".
+- `PUT .../fotos/{id}` usa `EditarFotoIn`, sin la imagen: para cambiar un
+  epígrafe no hace falta volver a mandar cientos de KB.
+- `ReglasIn` suma formato y cupos; `TemaIn` usa el enum `Tema`.
+
+### El frontend: cómo están armadas 1e y 1j
+
+Las dos pantallas tienen el mismo esqueleto, el del mockup:
+
+```
+  PerfilEstudiante.jsx / PerfilProfesor.jsx   carga los datos, guarda la
+  |                                           pestania elegida
+  +-- MenuLateral         las pestanias, modo oscuro, cerrar sesion
+  |                       (en 1j, ademas: % completo y publicar/pausar)
+  +-- CabeceraPerfil      la tarjeta verde: foto, nombre, etiquetas,
+  |                       boton "Cambiar foto"
+  +-- la seccion de la pestania elegida (una sola a la vez)
+```
+
+Las piezas están en `src/paginas/perfil/`:
+
+| Archivo | Qué es | Lo usa |
+|---|---|---|
+| `MenuLateral.jsx` | El menú de la izquierda | 1e y 1j |
+| `CabeceraPerfil.jsx` | La tarjeta verde con la foto | 1e y 1j |
+| `SeccionClave.jsx` | Cambiar la contraseña y darse de baja | 1e y 1j |
+| `SeccionPersonalEstudiante.jsx` | "Información personal" del estudiante | 1e |
+| `SeccionDatosProfesor.jsx` | "Información personal" del profesor | 1j |
+| `SeccionEnsena.jsx` | "Materias y modalidad": la más larga | 1j |
+| `SeccionBio.jsx` | Titular, biografía y "cómo es una clase conmigo" | 1j |
+| `SeccionFotos.jsx` | Las cuatro fotos del lugar | 1j |
+| `opciones.js` | Las listas fijas de los desplegables y el plan B sin catálogos | Las secciones |
+
+La pantalla guarda los datos (el perfil o la ficha) y se los pasa a la sección
+por props. Cuando la sección guarda, llama a `alGuardar()`, que es una
+función de la pantalla que vuelve a pedir los datos: así el "% completo" y la
+cabecera se actualizan solos.
+
+### Qué llamadas hace cada botón de guardar
+
+| Dónde | Botón | Llamadas, en este orden |
+|---|---|---|
+| 1e Información personal | Guardar cambios | `PATCH /usuarios/yo` y después `PUT /perfiles/estudiante/yo` |
+| 1j Información personal | Guardar cambios | `PATCH /usuarios/yo` y después `PATCH .../personal` |
+| 1j Materias y modalidad | Guardar cambios | `PUT .../oferta`, `.../modalidad`, `.../precios`, `.../reglas` |
+| 1j Biografía | Guardar cambios | `PUT .../bio` |
+| 1j Fotos | (subir, portada, quitar) | Al instante: `POST`, `PUT` o `DELETE .../fotos` |
+| 1j Fotos | Guardar epígrafes | Un `PUT .../fotos/{id}` por cada foto que cambió |
+| Las dos | Guardar contraseña | `PUT /usuarios/yo/clave` |
+| Las dos | Modo claro/oscuro | `PUT /usuarios/yo/tema` |
+| Las dos | Cambiar foto | `PUT /usuarios/yo/foto` |
+
+**Por qué el orden importa en 1e:** el backend decide si el adulto
+responsable es obligatorio mirando la fecha de nacimiento. Si se guardara el
+perfil antes que la cuenta, miraría la fecha vieja.
+
+Cuando un botón hace varias llamadas y una falla, las anteriores ya quedaron
+guardadas. Se muestra el error y, al volver a guardar, se manda todo de nuevo:
+como cada llamada reemplaza lo que había, repetirla no duplica nada.
+
+### Tres recorridos que vale la pena seguir en el código
+
+**Cambiar la foto de perfil.** `CabeceraPerfil.jsx` recibe el archivo →
+`achicarImagen()` lo achica (`utiles/imagenes.js`) → `cambiarFoto()` hace el
+`PUT` (`api/auth.js`) → `refrescar()` vuelve a pedir el usuario
+(`ContextoAuth.jsx`). Como el usuario vive en el contexto, la foto nueva
+aparece sola en la cabecera, en el menú lateral y en la barra de arriba.
+
+**El modo oscuro.** `InterruptorTema.jsx` → `cambiarTema()` guarda el tema en
+la cuenta → `refrescar()` → `ContextoAuth` ve el usuario nuevo y escribe
+`<html data-tema="oscuro">` → `tokens.css` redefine los colores para ese
+atributo. Como todo el CSS usa variables, toda la app cambia. Y como el tema
+se guarda en la cuenta, sigue al usuario aunque entre desde otra computadora.
+
+**Sin catálogos.** `PerfilProfesor.jsx` pide la ficha y los catálogos con
+`Promise.all`; si los catálogos fallan, quedan en `null` → cada desplegable
+usa `opcionesDeCatalogo()` (`opciones.js`), que en ese caso arma una sola
+opción con el valor actual → los campos se deshabilitan y aparece el aviso.
+
+### Lo del mockup que no está, y por qué
+
+| En el mockup | Por qué no está |
+|---|---|
+| "Sesiones activas" y "Cerrar sesión en todos los equipos" (1e) | No hay sesiones guardadas: el token vive en el navegador y vence solo (sección 3) |
+| "Enviarme un enlace por correo" | No hay correo saliente. En su lugar se explica cómo usar "Olvidé mi contraseña" del login |
+| "Cuenta verificada", "Identidad verificada", "Título verificado" | No hay verificación de identidad en el modelo de datos |
+| "Materias en las que buscás apoyo" (1e) | No hay tabla para eso en el perfil del estudiante |
+| "Cuentas de cobro" del profesor (BROU, Mercado Pago) | El modelo no tiene cuenta bancaria del profesor: los ingresos son la suma de sus cobros |
+| "Precio por alumno en grupal" y "misma etapa" | No están en el modelo, y lo grupal está fuera de la v1 |
+| "Ver mi ficha pública" (1j) | La ficha pública es la pantalla 1f, que es de P2 y solo pueden abrirla los estudiantes |
+| La etapa "Primaria" | Las etapas salen del catálogo, y la lista que manda no la tiene (sección 11) |
+| Arrastrar fotos a cada espacio | Se elige el archivo con un clic: más simple y funciona igual con teclado |
+
+---
+
+## 8. El sistema de diseño
 
 Los mockups usan un sistema llamado **Organic**. Está copiado tal cual en
 `src/estilos/`, así que cualquier pantalla nueva que use estas clases se va a
@@ -882,6 +1322,46 @@ error.
 <p class="text-muted">Algo menos importante</p>
 ```
 
+Y estas, que se sumaron con las pantallas de perfil:
+
+```html
+<!-- Etiqueta "se puede agregar": borde punteado, sin relleno -->
+<span class="tag tag-outline">+ Agregar materia</span>
+
+<!-- Etiqueta que se toca. Con aria-pressed="true" se pinta llena -->
+<button class="tag tag-neutral tag-boton" aria-pressed="true">1,5 h</button>
+
+<!-- Aviso tranquilo (no es un error) -->
+<div class="alerta alerta-info">...</div>
+
+<!-- Esconde algo a la vista pero no al teclado (los input type="file") -->
+<input type="file" class="oculto-visual">
+```
+
+Los estilos propios de 1e y 1j (el menú lateral, la cabecera verde, los
+paneles, el interruptor) están en `estilos/perfil.css`.
+
+### El modo oscuro
+
+Está en `tokens.css`, debajo de los colores normales:
+
+```css
+:root[data-tema='oscuro'] {
+  --color-bg: #172235;
+  --color-accent: #6a95c4;   /* en oscuro el acento pasa a azul */
+  ...
+}
+```
+
+Cuando `<html>` tiene `data-tema="oscuro"`, se **redefinen las variables**, y
+como todo el CSS usa variables y nunca colores sueltos, toda la app cambia de
+color sin tocar nada más. Los valores son los del modo oscuro del mockup.
+
+Quién pone ese atributo: `ContextoAuth.jsx`, según `usuario.tema`, que se
+cambia con el interruptor del menú lateral de los perfiles. Es la mejor
+prueba de por qué existe la regla de no escribir colores sueltos: un solo
+color fijo en una pantalla y esa pantalla se ve mal en oscuro.
+
 ### Dos detalles del estilo
 
 **Todo lo chico es una píldora.** Botones, inputs, etiquetas y el control
@@ -900,7 +1380,7 @@ la aplicación.
 
 ---
 
-## 8. Flujos completos
+## 9. Flujos completos
 
 ### Registrarse
 
@@ -1029,7 +1509,7 @@ legítimas. El profesor elige cuál aprueba.
 
 ---
 
-## 9. Qué está hecho y qué falta
+## 10. Qué está hecho y qué falta
 
 ### Hecho
 
@@ -1048,8 +1528,11 @@ legítimas. El profesor elige cuál aprueba.
 - `schema.sql` completo, de referencia
 - El frontend entero: proxy, rutas, contexto de autenticación, sistema de
   diseño y componentes
-- **Login, registro y recuperar contraseña**, funcionando y conectadas
-- Las otras diez pantallas enrutadas con un marcador
+- **Login, registro y recuperar contraseña**, funcionando de punta a punta
+- **Todo lo de P1** (ver la sección 7): `usuario_actual()`, los módulos
+  `cuentas` y `perfiles` completos, y las pantallas **1e** y **1j**, con
+  modo oscuro
+- Las otras ocho pantallas enrutadas con un marcador
 
 ### Verificado
 
@@ -1063,14 +1546,22 @@ legítimas. El profesor elige cuál aprueba.
 - El frontend compila (`npm run build`) sin errores ni advertencias
 - Login y registro renderizan con el diseño correcto y la validación funciona
 - Sin errores en la consola del navegador
+- P1, backend: 93 comprobaciones contra una base real que recorren los 26
+  endpoints con sus casos de error (roles, ids inexistentes, menor sin
+  adulto, foto de más, código de recuperación vencido o probado cinco veces,
+  baja que invalida el token, que la ficha pública no filtre campos privados)
+- P1, frontend: recorrido completo en el navegador de 1e y 1j (guardar cada
+  sección, subir fotos, publicar y pausar, modo oscuro, cerrar sesión), con y
+  sin los catálogos de P2, y en ancho de celular sin scroll horizontal
 
 ### Falta
 
-Todos los cuerpos de las funciones del backend. Cada una tiene su docstring
-con lo que debería hacer, numerado paso a paso, y termina con:
+Los cuerpos de las funciones del backend de **P2, P3 y P4** (las de P1 ya
+están). Cada una tiene su docstring con lo que debería hacer, numerado paso a
+paso, y termina con:
 
 ```python
-raise NotImplementedError("P1 - cuentas: crear la cuenta")
+raise NotImplementedError("P2 - catalogos: GET /catalogos/todo")
 ```
 
 Ese texto dice **quién** la tiene que escribir y **de qué módulo** es.
@@ -1095,24 +1586,24 @@ El orden de la spec:
 
 ### Por dónde empezar
 
-**P1**, que es quien bloquea a todos:
+**P1 ya terminó**, así que el login, el registro y el token funcionan: todas
+las rutas con `Yo`, `Estudiante` o `Profesor` ya resuelven al usuario. Lo que
+más destraba ahora:
 
-1. `app/dependencias.py` → `usuario_actual()`. Sin esto no anda ninguna ruta
-   con token.
-2. `cuentas/logica.py` → `crear_cuenta()` y `autenticar()`.
-3. `cuentas/rutas.py` → el registro y el login.
-4. `perfiles/logica.py` → `crear_perfil_estudiante()` y `crear_perfil_profesor()`.
-5. `cuentas/rutas.py` → `GET /usuarios/yo`.
+**P2**: `catalogos/rutas.py` → `GET /catalogos/todo`. Es lo único que falta
+para que los desplegables de 1e y 1j se habiliten, y lo necesitan también 1a
+y 1c. No depende de nadie.
 
-Con esos cinco, **el login y el registro que ya están hechos empiezan a
-funcionar de punta a punta**. Es la forma más rápida de ver el proyecto vivo.
+**P3**: `mensajeria/logica.py` → `contar_no_leidos()`. Hoy el contador de la
+barra de arriba muestra siempre 0. Y una función pública en `agenda` para
+saber si un profesor tiene franjas, para sumarla al chequeo de publicar.
 
-**P2** en paralelo: `catalogos/logica.py` y `catalogos/rutas.py`, que no
-dependen de nadie.
+**P4**: `GET /api/pagos/tarjetas`, para llenar la pestaña "Medios de pago"
+de 1e.
 
 ---
 
-## 10. Cosas que hay que decidir
+## 11. Cosas que hay que decidir
 
 La spec marca tres cosas sin cerrar. Las tres bloquean trabajo.
 
@@ -1191,9 +1682,33 @@ seeds después.
 **Cambié un modelo y `autogenerate` no detecta nada.**
 El módulo no está importado en `app/registro_modelos.py`.
 
-**Todos los endpoints devuelven 500 `NotImplementedError`.**
-Es lo esperado: los cuerpos están vacíos a propósito. El mensaje del error dice
-quién la tiene que escribir.
+**Muchos endpoints devuelven 500 `NotImplementedError`.**
+Es lo esperado mientras no estén hechos: los cuerpos están vacíos a propósito.
+El mensaje del error dice quién la tiene que escribir. En el frontend se ve
+como "El servidor tuvo un problema" (código `error_servidor`).
+
+**En 1e o 1j los desplegables de barrio, centro o materias están grises.**
+`GET /api/catalogos/todo` (P2) todavía responde 500. La pantalla muestra un
+aviso, deja ver lo que ya estaba guardado y no permite cambiar esos campos.
+Se habilitan solos cuando P2 lo implemente.
+
+**No puedo publicar mi ficha: "te falta al menos una materia y el precio".**
+Para publicar hace falta una materia y el precio de cada modalidad que
+ofrecés. Si das "Presencial y online", hacen falta los dos precios.
+
+**Guardé la información personal de un alumno menor y dice que falta el adulto.**
+Si la fecha de nacimiento da menos de 18 años, el nombre y el teléfono del
+adulto responsable son obligatorios.
+
+**El código de recuperar la contraseña dice que no es válido.**
+Vence a los 15 minutos, sirve una sola vez y se anula al quinto intento
+equivocado. Además vive en memoria: si `uvicorn --reload` se reinició porque
+guardaste un archivo, se perdió. Pedí otro.
+
+**Cambié la foto y en la barra de arriba sigue la vieja.**
+No debería pasar: `CabeceraPerfil` llama a `refrescar()` del contexto y la
+barra se actualiza sola. Si pasa, mirá la consola del navegador: casi seguro
+falló `GET /usuarios/yo`.
 
 **En la pestaña de red veo cada llamada dos veces.**
 Es `StrictMode` de React, que en desarrollo corre los efectos dos veces a

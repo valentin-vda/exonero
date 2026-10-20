@@ -7,10 +7,11 @@
  *   BrowserRouter  hace que funcionen las URLs (/login, /inicio, ...)
  *   ProveedorAuth  pone "quien esta conectado" al alcance de toda la app
  *
- * Los tres CSS se importan aca, una sola vez, y en este orden:
- *   1. tokens       define las variables
+ * Los CSS se importan aca, una sola vez, y en este orden:
+ *   1. tokens       define las variables (y las del modo oscuro)
  *   2. componentes  las usa para los botones, inputs, tarjetas
  *   3. auth         los estilos propios de login y registro
+ *   4. perfil       los de las pantallas de perfil (1e y 1j)
  */
 
 import { StrictMode } from 'react'
@@ -23,6 +24,7 @@ import { ProveedorAuth } from './auth/ContextoAuth.jsx'
 import './estilos/tokens.css'
 import './estilos/componentes.css'
 import './estilos/auth.css'
+import './estilos/perfil.css'
 
 createRoot(document.getElementById('root')).render(
   // StrictMode solo corre en desarrollo. Hace que los efectos se ejecuten dos

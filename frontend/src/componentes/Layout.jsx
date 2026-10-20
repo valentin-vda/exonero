@@ -11,6 +11,7 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { useAuth } from '../auth/ContextoAuth.jsx'
+import Avatar from './Avatar.jsx'
 
 // Los enlaces de cada rol. Cada uno ve su propio menu.
 const MENU_ESTUDIANTE = [
@@ -25,15 +26,8 @@ const MENU_PROFESOR = [
   { a: '/panel', texto: 'Panel' },
   { a: '/agenda', texto: 'Agenda' },
   { a: '/mensajes', texto: 'Mensajes' },
-  { a: '/perfil-profesor', texto: 'Mi ficha' },
+  { a: '/perfil-profesor', texto: 'Mi perfil' },
 ]
-
-/** Saca las iniciales para el circulito del avatar: "Martina Silva" -> "MS". */
-function iniciales(usuario) {
-  const n = (usuario?.nombre || '').trim()[0] || ''
-  const a = (usuario?.apellido || '').trim()[0] || ''
-  return (n + a).toUpperCase() || '?'
-}
 
 export default function Layout() {
   const { usuario, salir } = useAuth()
@@ -65,13 +59,9 @@ export default function Layout() {
             Salir
           </button>
 
-          <div className="avatar" title={`${usuario?.nombre} ${usuario?.apellido || ''}`}>
-            {usuario?.foto_base64 ? (
-              <img src={usuario.foto_base64} alt="" />
-            ) : (
-              iniciales(usuario)
-            )}
-          </div>
+          {/* La foto o las iniciales (ver Avatar.jsx). Al cambiar la foto en el
+              perfil, se actualiza sola: el usuario viene del contexto. */}
+          <Avatar persona={usuario} />
         </div>
       </nav>
 

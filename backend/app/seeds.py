@@ -18,8 +18,13 @@ QUE CARGA (segun la spec):
   - veinte usuarios de ejemplo, con sus perfiles, disponibilidad y clases
 
 Todos los usuarios entran con la clave "exonero123":
-  profe1@exonero.test ... profe8@exonero.test     (profe7 en borrador, profe8 pausada)
-  alumno1@exonero.test ... alumno12@exonero.test
+  profe1@example.com ... profe8@example.com     (profe7 en borrador, profe8 pausada)
+  alumno1@example.com ... alumno12@example.com
+
+Por que example.com: es un dominio reservado para ejemplos (RFC 2606), no es
+de nadie. Un dominio .test seria lo mas natural, pero el validador de correos
+del backend (EmailStr) lo rechaza por ser de "uso especial", y con esos
+usuarios no se podria hacer login.
 
 Las fechas de las clases se calculan desde HOY, asi siempre hay clases
 proximas y pasadas sin importar cuando se corra.
@@ -364,7 +369,7 @@ def sembrar_usuarios(db, catalogos: dict) -> dict:
     profesores = []
     for n, datos in enumerate(PROFESORES, start=1):
         usuario = Usuario(
-            correo=f"profe{n}@exonero.test",
+            correo=f"profe{n}@example.com",
             hash_clave=hash_clave,
             nombre=datos["nombre"],
             apellido=datos["apellido"],
@@ -413,7 +418,7 @@ def sembrar_usuarios(db, catalogos: dict) -> dict:
             ProfesorEtapa(
                 perfil_profesor_id=perfil.id,
                 etapa_id=catalogos["etapas"][e].id,
-                programa="Reformulacion 2006" if e in ("Ciclo basico", "Bachillerato") else None,
+                programa="Plan 2006 y reformulacion 2023" if e in ("Ciclo basico", "Bachillerato") else None,
             )
             for e in datos["etapas"]
         )
@@ -447,7 +452,7 @@ def sembrar_usuarios(db, catalogos: dict) -> dict:
         ESTUDIANTES, start=1
     ):
         usuario = Usuario(
-            correo=f"alumno{n}@exonero.test",
+            correo=f"alumno{n}@example.com",
             hash_clave=hash_clave,
             nombre=nombre,
             apellido=apellido,
@@ -464,7 +469,7 @@ def sembrar_usuarios(db, catalogos: dict) -> dict:
         perfil = PerfilEstudiante(
             usuario_id=usuario.id,
             etapa_id=catalogos["etapas"][etapa].id,
-            nivel=f"{nivel} de {etapa.lower()}" if nivel else None,
+            nivel=nivel,  # solo el anio ("5.o"); el frontend arma "5.o de Bachillerato"
             centro_id=catalogos["centros"][centro].id if centro else None,
             barrio_id=barrios[barrio].id,
             direccion=f"{CALLES[n % len(CALLES)]} {1000 + n * 37}",
@@ -680,8 +685,8 @@ def main() -> None:
         sembrar_clases(db, usuarios, catalogos)
         db.commit()
         print("Datos de prueba cargados.")
-        print(f"  Profesores: profe1 a profe{len(PROFESORES)}@exonero.test")
-        print(f"  Alumnos:    alumno1 a alumno{len(ESTUDIANTES)}@exonero.test")
+        print(f"  Profesores: profe1 a profe{len(PROFESORES)}@example.com")
+        print(f"  Alumnos:    alumno1 a alumno{len(ESTUDIANTES)}@example.com")
         print(f"  Clave de todos: {CLAVE_DE_PRUEBA}")
     except Exception:
         db.rollback()

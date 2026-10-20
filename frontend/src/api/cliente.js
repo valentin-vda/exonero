@@ -93,8 +93,12 @@ export async function pedir(ruta, opciones = {}) {
   if (!respuesta.ok) {
     // FastAPI manda el codigo en "detail". En un 422 de validacion, "detail"
     // es una lista de objetos, no un string: ahi usamos un codigo generico.
+    // Un 500 ni siquiera trae JSON: el backend se rompio (por ejemplo, una
+    // funcion de otro modulo que todavia levanta NotImplementedError).
     const detalle = datos && datos.detail
-    const codigo = typeof detalle === 'string' ? detalle : 'datos_invalidos'
+    let codigo = 'datos_invalidos'
+    if (typeof detalle === 'string') codigo = detalle
+    else if (respuesta.status >= 500) codigo = 'error_servidor'
     throw new ErrorAPI(respuesta.status, codigo)
   }
 

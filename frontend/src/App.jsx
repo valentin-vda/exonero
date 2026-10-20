@@ -16,6 +16,8 @@ import RutaProtegida from './auth/RutaProtegida.jsx'
 import EnConstruccion from './componentes/EnConstruccion.jsx'
 import Layout from './componentes/Layout.jsx'
 import Login from './paginas/Login.jsx'
+import PerfilEstudiante from './paginas/PerfilEstudiante.jsx'
+import PerfilProfesor from './paginas/PerfilProfesor.jsx'
 import RecuperarClave from './paginas/RecuperarClave.jsx'
 import Registro from './paginas/Registro.jsx'
 
@@ -89,17 +91,8 @@ export default function App() {
               />
             }
           />
-          <Route
-            path="/mi-perfil"
-            element={
-              <EnConstruccion
-                codigo="1e"
-                nombre="Perfil del estudiante"
-                dueno="P1"
-                descripcion="Datos personales, educativos, tarjetas e historial de pagos."
-              />
-            }
-          />
+          {/* 1e - P1 */}
+          <Route path="/mi-perfil" element={<PerfilEstudiante />} />
         </Route>
       </Route>
 
@@ -130,17 +123,8 @@ export default function App() {
               />
             }
           />
-          <Route
-            path="/perfil-profesor"
-            element={
-              <EnConstruccion
-                codigo="1j"
-                nombre="Perfil del profesor"
-                dueno="P1"
-                descripcion="Oferta, modalidad, precios, reglas, biografia y fotos."
-              />
-            }
-          />
+          {/* 1j - P1 */}
+          <Route path="/perfil-profesor" element={<PerfilProfesor />} />
         </Route>
       </Route>
 

@@ -69,10 +69,20 @@ export default function Login() {
     }
   }
 
+  // Los usuarios que crea `python -m app.seeds`. Los botones del recuadro de
+  // abajo completan el formulario con uno de ellos, para probar rapido.
+  function completarDemo(correoDemo) {
+    setCorreo(correoDemo)
+    setClave('exonero123')
+    setErrores({})
+    setErrorGeneral(null)
+  }
+
   return (
     <MarcoAuth>
-      <h2 className="auth-titulo">Entrar</h2>
-      <p className="auth-bajada">Bienvenido de vuelta.</p>
+      {/* Los textos son los de la pantalla "0 Ingreso" del mockup. */}
+      <h2 className="auth-titulo">Ingresa a tu cuenta</h2>
+      <p className="auth-bajada">Entra con tu correo y contrasena de Exonero.</p>
 
       <Alerta tipo="error">{errorGeneral}</Alerta>
 
@@ -111,6 +121,22 @@ export default function Login() {
           {enviando ? 'Entrando...' : 'Entrar'}
         </button>
       </form>
+
+      <div className="auth-demo">
+        <div>
+          <strong>Usuarios de prueba</strong>
+          <br />
+          alumno1@example.com o profe1@example.com, clave exonero123
+        </div>
+        <div className="auth-demo-botones">
+          <button type="button" className="btn btn-secondary" onClick={() => completarDemo('alumno1@example.com')}>
+            Alumno
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={() => completarDemo('profe1@example.com')}>
+            Profe
+          </button>
+        </div>
+      </div>
 
       <p className="auth-pie">
         No tenes cuenta? <Link to="/registro">Crear una</Link>
