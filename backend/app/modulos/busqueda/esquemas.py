@@ -2,8 +2,9 @@
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class FiltrosBusqueda(BaseModel):
@@ -13,19 +14,19 @@ class FiltrosBusqueda(BaseModel):
     Todos opcionales; los que no vienen no filtran.
     """
 
-    materia: int | None = None
-    etapa: int | None = None
-    centro: int | None = None
-    precio_min: Decimal | None = None
-    precio_max: Decimal | None = None
-    barrio: int | None = None
-    modalidad: str | None = None
-    puntaje_min: Decimal | None = None
-    dia: int | None = None          # 0 a 6, para el filtro de disponibilidad
-    franja: str | None = None       # manana, tarde, noche, fin_de_semana
-    idioma: int | None = None
-    orden: str = "distancia"        # distancia, puntaje, precio
-    pagina: int = 1
+    materia: int | None = Field(None, gt=0)
+    etapa: int | None = Field(None, gt=0)
+    centro: int | None = Field(None, gt=0)
+    precio_min: Decimal | None = Field(None, ge=0)
+    precio_max: Decimal | None = Field(None, ge=0)
+    barrio: int | None = Field(None, gt=0)
+    modalidad: Literal["presencial", "online", "ambas"] | None = None
+    puntaje_min: Decimal | None = Field(None, ge=0, le=5)
+    dia: int | None = Field(None, ge=0, le=6)
+    franja: Literal["manana", "tarde", "noche", "fin_de_semana"] | None = None
+    idioma: int | None = Field(None, gt=0)
+    orden: Literal["distancia", "puntaje", "precio"] = "distancia"
+    pagina: int = Field(1, ge=1, le=1000)
 
 
 class ResultadoBusqueda(BaseModel):
@@ -35,7 +36,7 @@ class ResultadoBusqueda(BaseModel):
     nombre: str
     apellido: str
     foto_base64: str | None = None
-    materias: list[str] = []
+    materias: list[str] = Field(default_factory=list)
     barrio: str | None = None
     modalidad: str
     precio_hora_presencial: Decimal | None = None
@@ -52,7 +53,7 @@ class PaginaBusqueda(BaseModel):
     total: int
     pagina: int
     por_pagina: int = 20
-    resultados: list[ResultadoBusqueda] = []
+    resultados: list[ResultadoBusqueda] = Field(default_factory=list)
 
 
 class PinMapa(BaseModel):
@@ -78,7 +79,7 @@ class ProfesorCercano(BaseModel):
     nombre: str
     apellido: str
     foto_base64: str | None = None
-    materias: list[str] = []
+    materias: list[str] = Field(default_factory=list)
     barrio: str | None = None
     distancia_km: float | None = None
     modalidad: str

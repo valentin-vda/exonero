@@ -756,11 +756,12 @@ estudiante, y la pantalla va a salir con la barra de navegación arriba.
 | `/login` | Login | 0 | Hecha |
 | `/registro` | Registro | — | Hecha |
 | `/recuperar` | Recuperar contraseña | — | Hecha |
-| `/inicio` | Inicio del estudiante | 1a | Pendiente, P2 |
-| `/buscar` | Buscar profes | 1c | En progreso, P2: filtros y mapa base hechos |
-| `/profesor/:id` | Detalle del profesor | 1f | Pendiente, P2 |
+| `/inicio` | Inicio del estudiante | 1a | **Hecha**, P2 |
+| `/buscar` | Buscar profes | 1c | **Hecha**, P2: filtros, mapa y resultados reales |
+| `/profesor/:id` | Detalle del profesor | 1f | **Hecha**, P2; espera horarios y reseñas de P3 |
 | `/checkout` | Checkout | 1g | **Hecha**, P4 |
 | `/mis-clases` | Mis clases | 1b | Pendiente, P3 |
+| `/resenas/redactar/:destinatarioId` | Redactar o editar una reseña | Flujo de 1b y 1i | Pendiente, P3 |
 | `/mi-perfil` | Perfil del estudiante | 1e | **Hecha**, P1 (y "Medios de pago", P4) |
 | `/panel` | Panel del profesor | 1d | **Hecha**, P4 |
 | `/agenda` | Agenda del profesor | 1i | Pendiente, P3 |
@@ -769,6 +770,11 @@ estudiante, y la pantalla va a salir con la barra de navegación arriba.
 
 Las pendientes ya están enrutadas y muestran un cartel de `EnConstruccion`. Se
 puede navegar por toda la app desde el día uno sin que se rompa nada.
+
+La pantalla de redactar reseña no es una pestaña del menú. Se abre desde el
+botón **Calificar** de “Reseñas pendientes” en 1b o desde la persona equivalente
+en 1i. El parámetro `destinatarioId` siempre es el `usuario.id` de la persona
+calificada, nunca el id de una clase ni el de un perfil.
 
 ### Cómo agregar una pantalla nueva
 
@@ -1280,9 +1286,11 @@ opción con el valor actual → los campos se deshabilitan y aparece el aviso.
 
 ## 8. Catálogos y búsqueda (P2), de punta a punta
 
-P2 es dueño de `catalogos`, `busqueda` y las pantallas 1a, 1c y 1f. Esta
-sección documenta lo que ya está implementado de 1c y marca con precisión qué
-parte todavía no busca profesores de verdad.
+P2 es dueño de `catalogos`, `busqueda` y las pantallas 1a, 1c y 1f. Catálogos,
+los cuatro endpoints del backend y las pantallas 1c y 1f ya están
+implementados. Los filtros alimentan la tabla y el mapa con datos reales; la
+ficha pública consume el perfil, cotiza la reserva y queda preparada para los
+horarios y reseñas que implementa P3.
 
 ### Probar el panel en dos minutos
 
@@ -1295,9 +1303,8 @@ parte todavía no busca profesores de verdad.
 6. Cambiar precio, modalidad o puntaje; el botón "Limpiar" debe habilitarse.
 7. Pulsar "Limpiar": todos los controles deben volver a su valor inicial.
 8. Elegir un barrio o centro y comprobar que el mapa se acerca a esa zona.
-
-El panel todavía no muestra resultados. El endpoint de búsqueda sigue
-pendiente, como se explica al final de esta sección.
+9. Comprobar que cambian el total, las filas y los pines con cada filtro.
+10. Pulsar un pin y abrir su globo; "Ver Profesor" debe navegar a `/profesor/{id}`.
 
 ### Los archivos de P2 que participan
 
@@ -1308,17 +1315,54 @@ pendiente, como se explica al final de esta sección.
 | `backend/app/modulos/catalogos/logica.py` | Parámetros vigentes, centroide de barrio y validación de ids |
 | `backend/app/modulos/catalogos/rutas.py` | `GET /api/catalogos/todo` y las listas individuales |
 | `backend/app/modulos/busqueda/esquemas.py` | Contrato de filtros, resultados y pines del mapa |
-| `backend/app/modulos/busqueda/logica.py` | Consulta combinada de búsqueda; todavía pendiente |
-| `backend/app/modulos/busqueda/rutas.py` | Endpoints HTTP de búsqueda; todavía pendientes |
-| `frontend/src/paginas/BuscarProfesores.jsx` | Carga catálogos y coordina el estado del panel 1c |
-| `frontend/src/componentes/busqueda/MapaProfesores.jsx` | Mapa Leaflet centrado en el barrio o centro seleccionado |
-| `frontend/src/estilos/busqueda.css` | Diseño adaptable del panel, incluido el modo oscuro |
+| `backend/app/modulos/busqueda/logica.py` | Consulta combinada, distancias, ranking, pines y carrusel de cercanos |
+| `backend/app/modulos/busqueda/rutas.py` | Los cuatro endpoints HTTP públicos de búsqueda |
+| `frontend/src/api/busqueda.js` | Serializa parámetros y llama a resultados, pines, cercanos y ranking |
+| `frontend/src/paginas/BuscarProfesores.jsx` | Coordina catálogos, filtros y las dos consultas de 1c |
+| `frontend/src/componentes/busqueda/MapaProfesores.jsx` | Mapa Leaflet, radio, pines y globos de profesores |
+| `frontend/src/componentes/busqueda/ResultadosProfesores.jsx` | Total, tabla, vacío, error y paginación |
+| `frontend/src/estilos/busqueda.css` | Diseño adaptable y panel fijo en escritorio |
+| `frontend/src/paginas/PerfilPublicoProfesor.jsx` | Ficha 1f, selectores y armado del enlace al checkout |
+| `frontend/src/paginas/InicioEstudiante.jsx` | Coordina la pantalla 1a: próxima clase, mapa, cercanos y ranking |
+| `frontend/src/componentes/inicio/MapaInicio.jsx` | Mapa grande de 1a, ubicación del estudiante, pines y leyenda |
+| `frontend/src/componentes/perfil-publico/MapaUbicacionProfesor.jsx` | Mapa pequeño de la ubicación aproximada |
+| `frontend/src/api/resenas.js` | Lectura de reseñas de 1f; funcionará cuando P3 complete la ruta |
+| `frontend/src/estilos/perfil-publico.css` | Diseño adaptable de la ficha pública |
 | `frontend/src/componentes/CampoSelect.jsx` | Selector reutilizable que ya compartían los perfiles |
 | `frontend/src/api/perfiles.js` | Contiene temporalmente `obtenerCatalogos()` |
+
+En la ficha pública 1f, la galería usa solamente las fotos devueltas por
+`ficha.fotos`. Si no hay ninguna, muestra el estado vacío "No se cargaron
+fotos del lugar" en vez de simular cuatro imágenes. Los datos de prueba
+incluyen una foto del espacio de `profe1@example.com` para poder comprobar el
+caso con contenido; los demás profesores permiten probar el estado vacío.
 
 `obtenerCatalogos()` está en `api/perfiles.js` porque P1 lo necesitó primero
 para 1e y 1j. Cuando P2 cree `api/catalogos.js`, se mueve ahí y se actualizan
 los tres imports; no se duplica la función.
+
+### Cómo está armada la pantalla 1a
+
+```
+App.jsx
+  Route /inicio, estudiante
+    Layout
+      InicioEstudiante.jsx
+        useAuth()                         saludo y datos de cabecera
+        GET /api/perfiles/estudiante/yo  coordenadas e ids de ubicación
+        GET /api/clases/proxima          recordatorio o estado sin clase
+        GET /api/busqueda/profesores/mapa
+          MapaInicio                     pines, ubicación y leyenda
+        GET /api/busqueda/cercanos       carrusel de cinco tarjetas
+        GET /api/busqueda/mejor-puntuados
+          podio de tres o estado sin ranking
+```
+
+Las cinco lecturas son independientes: si falla la próxima clase, el mapa y
+los profesores cercanos igual se muestran. El carrusel usa primero el centro
+educativo del estudiante y, si no tiene, su barrio. El ranking no inventa
+resultados: el backend exige al menos cinco reseñas y, mientras P3 no las
+cargue, 1a muestra el estado vacío correspondiente.
 
 ### Cómo está armada la pantalla 1c
 
@@ -1338,9 +1382,16 @@ App.jsx
           radios: modalidad
           radios: puntaje mínimo
         botón Limpiar
+        GET /api/busqueda/profesores
+        GET /api/busqueda/profesores/mapa
         MapaProfesores
           mapa base de OpenStreetMap
           centro del barrio o centro educativo elegido
+          pines y globos
+        ResultadosProfesores
+          total y orden
+          tabla o estado vacío/error
+          paginación cuando hay más de 20
 ```
 
 `BuscarProfesores.jsx` es el coordinador. Guarda el estado general y pasa a
@@ -1411,17 +1462,129 @@ Si no hay barrio se ven todos. Si lo hay, se ven solo sus centros. Además,
 `cambiarBarrio()` limpia `centroId`; así nunca queda guardado un centro del
 barrio anterior.
 
-### El mapa que ya funciona sin la búsqueda
+### El mapa y sus pines
 
 `MapaProfesores.jsx` usa `MapContainer` y `TileLayer` de React Leaflet. Parte
 del centro general de Montevideo. `BuscarProfesores.jsx` busca con `find()` el
 barrio o centro seleccionado y le pasa ese objeto mediante la prop
 `ubicacion`. Como ambos catálogos incluyen latitud y longitud, un componente
-interno con `useMap()` llama a `flyTo()` y acerca el mapa sin necesitar el
-endpoint de búsqueda.
+interno con `useMap()` llama a `flyTo()` y acerca el mapa.
 
-El mapa es real, pero aún no muestra profesores. Los pines dependen de
-`GET /api/busqueda/profesores/mapa`, que continúa pendiente.
+El zoom con la rueda empieza desactivado en todos los mapas para que Leaflet
+no interrumpa el desplazamiento vertical de la página. Con el mapa enfocado,
+`Enter` lo activa o desactiva y `Escape` lo apaga. La lógica compartida vive en
+`componentes/mapas/ZoomConEnter.jsx`. En el mapa pequeño del perfil, el aviso
+usa una versión compacta de una sola línea y los controles de zoom están en la
+esquina inferior derecha.
+
+Con los mismos parámetros de la tabla, el frontend pide
+`GET /api/busqueda/profesores/mapa`. Cada respuesta se convierte en un
+`Marker` con inicial; al tocarlo abre un `Popup` con nombre, puntaje, precio y
+enlace al perfil. La zona elegida se dibuja con un `Circle` de tres kilómetros.
+
+### El backend de búsqueda
+
+Los cuatro endpoints son públicos: una persona puede explorar profesores antes
+de registrarse.
+
+| Endpoint | Para qué sirve | Respuesta |
+|---|---|---|
+| `GET /api/busqueda/profesores` | Lista filtrada de 1c | Total, página y hasta 20 resultados |
+| `GET /api/busqueda/profesores/mapa` | Pines de 1a, 1c y 1f | Coordenadas y datos mínimos del globo |
+| `GET /api/busqueda/cercanos` | Carrusel "Profes cerca de ti" de 1a | Hasta `limite` tarjetas por distancia |
+| `GET /api/busqueda/mejor-puntuados` | Podio de 1a | Tres tarjetas por defecto |
+
+`busqueda` no tiene modelos propios. Tampoco importa `perfiles/modelos.py`: en
+`logica.py` usa `table()` y `column()` para describir únicamente las columnas
+externas que necesita leer. Es el mismo patrón con el que P1 lee los nombres de
+los catálogos sin importar sus modelos. Nombre, apellido, foto y materias no se
+reconstruyen en P2: se piden en lote a
+`perfiles.logica.ficha_resumida()`. Así se conserva la frontera entre módulos y
+se evita una consulta por cada profesor.
+
+La búsqueda sigue esta secuencia:
+
+```
+query params validados por FiltrosBusqueda
+          |
+          v
+una consulta SQL sobre fichas publicadas
+  + EXISTS para materia, etapa, idioma y zona
+  + modalidad, precio y puntaje
+          |
+          v
+agenda.filtrar_con_hueco()          solo si vino día o franja
+          |
+          v
+distancia + orden + total
+          |
+          v
+página de 20
+          |
+          v
+perfiles.ficha_resumida()           nombre, foto y materias en lote
+          |
+          v
+PaginaBusqueda
+```
+
+Materia, etapa, idioma y zona usan subconsultas `EXISTS` en vez de `JOIN` en la
+consulta principal. Un profesor puede tener varias filas de oferta; con un
+`JOIN` mal armado aparecería repetido y el total o la paginación quedarían
+incorrectos. `EXISTS` responde solamente si hay una coincidencia.
+
+#### Precio y modalidad
+
+Si se pide `modalidad=presencial`, el rango de precio se aplica a
+`precio_hora_presencial`; con `online`, al precio online. Sin modalidad se usa
+el menor precio disponible del profesor. Un perfil de modalidad `ambas`
+participa tanto en búsquedas presenciales como online. `modalidad=ambas`, si se
+envía explícitamente, exige que ofrezca las dos.
+
+El rango imposible (`precio_min > precio_max`) responde 400
+`rango_precio_invalido`. Los ids de catálogo inexistentes también responden
+400 con códigos como `materia_no_existe` o `barrio_no_existe`; valores fuera de
+rango y opciones no permitidas los rechaza Pydantic con 422 antes de entrar a
+la lógica.
+
+#### Distancia y orden
+
+El centro educativo tiene prioridad como punto de referencia; si no hay centro
+se usa el centroide del barrio. La distancia se calcula con Haversine en
+kilómetros y se redondea a dos decimales. Sin una ubicación elegida,
+`orden=distancia` deja las distancias en `null` y desempata por puntaje.
+
+Los tres órdenes son estables:
+
+- `distancia`: menor distancia, luego mayor puntaje;
+- `puntaje`: mayor puntaje, luego mayor cantidad de reseñas;
+- `precio`: menor precio aplicable, luego mayor puntaje.
+
+Siempre se usa `usuario.id` en URLs y respuestas. `perfil_profesor.id` queda
+adentro de las consultas para unir las tablas de oferta.
+
+#### Pines, cercanos y ranking
+
+El endpoint de mapa acepta los filtros normales o `ids=4,7,9`. Si vienen ids,
+ignora los filtros, elimina repetidos, conserva el orden y admite hasta cien.
+Solo devuelve profesores publicados con latitud y longitud.
+
+`cercanos` necesita `barrio` o `centro_id`; sin punto de referencia devuelve
+una lista vacía. Solo considera fichas con coordenadas. Si `con_hueco=true`,
+agrega `primera_hora_libre` mediante agenda.
+
+El ranking exige al menos cinco reseñas. Esto evita que una única calificación
+de 5 supere a alguien con muchas reseñas y promedio 4,8. Puede limitarse a una
+etapa y desempata por cantidad de reseñas.
+
+#### La dependencia con P3
+
+P2 ya llama a las dos funciones públicas acordadas con agenda. Mientras P3 no
+implemente `primera_hora_libre()`, el campo opcional de las búsquedas básicas
+sale en `null`; esto permite desarrollar P2 y P3 en paralelo. Los filtros
+explícitos `dia` o `franja` sí necesitan `filtrar_con_hueco()` y quedarán
+operativos cuando P3 complete esa función. No se duplicó ningún cálculo de
+disponibilidad dentro de búsqueda.
 
 ### Limpiar sin duplicar estado
 
@@ -1440,6 +1603,12 @@ La composición replica `Exonero Demo.html`: columna de filtros de `264px`,
 separación de `18px`, panel con `18px` de relleno y mapa de `420px` de alto.
 No lleva un título introductorio sobre ambas columnas. Debajo de 900 px pasa
 a una sola columna para evitar desplazamiento horizontal.
+
+En escritorio el panel de filtros usa `position: sticky`: acompaña el
+desplazamiento general de la página y queda quieto al llegar a 18 px del borde
+superior, igual que los bloques laterales del perfil público. No tiene una barra
+ni un desplazamiento interno propios. En la composición de una columna se
+desactiva para mantener el orden natural de la página.
 
 La paleta de la demo ahora vive en `tokens.css` y es global: fondo `#e6edf5`,
 paneles `#ffffff`, texto y encabezados `#13284c`, y acento `#4d7fb3`. La
@@ -1470,18 +1639,20 @@ Precio, modalidad y puntaje existen como columnas de `perfil_profesor` y como
 parámetros de `FiltrosBusqueda`. El panel ya guarda valores compatibles con
 ese contrato.
 
-Lo que falta es la consulta: `busqueda.logica.buscar()` y
-`GET /api/busqueda/profesores` todavía terminan en `NotImplementedError`. Por
-eso hoy los controles funcionan, se limpian y centran el mapa, pero no producen
-una lista ni pines de profesores.
+El backend de P2 está completo: búsqueda, pines, cercanos, ranking, validación,
+orden y paginación. Se verificó contra una base sembrada que las fichas no
+publicadas quedan afuera, que los filtros SQL se combinan, que los ids del mapa
+conservan el orden y que las cuatro respuestas cumplen sus esquemas Pydantic.
 
-El orden para terminar 1c es:
+La integración de 1c también está completa. `api/busqueda.js` omite parámetros
+vacíos; `BuscarProfesores.jsx` pide resultados y pines en paralelo después de
+una espera breve; la limpieza del efecto ignora respuestas viejas. La tabla
+muestra la primera página de veinte y controles de paginación solo cuando son
+necesarios. El mapa usa exactamente los mismos filtros.
 
-1. Implementar `busqueda.logica.buscar()`.
-2. Hacer que la ruta `/busqueda/profesores` llame a esa función.
-3. Crear `frontend/src/api/busqueda.js` y serializar solo los filtros activos.
-4. Agregar estado de resultados, carga de búsqueda y error.
-5. Dibujar tarjetas, paginación y pines sobre el mapa ya creado.
+Lo único que depende de otro equipo son los filtros de día y franja y la
+próxima hora libre: se habilitarán cuando P3 complete las funciones públicas de
+agenda. No bloquean materia, etapa, ubicación, precio, modalidad ni puntaje.
 
 ---
 
@@ -1851,8 +2022,7 @@ aunque la computadora esté en otra zona.
 
 #### 1g · Checkout (`/checkout`, solo estudiante)
 
-**Cómo se llega: el contrato de la URL.** 1f (de P2, todavía pendiente)
-navega así:
+**Cómo se llega: el contrato de la URL.** 1f (de P2) navega así:
 
 ```
 /checkout?profesor=<usuario_id>&materia=<id>&inicio=<ISO 8601 con zona>
@@ -1866,6 +2036,11 @@ sería la hora de la computadora del alumno. Desde 1f, `URLSearchParams` se
 encarga de codificar todo. Si falta algo o no tiene sentido, la pantalla lo dice
 y ofrece volver a buscar, sin romperse. El contrato completo está comentado
 arriba de `Checkout.jsx`.
+
+1f ya construye ese enlace con `URLSearchParams` cuando el alumno selecciona
+un hueco real. Mientras `GET /agenda/profesores/{id}/disponibilidad` siga sin
+implementar, muestra el estado de agenda no disponible y mantiene “Reservar”
+deshabilitado: no inventa fechas ni crea una reserva inválida.
 
 | Archivo | Qué es |
 |---|---|
@@ -2266,8 +2441,9 @@ legítimas. El profesor elige cuál aprueba.
 - **Todo lo de P1** (ver la sección 7): `usuario_actual()`, los módulos
   `cuentas` y `perfiles` completos, y las pantallas **1e** y **1j**, con
   modo oscuro
-- **Catálogos de P2**, el panel de filtros y el mapa base de **1c** (ver la
-  sección 8), todavía sin la consulta, pines ni resultados de búsqueda
+- **Todo el backend de P2** y las pantallas **1c** y **1f** (ver la sección
+  8): filtros, resultados paginados, ficha pública, cotización, mapas y pines
+  con datos reales
 - **Todo lo de P4** (ver la sección 9): los módulos `clases` y `pagos`
   completos, los 19 endpoints, el cobro simulado con su reembolso en segundo
   plano, las métricas y series del panel, lo que leen agenda y reseñas, y las
@@ -2294,6 +2470,11 @@ legítimas. El profesor elige cuál aprueba.
 - P1, frontend: recorrido completo en el navegador de 1e y 1j (guardar cada
   sección, subir fotos, publicar y pausar, modo oscuro, cerrar sesión), con y
   sin los catálogos de P2, y en ancho de celular sin scroll horizontal
+- P2, backend: **21 comprobaciones** contra la base sembrada: solo fichas
+  publicadas; filtros y órdenes de modalidad, precio y distancia; paginación;
+  esquema de resultados; pines sin duplicados y en el orden pedido; cercanos;
+  ids y rangos inválidos; delegación del filtro de disponibilidad a agenda; y
+  ranking con el mínimo de reseñas dentro de una transacción revertida
 - P4, backend: **276 comprobaciones** (`backend/verificar_p4.py`) contra una base
   real recién sembrada, que recorren los 19 endpoints con tokens de los usuarios
   de los seeds: el flujo cotizar → crear → aprobar → cancelar con el reembolso
@@ -2327,13 +2508,14 @@ legítimas. El profesor elige cuál aprueba.
 
 ### Falta
 
-Todavía faltan funciones del backend de **P2 (búsqueda) y P3** (las de P1, las
-de P4 y los catálogos de P2 ya están). Cada pendiente tiene su docstring con lo
-que debería
-hacer, numerado paso a paso, y termina con:
+Todavía faltan funciones del backend de **P3**. P1, P2 y P4 ya tienen su lógica
+y sus rutas; las pantallas 1c y 1f de P2 consumen los endpoints disponibles.
+En 1f, el calendario y la lista detallada de reseñas muestran un estado vacío
+controlado hasta que P3 complete sus rutas.
+Cada pendiente de P3 tiene su docstring con lo que debería hacer y termina con:
 
 ```python
-raise NotImplementedError("P2 - busqueda: la busqueda con los nueve filtros")
+raise NotImplementedError("P3 - agenda: calcular los huecos libres")
 ```
 
 Ese texto dice **quién** la tiene que escribir y **de qué módulo** es.
@@ -2344,6 +2526,34 @@ Para encontrarlas todas:
 grep -rn "TODO (P" backend/app/
 grep -rn "NotImplementedError" backend/app/
 ```
+
+#### Pantalla pendiente de P3: redactar una reseña
+
+La ruta ya reservada es
+`/resenas/redactar/:destinatarioId`. Está protegida para los dos roles, usa el
+`Layout` común y por ahora muestra `EnConstruccion`. No se agrega al menú: se
+abre desde una persona concreta.
+
+En **1b, Mis clases**, P3 debe leer `GET /api/clases/mis-profesores`. La sección
+“Reseñas pendientes” muestra las filas cuyo `mi_resena` sea `null`; cada una
+tiene el botón **Calificar**, que navega a la ruta anterior usando
+`persona.id` como `destinatarioId`. Las filas que ya tengan `mi_resena` deben
+permitir **Editar reseña**. En **1i** se repite el mismo flujo con
+`GET /api/clases/mis-alumnos`.
+
+El formulario pide un puntaje obligatorio de 1 a 5 y un comentario opcional.
+Usa las funciones ya preparadas en `frontend/src/api/resenas.js`:
+
+- `dejarResena(datos)` hace `POST /api/resenas` cuando `mi_resena` es `null`;
+- `editarResena(datos)` hace `PUT /api/resenas` cuando ya existe;
+- `datos` tiene `{ destinatario_id, puntaje, texto }`.
+
+Al guardar, vuelve a 1b o 1i y recarga la lista para que la persona deje de
+aparecer como pendiente. Cancelar vuelve sin escribir. El backend valida que
+ambos hayan tenido una clase `dictada`, impide una segunda creación para el
+mismo par y mantiene anónimo al autor en las respuestas públicas. Los errores
+esperados son `sin_clases_con_esa_persona` y `ya_resenado`, ya traducidos en
+`frontend/src/api/mensajes.js`.
 
 El orden de la spec:
 
@@ -2362,9 +2572,8 @@ El orden de la spec:
 las rutas con `Yo`, `Estudiante` o `Profesor` ya resuelven al usuario. Lo que
 más destraba ahora:
 
-**P2**: `catalogos/rutas.py` → `GET /catalogos/todo`. Es lo único que falta
-para que los desplegables de 1e y 1j se habiliten, y lo necesitan también 1a
-y 1c. No depende de nadie.
+**P2**: 1a, 1c y 1f ya están conectadas. Día, franja, próxima hora y reseñas
+detalladas dependen de P3.
 
 **P3**: `mensajeria/logica.py` → `contar_no_leidos()`. Hoy el contador de la
 barra de arriba muestra siempre 0. Y una función pública en `agenda` para
@@ -2374,11 +2583,13 @@ cambiar nada (sección 9): `agenda.verificar()` (hoy crear y reprogramar no
 saben de franjas ni bloqueos), `agenda.hay_bloqueo_encima()` y
 `resenas.resena_de()`. Lo que agenda y reseñas necesitan de `clases`
 (`clases_entre`, `clases_aprobadas_entre`, `tuvieron_clase`) ya está.
+En frontend, también le corresponde reemplazar la ruta pendiente
+`/resenas/redactar/:destinatarioId` y conectar los botones **Calificar** de 1b
+y 1i con `POST` o `PUT /api/resenas`.
 
-**P4**: terminado, backend y pantallas. Lo único que espera de otros: que 1f
-(P2) navegue al checkout con el contrato de la URL de la sección 9, y que P3
-implemente `agenda.verificar()` para que 1g avise antes de confirmar si el
-horario ya no está libre.
+**P4**: terminado, backend y pantallas. 1f ya arma el enlace al checkout cuando
+Agenda entrega un hueco. Falta que P3 implemente `agenda.verificar()` para que
+1g avise antes de confirmar si el horario ya no está libre.
 
 ---
 

@@ -16,6 +16,7 @@ QUE CARGA (segun la spec):
   - los idiomas
   - la comision de servicio y la tasa de IVA
   - veinte usuarios de ejemplo, con sus perfiles, disponibilidad y clases
+  - una foto de ejemplo del lugar de clase de profe1
 
 Todos los usuarios entran con la clave "exonero123":
   profe1@example.com ... profe8@example.com     (profe7 en borrador, profe8 pausada)
@@ -29,12 +30,14 @@ usuarios no se podria hacer login.
 Las fechas de las clases se calculan desde HOY, asi siempre hay clases
 proximas y pasadas sin importar cuando se corra.
 
-QUE NO CARGA (todavia): mensajes, resenas, bloqueos de agenda ni fotos del lugar.
+QUE NO CARGA (todavia): mensajes, resenas ni bloqueos de agenda.
 """
 
+import base64
 import random
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import text
@@ -70,6 +73,7 @@ from app.modulos.clases.modelos import Clase
 from app.modulos.cuentas.modelos import Usuario
 from app.modulos.pagos.modelos import Cobro, Tarjeta
 from app.modulos.perfiles.modelos import (
+    FotoLugar,
     PerfilEstudiante,
     PerfilProfesor,
     ProfesorDuracion,
@@ -82,6 +86,7 @@ from app.modulos.perfiles.modelos import (
 
 CLAVE_DE_PRUEBA = "exonero123"
 ZONA = ZoneInfo(ajustes.ZONA_HORARIA)
+FOTO_AULA = Path(__file__).with_name("datos") / "aula-ejemplo.jpg"
 
 # Semilla fija: las coordenadas "al azar" salen iguales en todas las maquinas.
 SEMILLA = 2026
@@ -444,6 +449,17 @@ def sembrar_usuarios(db, catalogos: dict) -> dict:
             PuntoMetodo(perfil_profesor_id=perfil.id, texto=METODO[(n + k) % len(METODO)], orden=k)
             for k in range(3)
         )
+        if n == 1:
+            imagen = base64.b64encode(FOTO_AULA.read_bytes()).decode("ascii")
+            db.add(
+                FotoLugar(
+                    perfil_profesor_id=perfil.id,
+                    imagen_base64=f"data:image/jpeg;base64,{imagen}",
+                    epigrafe="Espacio de clase",
+                    orden=0,
+                    es_portada=True,
+                )
+            )
         profesores.append(
             {"usuario": usuario, "perfil": perfil, "materias": materias, "etapas": etapas}
         )

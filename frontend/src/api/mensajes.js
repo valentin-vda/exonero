@@ -49,6 +49,9 @@ const MENSAJES = {
   idioma_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
   etapa_educativa_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
   centro_educativo_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
+  etapa_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
+  centro_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
+  rango_precio_invalido: 'El rango de precios elegido no es válido.',
 
   // --- Reservas y clases (1g, 1b, 1i) ---
   sin_precio: 'Este profe no da clases en esa modalidad. Elegi otra.',
@@ -61,6 +64,10 @@ const MENSAJES = {
   duracion_no_modificable:
     'Al reprogramar no se puede cambiar la duracion: el importe ya quedo fijo. Cancela y reserva de nuevo.',
   estado_no_permitido: 'Ese estado no corresponde para esta clase.',
+
+  // --- Reseñas (1b y 1i) ---
+  ya_resenado: 'Ya calificaste a esta persona. Podés editar tu reseña anterior.',
+  sin_clases_con_esa_persona: 'Solo podés calificar a alguien con quien tuviste una clase dictada.',
 
   // --- Panel del profesor (1d) ---
   periodo_invalido: 'Ese periodo no existe. Elegi mes, trimestre o anio.',

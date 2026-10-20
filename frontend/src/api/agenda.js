@@ -7,6 +7,12 @@
 
 import { pedir } from './cliente.js'
 
+/** GET /api/agenda/profesores/{id}/disponibilidad - los huecos de una semana. */
+export function obtenerDisponibilidad(profesorId, desde, hasta, duracion) {
+  const parametros = new URLSearchParams({ desde, hasta, duracion })
+  return pedir(`/api/agenda/profesores/${profesorId}/disponibilidad?${parametros}`)
+}
+
 /**
  * POST /api/agenda/verificar - { profesor_id, inicio, duracion_min }
  * -> { libre: true } o { libre: false, motivo }

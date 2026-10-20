@@ -10,7 +10,17 @@
   align-items: start;
 }
 
+.buscar-resultados {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 28px;
+}
+
 .filtros-panel {
+  position: sticky;
+  top: 18px;
   width: 264px;
   display: flex;
   flex-direction: column;
@@ -19,9 +29,115 @@
   background: var(--color-surface);
 }
 
-/* El panel de resultados se agregará después, pero comparte desde ahora la
-   misma superficie blanca que el de filtros, como indica la demo. */
-.resultados-panel { background: var(--color-surface); }
+/* El panel de resultados comparte la misma superficie blanca que el de
+   filtros, como indica la demo. */
+.resultados-bloque { min-width: 0; }
+
+.resultados-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.resultados-cabecera h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 16px;
+}
+
+.resultados-cabecera > span {
+  color: color-mix(in srgb, var(--color-text) 50%, transparent);
+  font-size: 11.5px;
+}
+
+.resultados-panel {
+  overflow-x: auto;
+  padding: 6px 14px;
+  border-radius: 28px;
+  background: var(--color-surface);
+  transition: opacity 160ms ease;
+}
+
+.resultados-panel.esta-cargando { opacity: 0.62; }
+
+.resultados-tabla { min-width: 850px; }
+
+.resultado-fila {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.5fr)
+    64px 70px 120px;
+  gap: 10px;
+  align-items: center;
+  min-height: 60px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--color-divider);
+  font-size: 13.5px;
+}
+
+.resultado-fila:last-child { border-bottom: 0; }
+
+.resultado-encabezado {
+  min-height: auto;
+  padding: 12px 4px;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.resultado-profesor {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.resultado-profesor .avatar {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  font-size: 12px;
+  background: var(--color-accent-200);
+  color: var(--color-accent-800);
+}
+
+.resultado-accion { text-align: right; }
+
+.resultado-accion .btn {
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.resultados-vacio,
+.resultados-error {
+  padding: 26px 8px;
+  text-align: center;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  font-size: 13.5px;
+}
+
+.resultados-vacio button {
+  border: 0;
+  padding: 0;
+  color: var(--color-accent);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.resultados-error { color: var(--color-error); }
+
+.resultados-paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 12px;
+}
 
 .filtros-cabecera {
   display: flex;
@@ -155,6 +271,23 @@
   background: var(--color-neutral-200);
 }
 
+/* Valores exactos de la clase .washed incluida en Exonero Demo.html. Solo se
+   aplican a las teselas para no alterar los pines ni los controles. */
+.mapa-profesores .leaflet-tile-pane {
+  filter: saturate(0.6) contrast(0.85) brightness(1.1) opacity(0.94);
+}
+
+.mapa-profesores .leaflet-bottom.leaflet-right .leaflet-control-zoom {
+  margin-right: 14px;
+  margin-bottom: 14px;
+}
+
+/* Respaldo para recargas en caliente: aunque Leaflet haya conservado el
+   control automático anterior, nunca debe verse otro zoom arriba. */
+.mapa-profesores .leaflet-top.leaflet-left .leaflet-control-zoom {
+  display: none;
+}
+
 .mapa-ayuda {
   position: absolute;
   z-index: 500;
@@ -171,10 +304,50 @@
   pointer-events: none;
 }
 
+.mapa-pin {
+  display: grid !important;
+  place-items: center;
+  border: 2px solid var(--color-bg);
+  border-radius: 999px;
+  color: var(--color-bg);
+  background: var(--color-accent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--color-text) 35%, transparent);
+  font-family: var(--font-heading);
+  font-size: 14px;
+}
+
+.mapa-pin-secundario { background: var(--color-accent-2); }
+
+.mapa-profesores .leaflet-popup-content {
+  display: flex;
+  min-width: 160px;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+.mapa-profesores .leaflet-popup-content strong {
+  font-family: var(--font-heading);
+  font-size: 15px;
+}
+
+.mapa-popup-meta {
+  color: color-mix(in srgb, var(--color-text) 65%, transparent);
+  font-size: 12px;
+}
+
 @media (max-width: 900px) {
   .buscar-contenido { grid-template-columns: 1fr; }
 
-  .filtros-panel { width: 100%; }
+  .buscar-resultados { padding-bottom: 0; }
+
+  .filtros-panel {
+    position: static;
+    width: 100%;
+    max-height: none;
+    overflow-y: visible;
+  }
 }
 
 @media (max-width: 520px) {
@@ -188,4 +361,10 @@
   .mapa-profesores { border-radius: 28px; }
 
   .mapa-profesores .leaflet-container { height: 360px; }
+
+  .resultados-cabecera {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
 }

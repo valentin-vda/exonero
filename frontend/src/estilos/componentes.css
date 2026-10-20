@@ -119,6 +119,33 @@ img { display: block; max-width: 100%; }
 .input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
 textarea.input { min-height: 90px; resize: vertical; border-radius: var(--radius-md); }
 
+/* Los mapas no capturan la rueda mientras se recorre la pagina. Al enfocarlos,
+   Enter habilita el zoom y Escape lo vuelve a deshabilitar. */
+.mapa-con-teclado { position: relative; }
+.mapa-zoom-aviso {
+  position: absolute;
+  z-index: 700;
+  top: 12px;
+  left: 50%;
+  max-width: calc(100% - 24px);
+  padding: 6px 11px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  pointer-events: none;
+  font-size: 10.5px;
+  text-align: center;
+  transition: opacity 140ms ease;
+}
+.mapa-con-teclado:hover .mapa-zoom-aviso,
+.mapa-con-teclado:focus-within .mapa-zoom-aviso,
+.mapa-zoom-aviso.esta-activo { opacity: 1; }
+.mapa-zoom-aviso.esta-activo { color: var(--color-surface); background: var(--color-accent); }
+.mapa-zoom-aviso.compacto { padding: 4px 8px; white-space: nowrap; font-size: 9px; }
+
 /* Borde rojo cuando el campo tiene error. Se agrega ademas del .input */
 .input-error { border-color: var(--color-error); }
 

@@ -17,9 +17,11 @@ import EnConstruccion from './componentes/EnConstruccion.jsx'
 import Layout from './componentes/Layout.jsx'
 import BuscarProfesores from './paginas/BuscarProfesores.jsx'
 import Checkout from './paginas/Checkout.jsx'
+import InicioEstudiante from './paginas/InicioEstudiante.jsx'
 import Login from './paginas/Login.jsx'
 import PanelProfesor from './paginas/PanelProfesor.jsx'
 import PerfilEstudiante from './paginas/PerfilEstudiante.jsx'
+import PerfilPublicoProfesor from './paginas/PerfilPublicoProfesor.jsx'
 import PerfilProfesor from './paginas/PerfilProfesor.jsx'
 import RecuperarClave from './paginas/RecuperarClave.jsx'
 import Registro from './paginas/Registro.jsx'
@@ -39,29 +41,9 @@ export default function App() {
           --------------------------------------------------------------- */}
       <Route element={<RutaProtegida rol="estudiante" />}>
         <Route element={<Layout />}>
-          <Route
-            path="/inicio"
-            element={
-              <EnConstruccion
-                codigo="1a"
-                nombre="Inicio del estudiante"
-                dueno="P2"
-                descripcion="Saludo, proxima clase, mapa de cercanos, carrusel y ranking."
-              />
-            }
-          />
+          <Route path="/inicio" element={<InicioEstudiante />} />
           <Route path="/buscar" element={<BuscarProfesores />} />
-          <Route
-            path="/profesor/:id"
-            element={
-              <EnConstruccion
-                codigo="1f"
-                nombre="Detalle del profesor"
-                dueno="P2"
-                descripcion="Ficha completa, calendario de disponibilidad y resenas."
-              />
-            }
-          />
+          <Route path="/profesor/:id" element={<PerfilPublicoProfesor />} />
           {/* 1g - P4. Se llega desde 1f con los datos en la URL (ver Checkout.jsx). */}
           <Route path="/checkout" element={<Checkout />} />
           <Route
@@ -71,7 +53,7 @@ export default function App() {
                 codigo="1b"
                 nombre="Mis clases"
                 dueno="P3"
-                descripcion="Proxima clase, semana, resenas pendientes y mis profesores."
+                descripcion="Próxima clase, semana, reseñas pendientes con el botón Calificar y mis profesores."
               />
             }
           />
@@ -108,6 +90,18 @@ export default function App() {
           --------------------------------------------------------------- */}
       <Route element={<RutaProtegida />}>
         <Route element={<Layout />}>
+          {/* P3. Se abre desde Calificar en 1b o 1i; no es una pestaña del menu. */}
+          <Route
+            path="/resenas/redactar/:destinatarioId"
+            element={
+              <EnConstruccion
+                codigo="1b / 1i"
+                nombre="Redactar reseña"
+                dueno="P3"
+                descripcion="Formulario para calificar con 1 a 5 estrellas y escribir un comentario opcional. También permite editar la reseña propia."
+              />
+            }
+          />
           <Route
             path="/mensajes"
             element={

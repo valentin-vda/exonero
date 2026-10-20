@@ -7,7 +7,8 @@ tiene que poder ver que profesores hay antes de registrarse.
 from fastapi import APIRouter, Depends, Query
 
 from app.dependencias import Db
-from app.modulos.busqueda import esquemas
+from app.errores import ErrorAPI
+from app.modulos.busqueda import esquemas, logica
 
 router = APIRouter(prefix="/busqueda", tags=["busqueda"])
 
@@ -19,9 +20,9 @@ def buscar_profesores(db: Db, filtros: esquemas.FiltrosBusqueda = Depends()):
     Los filtros llegan como query params gracias a Depends(): ?materia=3&barrio=7
     se mapea solo al modelo FiltrosBusqueda.
 
-    TODO (P2): implementar. Envolver logica.buscar(db, filtros).
+    La ruta solo traduce query params al esquema; las reglas viven en logica.
     """
-    raise NotImplementedError("P2 - busqueda: GET /busqueda/profesores")
+    return logica.buscar(db, filtros)
 
 
 @router.get("/profesores/mapa", response_model=list[esquemas.PinMapa])
@@ -35,30 +36,54 @@ def profesores_en_mapa(
     El mini mapa de la ficha es este mismo endpoint con un solo id: Leaflet
     consume lo mismo en los tres casos.
 
-    TODO (P2): implementar. Si vienen ids, ignorar los filtros y devolver esos.
+    Si vienen ids, se ignoran los filtros. Se aceptan hasta cien ids positivos
+    separados por coma y se conserva el orden pedido.
     """
-    raise NotImplementedError("P2 - busqueda: GET /busqueda/profesores/mapa")
+    if ids is not None:
+        return logica.pines_mapa(db, ids=_ids_desde_texto(ids))
+    return logica.pines_mapa(db, filtros=filtros)
 
 
 @router.get("/cercanos", response_model=list[esquemas.ProfesorCercano])
 def profesores_cercanos(
     db: Db,
-    barrio: int | None = None,
-    centro_id: int | None = None,
+    barrio: int | None = Query(None, gt=0),
+    centro_id: int | None = Query(None, gt=0),
     con_hueco: bool = False,
-    limite: int = 5,
+    limite: int = Query(5, ge=1, le=100),
 ):
     """Carrusel "Profes cerca de ti" de 1a, ordenado por cercania.
 
-    TODO (P2): implementar. Envolver logica.cercanos().
+    El centro tiene prioridad como punto de referencia si vienen los dos.
     """
-    raise NotImplementedError("P2 - busqueda: GET /busqueda/cercanos")
+    return logica.cercanos(db, barrio, centro_id, con_hueco, limite)
 
 
 @router.get("/mejor-puntuados", response_model=list[esquemas.ProfesorCercano])
-def profesores_mejor_puntuados(db: Db, etapa: int | None = None, limite: int = 3):
+def profesores_mejor_puntuados(
+    db: Db,
+    etapa: int | None = Query(None, gt=0),
+    limite: int = Query(3, ge=1, le=100),
+):
     """Los tres mejor rankeados del momento, para el podio de 1a.
 
-    TODO (P2): implementar. Envolver logica.mejor_puntuados().
+    Exige al menos cinco resenas para entrar al ranking.
     """
-    raise NotImplementedError("P2 - busqueda: GET /busqueda/mejor-puntuados")
+    return logica.mejor_puntuados(db, etapa, limite)
+
+
+def _ids_desde_texto(texto: str) -> list[int]:
+    """Convierte ``"4,7,9"`` en ids unicos; 400 si el formato es invalido."""
+    partes = [parte.strip() for parte in texto.split(",")]
+    if not partes or any(not parte for parte in partes):
+        raise ErrorAPI(400, "ids_invalidos")
+    try:
+        ids = [int(parte) for parte in partes]
+    except ValueError as error:
+        raise ErrorAPI(400, "ids_invalidos") from error
+    if any(id_ <= 0 for id_ in ids):
+        raise ErrorAPI(400, "ids_invalidos")
+    ids = list(dict.fromkeys(ids))
+    if len(ids) > 100:
+        raise ErrorAPI(400, "demasiados_ids")
+    return ids
