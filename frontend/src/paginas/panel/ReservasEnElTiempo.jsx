@@ -59,9 +59,13 @@ function frase(lista, agrupar) {
 }
 
 export default function ReservasEnElTiempo({ bloque, agrupar, alCambiarAgrupar }) {
-  const { datos, error, cargando } = bloque
-  const lista = datos ? columnas(datos, agrupar) : []
-  const hayReservas = datos && datos.some((punto) => punto.cantidad > 0)
+  // `para` es la ventana de los datos que hay en pantalla. Mientras llega lo
+  // nuevo puede no ser la del selector (ver useBloque.js).
+  const { datos, para, error, cargando } = bloque
+  const lista = datos ? columnas(datos, para) : []
+  // Se mira la lista ya armada y no lo que vino: un estado que no esta en
+  // ninguna serie no cuenta como reserva.
+  const hayReservas = lista.some((columna) => Object.values(columna.valores).some((n) => n > 0))
 
   return (
     <section className="tablero-bloque" aria-labelledby="reservas-titulo">
@@ -81,9 +85,9 @@ export default function ReservasEnElTiempo({ bloque, agrupar, alCambiarAgrupar }
 
       {datos && (
         <div className={cargando ? 'tablero-recargando' : undefined} aria-busy={cargando}>
-          {hayReservas && <p className="tablero-resumen">{frase(lista, agrupar)}</p>}
+          {hayReservas && <p className="tablero-resumen">{frase(lista, para)}</p>}
           <GraficoBarras
-            titulo={`Reservas ${POR_TRAMO[agrupar]}, por estado`}
+            titulo={`Reservas ${POR_TRAMO[para]}, por estado`}
             series={SERIES_RESERVAS}
             columnas={lista}
             formato={(n) => n.toLocaleString('es-UY')}

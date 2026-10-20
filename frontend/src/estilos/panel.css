@@ -245,6 +245,9 @@
   display: block;
   width: 100%;
   height: clamp(150px, 20vw, 230px);
+  /* La linea de base esta justo en el borde de abajo: sin esto, la mitad de
+     su grosor quedaria cortada. */
+  overflow: visible;
 }
 
 /* El eje de la izquierda: las etiquetas van en absolute, a la altura de su
@@ -308,11 +311,20 @@
    aun sin ver bien los colores. */
 .serie-dictada { --serie: var(--color-accent-700); }
 .serie-confirmada { --serie: var(--color-accent); }
-.serie-pendiente { --serie: var(--color-accent-300); }
+.serie-pendiente { --serie: color-mix(in srgb, var(--color-accent) 22%, transparent); }
 .serie-no-se-dio { --serie: color-mix(in srgb, var(--color-text) 40%, var(--color-surface)); }
 .serie-ingresos { --serie: var(--color-accent); }
 
 .grafico-barra { fill: var(--serie); }
+/* "A confirmar" va hueca, con borde punteado, como su etiqueta en la tabla
+   (tag-outline): todavia no es una clase, es una solicitud. Asi se distingue
+   por la forma y no solo por un color claro que casi no se ve sobre el fondo. */
+.grafico-barra.serie-pendiente {
+  stroke: var(--color-accent-600);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+  vector-effect: non-scaling-stroke;
+}
 /* En las barras simples (ingresos) se destaca el tramo en curso. */
 .grafico-columna:not(.grafico-columna-actual) .serie-ingresos { opacity: 0.6; }
 
@@ -333,6 +345,7 @@
   border-radius: 3px;
   background: var(--serie);
 }
+.grafico-muestra.serie-pendiente { border: 1.5px dashed var(--color-accent-600); }
 
 /* --- Celular y tablet ----------------------------------------------------- */
 

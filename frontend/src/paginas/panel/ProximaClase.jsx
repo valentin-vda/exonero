@@ -20,6 +20,9 @@ import { hora, SEPARADOR } from '../../utiles/formato.js'
 import { cuandoEs, cuantoFalta, finDe } from './fechas.js'
 import { MODALIDAD_CLASE } from './opciones.js'
 
+// Una ubicacion que empieza asi es el enlace de una clase online.
+const ENLACE = /^https?:\/\//
+
 /**
  * Las partes del renglon de detalle, sin las que falten. Es una lista de
  * nodos y no un texto porque el enlace de una clase online va como <a>.
@@ -29,7 +32,7 @@ function detalle(clase) {
     `${cuandoEs(clase.inicio)} ${hora(clase.inicio)} a ${hora(finDe(clase.inicio, clase.duracion_min))}`,
     MODALIDAD_CLASE[clase.modalidad],
   ]
-  if (clase.modalidad === 'online' && clase.ubicacion?.startsWith('http')) {
+  if (clase.modalidad === 'online' && ENLACE.test(clase.ubicacion || '')) {
     partes.push(
       <a key="enlace" href={clase.ubicacion} target="_blank" rel="noreferrer">
         enlace de la clase

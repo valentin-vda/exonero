@@ -60,11 +60,11 @@ export default function PanelProfesor() {
     Promise.all([
       ficha.cargar(obtenerMiFicha()),
       proxima.cargar(proximaClase()),
-      numeros.cargar(metricas(periodo)),
-      cobrado.cargar(ingresos(periodo)),
+      numeros.cargar(metricas(periodo), periodo),
+      cobrado.cargar(ingresos(periodo), periodo),
       deHoy.cargar(listarClases({ desde: dia, hasta: dia })),
-      plata.cargar(ingresos('mes', agruparIngresos)),
-      reservas.cargar(series(agruparReservas)),
+      plata.cargar(ingresos('mes', agruparIngresos), agruparIngresos),
+      reservas.cargar(series(agruparReservas), agruparReservas),
     ])
     // [] = una sola vez, al entrar. Despues, cada selector recarga lo suyo
     // desde su funcion de abajo.
@@ -72,18 +72,18 @@ export default function PanelProfesor() {
 
   function cambiarPeriodo(nuevo) {
     setPeriodo(nuevo)
-    numeros.cargar(metricas(nuevo))
-    cobrado.cargar(ingresos(nuevo))
+    numeros.cargar(metricas(nuevo), nuevo)
+    cobrado.cargar(ingresos(nuevo), nuevo)
   }
 
   function cambiarAgruparIngresos(nuevo) {
     setAgruparIngresos(nuevo)
-    plata.cargar(ingresos('mes', nuevo))
+    plata.cargar(ingresos('mes', nuevo), nuevo)
   }
 
   function cambiarAgruparReservas(nuevo) {
     setAgruparReservas(nuevo)
-    reservas.cargar(series(nuevo))
+    reservas.cargar(series(nuevo), nuevo)
   }
 
   return (

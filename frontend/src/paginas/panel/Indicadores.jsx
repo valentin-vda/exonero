@@ -72,6 +72,10 @@ function Indicador({ titulo, valor, notas, destacado = false }) {
 
 export default function Indicadores({ periodo, alCambiarPeriodo, metricas, cobrado }) {
   const m = metricas.datos
+  // El periodo de los numeros que hay en pantalla. Mientras llegan los nuevos
+  // puede no ser el del selector (ver useBloque.js).
+  const delPeriodo = metricas.para || periodo
+  const delCobrado = cobrado.para || periodo
   const cambio = m?.variacion || {}
   // "55 % vuelve a reservar": de los alumnos atendidos, cuantos ya habian venido.
   const vuelven = m && m.alumnos_atendidos > 0 ? Math.round((100 * m.alumnos_recurrentes) / m.alumnos_atendidos) : null
@@ -100,31 +104,31 @@ export default function Indicadores({ periodo, alCambiarPeriodo, metricas, cobra
         <Indicador
           titulo="Alumnos atendidos"
           valor={m ? m.alumnos_atendidos : null}
-          notas={[m && variacion(cambio.alumnos_atendidos, periodo)]}
+          notas={[m && variacion(cambio.alumnos_atendidos, delPeriodo)]}
         />
         <Indicador
           titulo="Horas dictadas"
           valor={m ? numero(m.horas_dictadas) : null}
-          notas={[m && variacion(cambio.horas_dictadas, periodo)]}
+          notas={[m && variacion(cambio.horas_dictadas, delPeriodo)]}
         />
         <Indicador
           titulo="Alumnos recurrentes"
           valor={m ? m.alumnos_recurrentes : null}
           notas={[
             vuelven !== null && { texto: `${vuelven} % vuelve a reservar` },
-            m && variacion(cambio.alumnos_recurrentes, periodo),
+            m && variacion(cambio.alumnos_recurrentes, delPeriodo),
           ]}
         />
         <Indicador
           titulo="Tasa de cancelacion"
           valor={m ? `${numero(m.tasa_cancelacion)} %` : null}
-          notas={[m && variacion(cambio.tasa_cancelacion, periodo, true)]}
+          notas={[m && variacion(cambio.tasa_cancelacion, delPeriodo, true)]}
         />
         <Indicador
-          titulo={`Ingresos ${DEL_PERIODO[periodo]}`}
+          titulo={`Ingresos ${DEL_PERIODO[delCobrado]}`}
           valor={cobrado.datos ? pesos(cobrado.datos.cobrado) : null}
           notas={[
-            cobrado.datos && { texto: `cobrado ${ESTE_PERIODO[periodo]}` },
+            cobrado.datos && { texto: `cobrado ${ESTE_PERIODO[delCobrado]}` },
             cobrado.error && { texto: 'No pudimos traer tus ingresos.' },
           ]}
           destacado

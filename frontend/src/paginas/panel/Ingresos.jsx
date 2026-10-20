@@ -35,7 +35,9 @@ function columnas(serie, agrupar) {
 }
 
 export default function Ingresos({ bloque, agrupar, alCambiarAgrupar }) {
-  const { datos, error, cargando } = bloque
+  // `para` es la agrupacion de los datos que hay en pantalla. Mientras llega
+  // lo nuevo puede no ser la del selector (ver useBloque.js).
+  const { datos, para, error, cargando } = bloque
 
   return (
     <section className="tablero-bloque tablero-bloque-acento" aria-labelledby="ingresos-titulo">
@@ -77,9 +79,9 @@ export default function Ingresos({ bloque, agrupar, alCambiarAgrupar }) {
           </div>
 
           <GraficoBarras
-            titulo={`Ingresos cobrados ${POR_TRAMO[agrupar]}`}
+            titulo={`Ingresos cobrados ${POR_TRAMO[para]}`}
             series={SERIES}
-            columnas={columnas(datos.serie || [], agrupar)}
+            columnas={columnas(datos.serie || [], para)}
             formato={pesos}
             textoVacio="Todavia no hay cobros en este periodo."
           />

@@ -9,14 +9,20 @@
  * Es un "hook propio": una funcion que empieza con use y adentro usa otros
  * hooks (useState, useRef). Se usa como useState:
  *
- *   const proxima = useBloque()
- *   proxima.cargar(proximaClase())     // le pasa la PROMESA de la llamada
- *   proxima.cargando / proxima.datos / proxima.error
+ *   const reservas = useBloque()
+ *   reservas.cargar(series('mes'), 'mes')   // la PROMESA de la llamada, y para que es
+ *   reservas.cargando / reservas.datos / reservas.para / reservas.error
  *
  * Por que el contador: si el profesor toca "Mes" y enseguida "Anio", salen dos
  * llamadas y la de "Mes" puede volver DESPUES. Sin el contador, la respuesta
  * vieja pisaria a la nueva. Cada cargar() se anota un numero, y al volver solo
  * se guarda la respuesta si nadie pidio otra mientras tanto.
+ *
+ * Por que `para`: al cambiar el selector, los datos de antes se siguen viendo
+ * (atenuados) hasta que llegan los nuevos. Mientras tanto el selector ya dice
+ * "Semana" pero los datos son de "Mes": el bloque tiene que dibujarlos como lo
+ * que son. `para` es el valor del selector con el que se pidieron los datos que
+ * estan en pantalla, y se guarda junto con ellos.
  */
 
 import { useRef, useState } from 'react'
@@ -24,7 +30,8 @@ import { useRef, useState } from 'react'
 import { mensajeDeError } from '../../api/mensajes.js'
 
 export default function useBloque() {
-  const [datos, setDatos] = useState(null)
+  // Los datos y para que se pidieron van en el mismo estado: cambian juntos.
+  const [cargado, setCargado] = useState({ datos: null, para: null })
   const [error, setError] = useState(null)
   const [cargando, setCargando] = useState(true)
 
@@ -33,18 +40,22 @@ export default function useBloque() {
   const ultimaLlamada = useRef(0)
 
   /** Espera la promesa y guarda lo que devuelva. Devuelve la misma promesa, ya resuelta. */
-  function cargar(promesa) {
+  function cargar(promesa, para = null) {
     const numero = ++ultimaLlamada.current
     const vigente = () => numero === ultimaLlamada.current
 
     setCargando(true)
     setError(null)
     return promesa
-      .then((recibidos) => {
-        if (vigente()) setDatos(recibidos)
+      .then((datos) => {
+        if (vigente()) setCargado({ datos, para })
       })
       .catch((err) => {
-        if (vigente()) setError(mensajeDeError(err.codigo))
+        if (!vigente()) return
+        // Si falla, no quedan los datos de antes: se verian como si fueran la
+        // respuesta a lo que se eligio ahora.
+        setCargado({ datos: null, para: null })
+        setError(mensajeDeError(err.codigo))
       })
       // El finally apaga el "cargando" pase lo que pase (ver "Dos cosas que
       // siempre se olvidan" en la documentacion).
@@ -53,5 +64,5 @@ export default function useBloque() {
       })
   }
 
-  return { datos, error, cargando, cargar }
+  return { datos: cargado.datos, para: cargado.para, error, cargando, cargar }
 }

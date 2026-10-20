@@ -70,21 +70,25 @@ export default function ReservasDeHoy({ bloque, proxima }) {
         <p className="tablero-vacio">No tenes clases para hoy. Las solicitudes nuevas te llegan a la agenda.</p>
       )}
 
+      {/* Los role repiten lo que ya dice cada etiqueta, a proposito: en el
+          celular el CSS le cambia el display a la tabla para hacerla tarjetas,
+          y algunos navegadores (Safari) dejan de anunciarla como tabla si no
+          estan escritos. */}
       {clases.length > 0 && (
-        <table className="tablero-tabla" aria-labelledby="hoy-titulo">
-          <thead>
-            <tr>
-              <th scope="col">Hora</th>
-              <th scope="col">Alumno</th>
-              <th scope="col">Materia y etapa</th>
-              <th scope="col">Modalidad</th>
-              <th scope="col">Estado</th>
-              <th scope="col">
+        <table className="tablero-tabla" aria-labelledby="hoy-titulo" role="table">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">Hora</th>
+              <th scope="col" role="columnheader">Alumno</th>
+              <th scope="col" role="columnheader">Materia y etapa</th>
+              <th scope="col" role="columnheader">Modalidad</th>
+              <th scope="col" role="columnheader">Estado</th>
+              <th scope="col" role="columnheader">
                 <span className="oculto-visual">Accion</span>
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {clases.map((clase) => {
               const alumno = clase.contraparte
               const nombre = [alumno.nombre, alumno.apellido].filter(Boolean).join(' ')
@@ -92,15 +96,15 @@ export default function ReservasDeHoy({ bloque, proxima }) {
               const fila = estadoYAccion(esLaProxima ? proxima : clase, esLaProxima)
 
               return (
-                <tr key={clase.id} className={esLaProxima ? 'tablero-fila-proxima' : undefined}>
-                  <td className="tablero-celda-hora">{hora(clase.inicio)}</td>
-                  <td className="tablero-celda-alumno">{nombre}</td>
-                  <td className="tablero-celda-materia">{unir([clase.materia, clase.etapa || alumno.etapa])}</td>
-                  <td className="tablero-celda-modalidad">{MODALIDAD_CLASE[clase.modalidad]}</td>
-                  <td className="tablero-celda-estado">
+                <tr key={clase.id} className={esLaProxima ? 'tablero-fila-proxima' : undefined} role="row">
+                  <td role="cell" className="tablero-celda-hora">{hora(clase.inicio)}</td>
+                  <td role="cell" className="tablero-celda-alumno">{nombre}</td>
+                  <td role="cell" className="tablero-celda-materia">{unir([clase.materia, clase.etapa || alumno.etapa])}</td>
+                  <td role="cell" className="tablero-celda-modalidad">{MODALIDAD_CLASE[clase.modalidad]}</td>
+                  <td role="cell" className="tablero-celda-estado">
                     <span className={`tag ${fila.clase}`}>{fila.texto}</span>
                   </td>
-                  <td className="tablero-celda-accion">
+                  <td role="cell" className="tablero-celda-accion">
                     {/* Todos los botones dicen "Ver": el aria-label dice de
                         cual clase, para quien recorre la tabla con lector. */}
                     <Link
