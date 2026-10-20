@@ -20,7 +20,8 @@
  *   duracion   obligatorio. En minutos: 60, 90, 120...
  *   modalidad  obligatorio. presencial u online
  *   traslado   opcional. 1 si el profe va a la casa del alumno. Solo cuenta
- *              con modalidad presencial; con online se ignora.
+ *              con modalidad presencial y si el profe se traslada; si no, se
+ *              ignora (y cotizar no cobra traslado).
  *   etapa      opcional. El id de la etapa educativa
  *   tema       opcional. Texto libre ("Derivadas")
  *
@@ -228,6 +229,11 @@ export default function Checkout() {
   // Al entrar: las cuatro llamadas al mismo tiempo.
   useEffect(() => {
     if (!reserva) return
+    // Si la URL cambia antes de que lleguen las respuestas (o React desmonta
+    // la pantalla), las respuestas viejas se descartan: no pisan a las nuevas.
+    let vigente = true
+    setCargando(true)
+    setErrorCarga(null)
     Promise.all([
       obtenerFichaPublica(reserva.profesorId),
       cotizar({
@@ -248,14 +254,20 @@ export default function Checkout() {
       }).catch(() => ({ libre: true })),
     ])
       .then(([ficha, cotizacion, guardadas, verificacion]) => {
+        if (!vigente) return
         setDatos({ ficha, cotizacion, verificacion })
         setTarjetas(guardadas)
         // Arranca elegida la primera tarjeta que sirva. Si no hay, la nueva.
         const primera = guardadas.find((tarjeta) => !tarjetaVencida(tarjeta))
         setMedio(primera ? primera.id : NUEVA)
       })
-      .catch((error) => setErrorCarga(error.codigo))
-      .finally(() => setCargando(false))
+      // Un error que no vino del backend no trae codigo: igual hay que
+      // mostrar algo (mensajeDeError da el texto generico).
+      .catch((error) => vigente && setErrorCarga(error.codigo || 'desconocido'))
+      .finally(() => vigente && setCargando(false))
+    return () => {
+      vigente = false
+    }
   }, [reserva])
 
   // --- Los casos en que no hay checkout ---------------------------------
@@ -281,8 +293,11 @@ export default function Checkout() {
   // --- Lo que se calcula para dibujar -------------------------------------
   const perfilDelProfe = `/profesor/${ficha.id}`
   const etapa = reserva.etapaId ? ficha.etapas.find((e) => e.id === reserva.etapaId) : null
-  const modalidad =
-    reserva.modalidad === 'online' ? 'Online' : reserva.conTraslado ? 'Presencial a domicilio' : 'Presencial'
+  // Hay traslado si se pidio Y el backend lo cobro: si el profe no va a
+  // domicilio, cotizar lo ignora y manda costo_traslado en cero. (Comparar
+  // con cero no es hacer cuentas: el importe sigue siendo el del backend.)
+  const hayTraslado = reserva.conTraslado && Number(cotizacion.costo_traslado) > 0
+  const modalidad = reserva.modalidad === 'online' ? 'Online' : hayTraslado ? 'Presencial a domicilio' : 'Presencial'
 
   // El horario se cae si la verificacion dijo que no, o si al confirmar el
   // backend respondio que otro lo tomo (409 horario_ocupado).
@@ -338,7 +353,7 @@ export default function Checkout() {
 
       setReservada({ clase, tarjeta })
     } catch (error) {
-      setErrorEnvio(error.codigo)
+      setErrorEnvio(error.codigo || 'desconocido')
       if (tarjetaNueva && guardarNueva) {
         // La tarjeta se guardo pero la reserva no salio: pasa a la lista y
         // queda elegida, asi reintentar no la da de alta dos veces.
@@ -357,74 +372,79 @@ export default function Checkout() {
 
   return (
     <div className="checkout">
-      <Link to={perfilDelProfe} className="checkout-volver">
-        {'‹'} Volver al perfil de {ficha.nombre}
-      </Link>
+      {/* Con el cartel de "Reserva enviada" abierto, lo de atras queda inert:
+          no se puede enfocar ni lo recorre el lector de pantalla. (En React
+          18 inert todavia no es un atributo conocido: va como texto vacio.) */}
+      <div inert={reservada ? '' : undefined}>
+        <Link to={perfilDelProfe} className="checkout-volver">
+          {'‹'} Volver al perfil de {ficha.nombre}
+        </Link>
 
-      <header className="checkout-titulo">
-        <span className="tag tag-neutral">Paso 2 de 2{SEPARADOR}Pago</span>
-        <h2>Confirma y paga tu clase</h2>
-        <p>
-          La reserva queda pendiente de aprobacion del profesor. El pago se debita solo cuando {ficha.nombre} la
-          aprueba.
-        </p>
-      </header>
+        <header className="checkout-titulo">
+          <span className="tag tag-neutral">Paso 2 de 2{SEPARADOR}Pago</span>
+          <h2>Confirma y paga tu clase</h2>
+          <p>
+            La reserva queda pendiente de aprobacion del profesor. El pago se debita solo cuando {ficha.nombre} la
+            aprueba.
+          </p>
+        </header>
 
-      {/* Un solo formulario para toda la pantalla: Enter en un campo de la
-          tarjeta es lo mismo que "Confirmar reserva". noValidate apaga los
-          globitos del navegador; los errores los mostramos nosotros. */}
-      <form className="checkout-columnas" onSubmit={confirmar} noValidate>
-        <div className="checkout-principal">
-          <section className="checkout-clase" aria-label="La clase que vas a reservar">
-            <Avatar persona={ficha} tamanio="mediano" />
-            <div className="checkout-clase-datos">
-              <div className="checkout-clase-titulo">
-                {materia.nombre} con {ficha.nombre} {ficha.apellido}
-              </div>
-              <div className="checkout-clase-sub">
-                {unir([diaYHora(reserva.inicio), duracionTexto(reserva.duracion), modalidad])}
-              </div>
-              {(etapa || reserva.tema) && (
-                <div className="checkout-clase-sub">
-                  {unir([etapa?.nombre, reserva.tema && `Tema: ${reserva.tema}`])}
+        {/* Un solo formulario para toda la pantalla: Enter en un campo de la
+            tarjeta es lo mismo que "Confirmar reserva". noValidate apaga los
+            globitos del navegador; los errores los mostramos nosotros. */}
+        <form className="checkout-columnas" onSubmit={confirmar} noValidate>
+          <div className="checkout-principal">
+            <section className="checkout-clase" aria-label="La clase que vas a reservar">
+              <Avatar persona={ficha} tamanio="mediano" />
+              <div className="checkout-clase-datos">
+                <div className="checkout-clase-titulo">
+                  {materia.nombre} con {ficha.nombre} {ficha.apellido}
                 </div>
-              )}
-            </div>
-            <Link to={perfilDelProfe} className="btn btn-secondary checkout-clase-cambiar">
-              Cambiar
-            </Link>
-          </section>
+                <div className="checkout-clase-sub">
+                  {unir([diaYHora(reserva.inicio), duracionTexto(reserva.duracion), modalidad])}
+                </div>
+                {(etapa || reserva.tema) && (
+                  <div className="checkout-clase-sub">
+                    {unir([etapa?.nombre, reserva.tema && `Tema: ${reserva.tema}`])}
+                  </div>
+                )}
+              </div>
+              <Link to={perfilDelProfe} className="btn btn-secondary checkout-clase-cambiar">
+                Cambiar
+              </Link>
+            </section>
 
-          {verificacion.libre === false && (
-            <Alerta tipo="error">
-              {textoMotivo(verificacion.motivo, ficha)} <Link to={perfilDelProfe}>Ver sus horarios</Link>
-            </Alerta>
-          )}
+            {verificacion.libre === false && (
+              <Alerta tipo="error">
+                {textoMotivo(verificacion.motivo, ficha)} <Link to={perfilDelProfe}>Ver sus horarios</Link>
+              </Alerta>
+            )}
 
-          <ElegirMedio
-            tarjetas={tarjetas}
-            medio={medio}
-            alElegir={setMedio}
-            nueva={nueva}
-            alCambiarNueva={setNueva}
-            errores={erroresNueva}
-            guardar={guardarNueva}
-            alCambiarGuardar={setGuardarNueva}
+            <ElegirMedio
+              tarjetas={tarjetas}
+              medio={medio}
+              alElegir={setMedio}
+              nueva={nueva}
+              alCambiarNueva={setNueva}
+              errores={erroresNueva}
+              guardar={guardarNueva}
+              alCambiarGuardar={setGuardarNueva}
+            />
+          </div>
+
+          <Resumen
+            cotizacion={cotizacion}
+            conTraslado={hayTraslado}
+            nombreProfe={ficha.nombre}
+            textoMedio={textoMedio}
+            error={errorEnvio && mensajeDeError(errorEnvio)}
+            extraError={errorEnvio === 'horario_ocupado' && <Link to={perfilDelProfe}>Elegir otro horario</Link>}
+            puedeConfirmar={!horarioTomado && !reservada && medio !== null}
+            enviando={enviando}
+            volverA={perfilDelProfe}
           />
-        </div>
-
-        <Resumen
-          cotizacion={cotizacion}
-          conTraslado={reserva.conTraslado}
-          nombreProfe={ficha.nombre}
-          textoMedio={textoMedio}
-          error={errorEnvio && mensajeDeError(errorEnvio)}
-          extraError={errorEnvio === 'horario_ocupado' && <Link to={perfilDelProfe}>Elegir otro horario</Link>}
-          puedeConfirmar={!horarioTomado && !reservada && medio !== null}
-          enviando={enviando}
-          volverA={perfilDelProfe}
-        />
-      </form>
+        </form>
+      </div>
 
       {reservada && (
         <ReservaEnviada

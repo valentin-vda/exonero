@@ -19,6 +19,8 @@
  *   - aria-labelledby / aria-describedby: al abrirse lee el titulo y el texto.
  *   - el foco va al primer boton apenas aparece, y Tab da la vuelta entre
  *     los dos botones sin escaparse a la pagina de atras.
+ *   - la pagina de atras queda "inert" (Checkout.jsx): ni el teclado ni el
+ *     lector de pantalla pueden entrar ahi mientras el cartel esta abierto.
  * No se cierra con Escape a proposito: la reserva ya esta hecha y volver al
  * formulario de pago no tiene sentido. Los dos botones son la salida.
  */
@@ -38,30 +40,41 @@ export default function ReservaEnviada({ clase, tarjeta, profesor, materia, inic
     primerBoton.current?.focus()
   }, [])
 
-  // Tab en el ultimo boton vuelve al primero, y Shift+Tab en el primero va
-  // al ultimo: el foco no sale del cartel.
+  // Tab en el ultimo boton vuelve al primero, y Shift+Tab en el primero (o
+  // en el cartel mismo, si se hizo clic en su texto) va al ultimo: el foco
+  // no sale del cartel.
   function atraparFoco(evento) {
     if (evento.key !== 'Tab') return
     const botones = evento.currentTarget.querySelectorAll('a[href], button')
     const primero = botones[0]
     const ultimo = botones[botones.length - 1]
-    if (evento.shiftKey && document.activeElement === primero) {
+    const actual = document.activeElement
+    if (evento.shiftKey && (actual === primero || actual === evento.currentTarget)) {
       evento.preventDefault()
       ultimo.focus()
-    } else if (!evento.shiftKey && document.activeElement === ultimo) {
+    } else if (!evento.shiftKey && actual === ultimo) {
       evento.preventDefault()
       primero.focus()
     }
   }
 
+  // Un clic en el velo de alrededor no le saca el foco al cartel (sin esto,
+  // el foco pasaria a la pagina de atras y Tab seguiria por ahi).
+  function noSoltarFoco(evento) {
+    if (evento.target === evento.currentTarget) evento.preventDefault()
+  }
+
   return (
-    <div className="exito-fondo">
+    <div className="exito-fondo" onMouseDown={noSoltarFoco}>
+      {/* tabIndex={-1}: el cartel puede tener el foco (al hacer clic en su
+          texto) sin entrar en el recorrido de Tab. */}
       <div
         className="exito"
         role="dialog"
         aria-modal="true"
         aria-labelledby="exito-titulo"
         aria-describedby="exito-texto"
+        tabIndex={-1}
         onKeyDown={atraparFoco}
       >
         {/* Un reloj que gira: la reserva esta esperando al profe. Es solo

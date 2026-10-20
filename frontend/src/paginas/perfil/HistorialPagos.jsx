@@ -18,6 +18,10 @@
  *
  * Se arma cada vez que se abre (al cerrarlo desaparece), asi que siempre
  * muestra lo ultimo sin un boton de recargar.
+ *
+ * El backend lo manda de a paginas, lo mas nuevo primero. Si una pagina
+ * llega llena, puede haber mas: aparece "Ver mas pagos", que pide la
+ * siguiente y la suma abajo.
  */
 
 import { useEffect, useState } from 'react'
@@ -26,6 +30,8 @@ import { mensajeDeError } from '../../api/mensajes.js'
 import { historialPagos } from '../../api/pagos.js'
 import Alerta from '../../componentes/Alerta.jsx'
 import { diaYHora, pesos, unir } from '../../utiles/formato.js'
+
+const POR_PAGINA = 50 // el mismo tamanio de pagina que el backend (pagos/logica.py)
 
 // El texto y el color de la etiqueta de cada estado del cobro.
 const ESTADOS = {
@@ -46,14 +52,28 @@ function descripcion(movimiento) {
 
 export default function HistorialPagos() {
   const [movimientos, setMovimientos] = useState([])
+  const [pagina, setPagina] = useState(1) // la ultima que se pidio
+  const [hayMas, setHayMas] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    historialPagos()
-      .then(setMovimientos)
+  /** Pide una pagina y la suma al final de lo que ya se ve. */
+  function cargar(numero) {
+    setCargando(true)
+    setError(null)
+    historialPagos({ pagina: numero })
+      .then((nuevos) => {
+        // Una lista nueva con los de antes y los de esta pagina: nunca push().
+        setMovimientos((previos) => (numero === 1 ? nuevos : [...previos, ...nuevos]))
+        setPagina(numero)
+        setHayMas(nuevos.length === POR_PAGINA)
+      })
       .catch((e) => setError(mensajeDeError(e.codigo)))
       .finally(() => setCargando(false))
+  }
+
+  useEffect(() => {
+    cargar(1)
   }, [])
 
   return (
@@ -61,8 +81,6 @@ export default function HistorialPagos() {
       <h4 id="historial-titulo">Historial de pagos</h4>
 
       <Alerta tipo="error">{error}</Alerta>
-
-      {cargando && <p className="text-muted">Cargando tus pagos...</p>}
 
       {!cargando && !error && movimientos.length === 0 && (
         <p className="vacio">
@@ -88,6 +106,23 @@ export default function HistorialPagos() {
             )
           })}
         </ul>
+      )}
+
+      {cargando && !hayMas && <p className="text-muted">Cargando tus pagos...</p>}
+
+      {/* El boton no desaparece mientras carga la pagina siguiente (si
+          desapareciera, quien usa el teclado perderia el foco): solo avisa. */}
+      {hayMas && (
+        <div className="botonera" style={{ marginTop: '16px' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => !cargando && cargar(pagina + 1)}
+            aria-disabled={cargando ? 'true' : undefined}
+          >
+            {cargando ? 'Cargando...' : 'Ver mas pagos'}
+          </button>
+        </div>
       )}
     </section>
   )

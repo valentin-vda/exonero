@@ -103,8 +103,16 @@ export default function Resumen({
         )}
       </Alerta>
 
-      {/* Se deshabilita mientras se envia: sin doble clic no hay doble reserva. */}
-      <button type="submit" className="btn btn-primary btn-block resumen-confirmar" disabled={!puedeConfirmar || enviando}>
+      {/* Mientras se envia queda deshabilitado (sin doble clic no hay doble
+          reserva), pero con aria-disabled y no con disabled: un boton
+          disabled pierde el foco, y quien usa el teclado quedaria perdido al
+          volver el error. El clic de mas lo frena la ref de Checkout.jsx. */}
+      <button
+        type="submit"
+        className="btn btn-primary btn-block resumen-confirmar"
+        disabled={!puedeConfirmar}
+        aria-disabled={enviando ? 'true' : undefined}
+      >
         {enviando ? 'Enviando la reserva...' : 'Confirmar reserva'}
       </button>
       <Link to={volverA} className="resumen-cancelar">

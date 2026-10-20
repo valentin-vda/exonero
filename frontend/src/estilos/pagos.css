@@ -165,7 +165,8 @@
    entran juntos aun en el celular). */
 .formulario-tarjeta-fila {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, ...): que un contenido largo no ensanche la columna. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: 14px;
 }
 
@@ -230,6 +231,13 @@
   border-radius: var(--radius-sm);
   font-size: 19px;
 }
+/* Enviando: se ve deshabilitado aunque conserve el foco (ver Resumen.jsx). */
+.resumen-confirmar[aria-disabled='true'],
+.resumen-confirmar[aria-disabled='true']:hover {
+  background: var(--color-accent);
+  opacity: 0.45;
+  cursor: progress;
+}
 .resumen-cancelar {
   display: block;
   margin-top: 12px;
@@ -239,19 +247,22 @@
 
 /* --- El cartel "Reserva enviada" (ReservaEnviada.jsx) --------------------- */
 
-/* Tapa toda la pantalla, incluida la barra de arriba, con el fondo velado. */
+/* Tapa toda la pantalla, incluida la barra de arriba, con el fondo velado.
+   Si el cartel no entra a lo alto (un celular acostado), se puede bajar con
+   el scroll: margin: auto lo centra cuando hay lugar y no lo corta cuando no. */
 .exito-fondo {
   position: fixed;
   inset: 0;
   z-index: 900;
-  display: grid;
-  place-items: center;
+  display: flex;
+  overflow-y: auto;
   padding: 16px;
   background: color-mix(in srgb, var(--color-bg) 88%, transparent);
   backdrop-filter: blur(3px);
 }
 
 .exito {
+  margin: auto;
   width: min(420px, 100%);
   padding: 36px 32px;
   border-radius: 40px;

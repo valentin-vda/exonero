@@ -27,7 +27,7 @@
  * in-app, asi que la pestania se muestra siempre).
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { mensajeDeError } from '../../api/mensajes.js'
 import { agregarTarjeta, borrarTarjeta, listarTarjetas } from '../../api/pagos.js'
@@ -48,6 +48,8 @@ export default function SeccionMediosPago() {
   // --- Las tarjetas guardadas ---
   const [tarjetas, setTarjetas] = useState([])
   const [cargando, setCargando] = useState(true)
+  // Si no se pudieron pedir, no hay que decir "no tenes tarjetas": no se sabe.
+  const [cargaFallida, setCargaFallida] = useState(false)
   const [mensaje, setMensaje] = useState(null) // { tipo: 'ok' | 'error', texto }
   const [ocupado, setOcupado] = useState(false) // mientras se guarda o se quita
   // El id de la tarjeta que pide confirmar el "Quitar", o null. Es la
@@ -61,10 +63,15 @@ export default function SeccionMediosPago() {
 
   const [verHistorial, setVerHistorial] = useState(false)
 
+  const titulo = useRef(null) // el <h4>, para devolverle el foco (volverAlTitulo)
+
   useEffect(() => {
     listarTarjetas()
       .then(setTarjetas)
-      .catch((error) => setMensaje({ tipo: 'error', texto: mensajeDeError(error.codigo) }))
+      .catch((error) => {
+        setCargaFallida(true)
+        setMensaje({ tipo: 'error', texto: mensajeDeError(error.codigo) })
+      })
       .finally(() => setCargando(false))
   }, [])
 
@@ -81,7 +88,17 @@ export default function SeccionMediosPago() {
     } finally {
       setAQuitar(null)
       setOcupado(false)
+      volverAlTitulo()
     }
+  }
+
+  /**
+   * Los botones de quitar y del formulario desaparecen al terminar, y con
+   * ellos el foco del teclado (se iria al principio de la pagina). Se lo deja
+   * en el titulo de la seccion, justo arriba del mensaje de como salio.
+   */
+  function volverAlTitulo() {
+    titulo.current?.focus()
   }
 
   function abrirFormulario() {
@@ -93,6 +110,7 @@ export default function SeccionMediosPago() {
     setAgregando(false)
     setNueva(TARJETA_VACIA)
     setErrores({})
+    volverAlTitulo()
   }
 
   async function guardarNueva(evento) {
@@ -121,7 +139,10 @@ export default function SeccionMediosPago() {
   return (
     <>
       <section className="panel">
-        <h4 style={{ marginBottom: '6px' }}>Medios de pago</h4>
+        {/* tabIndex={-1}: puede recibir el foco desde el codigo, pero Tab lo saltea. */}
+        <h4 ref={titulo} tabIndex={-1} style={{ marginBottom: '6px' }}>
+          Medios de pago
+        </h4>
         <p className="panel-ayuda" style={{ marginTop: 0 }}>
           Se usan para pagar las reservas dentro de Exonero. En cada reserva elegis con cual pagar, y no se
           debita nada hasta que el profe la aprueba.
@@ -131,7 +152,7 @@ export default function SeccionMediosPago() {
 
         {cargando && <p className="text-muted">Cargando tus tarjetas...</p>}
 
-        {!cargando && tarjetas.length === 0 && (
+        {!cargando && !cargaFallida && tarjetas.length === 0 && (
           <p className="vacio">
             Todavia no tenes tarjetas guardadas. Podes agregar una aca, o guardarla cuando reserves tu
             proxima clase.
