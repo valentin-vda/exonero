@@ -164,7 +164,7 @@ def reembolsar(clase_id: int) -> None:
     No hace falta "descontarle" nada al profesor: sus ingresos son la suma de
     los cobros en estado cobrado, y este deja de estarlo.
 
-    PENDIENTE DE DECIDIR (seccion 11.2 de la documentacion): la politica de
+    PENDIENTE DE DECIDIR (seccion 12.2 de la documentacion): la politica de
     cancelacion. Si se reembolsa el total siempre, o si hay un plazo minimo
     (por ejemplo, cancelar con menos de 24 horas). Hoy se devuelve el TOTAL
     siempre: el estado cambia y el importe queda como estaba.

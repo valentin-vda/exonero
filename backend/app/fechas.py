@@ -59,11 +59,12 @@ def rango_de_dias(desde: date | None, hasta: date | None) -> tuple[datetime | No
 
     `hasta` es INCLUSIVE: ?desde=2026-10-01&hasta=2026-10-31 trae todo octubre,
     incluido el 31 a la noche. Por eso el borde de arriba es el dia siguiente,
-    abierto. Cualquiera de los dos puede faltar.
+    abierto. Cualquiera de los dos puede faltar. (El 31/12/9999 no tiene dia
+    siguiente: se toma como "sin tope".)
     """
     return (
         inicio_del_dia(desde) if desde else None,
-        inicio_del_dia(hasta + timedelta(days=1)) if hasta else None,
+        inicio_del_dia(hasta + timedelta(days=1)) if hasta and hasta < date.max else None,
     )
 
 

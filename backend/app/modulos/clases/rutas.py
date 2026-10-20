@@ -126,7 +126,7 @@ def mis_alumnos(yo: Profesor, db: Db):
 
 @router.get("", response_model=list[esquemas.ClaseOut])
 def listar_clases(yo: Yo, db: Db, desde: date | None = None, hasta: date | None = None,
-                  estado: str | None = None, pagina: int = Query(1, ge=1)):
+                  estado: str | None = None, pagina: int = Query(1, ge=1, le=1000)):
     """El calendario. UNO SOLO para 1b, 1d y 1i. De a 50 por pagina, por inicio.
 
     El del alumno y el del profesor son la misma consulta: el rol sale del

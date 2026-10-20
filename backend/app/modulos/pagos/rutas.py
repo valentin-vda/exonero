@@ -66,7 +66,7 @@ def borrar_tarjeta(tarjeta_id: int, yo: Estudiante, db: Db):
 
 @router.get("/historial", response_model=list[esquemas.MovimientoOut])
 def historial(yo: Estudiante, db: Db, desde: date | None = None, hasta: date | None = None,
-              pagina: int = Query(1, ge=1)):
+              pagina: int = Query(1, ge=1, le=1000)):
     """El historial de pagos del alumno. 1e. De a 50 por pagina.
 
     Son las filas de cobro de sus clases, con fecha, clase, importe y estado.

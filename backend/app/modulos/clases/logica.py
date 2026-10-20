@@ -194,10 +194,18 @@ def crear(db: Session, estudiante_id: int, datos) -> Clase:
 
     # 3. agenda.verificar() OTRA VEZ, aunque el checkout ya lo haya chequeado:
     #    entre que abrio la pantalla y confirmo, el hueco se pudo ocupar.
+    fin = inicio + timedelta(minutes=datos.duracion_min)
     if not _horario_libre(db, datos.profesor_id, inicio, datos.duracion_min):
         raise conflicto("horario_ocupado")
 
-    # 4. La clase, con TODOS los importes copiados. Si manana el profesor sube
+    # 4. El mismo alumno no puede pedirle dos veces el mismo rato al mismo
+    #    profesor: es un doble clic en confirmar, y dejaria dos cobros
+    #    retenidos. (Alumnos DISTINTOS si pueden: el profesor elige cual
+    #    aprueba.)
+    if _ya_lo_pidio(db, estudiante_id, datos.profesor_id, inicio, fin):
+        raise conflicto("horario_ocupado")
+
+    # 5. La clase, con TODOS los importes copiados. Si manana el profesor sube
     #    el precio, esta clase sigue valiendo lo mismo.
     condiciones = perfiles.condiciones_de_reserva(db, datos.profesor_id)
     clase = Clase(
@@ -210,7 +218,7 @@ def crear(db: Session, estudiante_id: int, datos) -> Clase:
         duracion_min=datos.duracion_min,
         # fin es columna y no se calcula al vuelo: es lo que cruza la
         # restriccion EXCLUDE para detectar superposiciones.
-        fin=inicio + timedelta(minutes=datos.duracion_min),
+        fin=fin,
         modalidad=Modalidad(datos.modalidad),
         ubicacion=_ubicacion(db, condiciones, datos.modalidad, datos.con_traslado, estudiante_id),
         estado=EstadoClase.pendiente,
@@ -222,7 +230,7 @@ def crear(db: Session, estudiante_id: int, datos) -> Clase:
         # El enlace de la videollamada es simulado, como el cobro.
         clase.ubicacion = f"https://meet.exonero.test/clase-{clase.id}"
 
-    # 5. El cobro retenido. Si la tarjeta no sirve, esto levanta el error, la
+    # 6. El cobro retenido. Si la tarjeta no sirve, esto levanta el error, la
     #    ruta no llega al commit y la sesion se cierra con rollback: la clase
     #    que se acaba de insertar no queda.
     pagos.retener(db, clase.id, datos.tarjeta_id, clase.total, estudiante_id)
@@ -322,7 +330,7 @@ def cancelar(db: Session, clase_id: int, quien_id: int, motivo: str | None, tare
     Devuelve la forma de CancelarOut, con reembolso = {"estado": "liberado" |
     "en_proceso", "importe": total}.
 
-    POLITICA DE CANCELACION, PENDIENTE DE DECIDIR (seccion 11.2 de la
+    POLITICA DE CANCELACION, PENDIENTE DE DECIDIR (seccion 12.2 de la
     documentacion): si se reembolsa el total siempre, o si hay un plazo minimo
     (por ejemplo, cancelar con menos de 24 horas). Hoy se devuelve el TOTAL
     siempre, la cancele quien la cancele.
@@ -680,7 +688,13 @@ def _horario_libre(db: Session, profesor_id: int, inicio: datetime, duracion_min
 
     Cuando P3 la termine, el except deja de activarse solo: no hay que tocar
     nada aca. Es el mismo truco que _contar_no_leidos() en cuentas/rutas.py.
+
+    Lo unico que se chequea aca mismo es que no haya pasado: sin agenda, nada
+    impediria reservar ayer. Con agenda, verificar() lo rechaza igual (por el
+    aviso minimo), asi que no se pisan.
     """
+    if inicio <= fechas.ahora():
+        return False
     try:
         return agenda.verificar(db, profesor_id, inicio, duracion_min)["libre"]
     except NotImplementedError:
@@ -688,8 +702,12 @@ def _horario_libre(db: Session, profesor_id: int, inicio: datetime, duracion_min
 
 
 def _clase(db: Session, clase_id: int) -> Clase:
-    """La clase, bloqueada (FOR UPDATE) hasta el commit. 404 si no existe."""
-    clase = db.get(Clase, clase_id, with_for_update=True)
+    """La clase, bloqueada (FOR UPDATE) hasta el commit. 404 si no existe.
+
+    populate_existing: si la clase ya estaba en la sesion, igual se pisan sus
+    valores con los que se leyeron al bloquearla, que son los vigentes.
+    """
+    clase = db.get(Clase, clase_id, with_for_update=True, populate_existing=True)
     if clase is None:
         raise no_existe("clase")
     return clase
@@ -912,6 +930,22 @@ def _variacion(actual, anterior) -> float | None:
     if not anterior:
         return None
     return float(_un_decimal((Decimal(actual) - Decimal(anterior)) * 100 / Decimal(anterior)))
+
+
+def _ya_lo_pidio(db: Session, estudiante_id: int, profesor_id: int, inicio: datetime, fin: datetime) -> bool:
+    """True si el alumno ya tiene con ese profesor una clase viva que se cruza
+    con [inicio, fin): pendiente o aprobada."""
+    return db.scalar(
+        select(
+            exists().where(
+                Clase.estudiante_id == estudiante_id,
+                Clase.profesor_id == profesor_id,
+                Clase.estado.in_((EstadoClase.pendiente, EstadoClase.aprobada)),
+                Clase.inicio < fin,
+                Clase.fin > inicio,
+            )
+        )
+    )
 
 
 def _se_traslada(condiciones: dict, modalidad: str, con_traslado: bool) -> bool:
