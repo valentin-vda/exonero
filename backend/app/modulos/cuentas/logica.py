@@ -11,6 +11,9 @@ Quien consume que:
   - perfiles     -> datos_basicos(), datos_basicos_varios(), es_menor() y
                     validar_imagen_base64()
   - mensajeria   -> datos_basicos(), para la cabecera del hilo
+  - clases       -> datos_basicos_varios() y telefonos_varios(), para la
+                    contraparte de cada clase sin una consulta por fila
+  - pagos        -> datos_basicos_varios(), el profesor de cada movimiento
 
 COMO SE REPARTE EL TRABAJO ENTRE rutas.py Y logica.py (igual en perfiles):
 
@@ -125,6 +128,19 @@ def datos_basicos_varios(db: Session, ids: list[int]) -> dict[int, dict]:
         return {}
     usuarios = db.scalars(select(Usuario).where(Usuario.id.in_(ids)))
     return {u.id: _a_dict_basico(u) for u in usuarios}
+
+
+def telefonos_varios(db: Session, ids: list[int]) -> dict[int, str | None]:
+    """{id: telefono} de varios usuarios, en UNA consulta. Agregada con P4.
+
+    El telefono no esta en datos_basicos (no hace falta en una tarjeta ni en
+    un hilo). Lo pide clases para el panel del profesor (1d), que muestra el
+    telefono del alumno de la proxima clase y de las de hoy.
+    """
+    if not ids:
+        return {}
+    filas = db.execute(select(Usuario.id, Usuario.telefono).where(Usuario.id.in_(ids)))
+    return {fila.id: fila.telefono for fila in filas}
 
 
 def es_menor(db: Session, usuario_id: int) -> bool:
