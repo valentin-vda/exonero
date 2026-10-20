@@ -39,9 +39,12 @@ export const POR_TRAMO = {
   anio: 'por anio, ultimos 5 anios',
 }
 
-/** "Ingresos del mes", "cobrado este trimestre", "+6 % que el anio pasado". */
+/**
+ * "Ingresos del mes", "cobrado este trimestre", "17 reservas esta semana",
+ * "+6 % que el anio pasado".
+ */
 export const DEL_PERIODO = { mes: 'del mes', trimestre: 'del trimestre', anio: 'del anio' }
-export const ESTE_PERIODO = { mes: 'este mes', trimestre: 'este trimestre', anio: 'este anio' }
+export const ESTE_PERIODO = { semana: 'esta semana', mes: 'este mes', trimestre: 'este trimestre', anio: 'este anio' }
 export const PERIODO_PASADO = { mes: 'el mes pasado', trimestre: 'el trimestre pasado', anio: 'el anio pasado' }
 
 // ---------------------------------------------------------------------------

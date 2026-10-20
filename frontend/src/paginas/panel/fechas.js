@@ -169,6 +169,3 @@ export function etiquetas(dia, agrupar, posicion) {
   const anio = String(fecha.getUTCFullYear())
   return { corta: anio, larga: anio }
 }
-
-/** "esta semana", "este mes", "este anio": para las frases de los graficos. */
-export const ESTE_TRAMO = { semana: 'esta semana', mes: 'este mes', anio: 'este anio' }

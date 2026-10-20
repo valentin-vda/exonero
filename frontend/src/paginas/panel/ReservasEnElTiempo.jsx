@@ -17,9 +17,9 @@
  */
 
 import Alerta from '../../componentes/Alerta.jsx'
-import { conTodosLosTramos, ESTE_TRAMO, etiquetas } from './fechas.js'
+import { conTodosLosTramos, etiquetas } from './fechas.js'
 import GraficoBarras from './GraficoBarras.jsx'
-import { AGRUPAR_RESERVAS, POR_TRAMO, SERIES_RESERVAS } from './opciones.js'
+import { AGRUPAR_RESERVAS, ESTE_PERIODO, POR_TRAMO, SERIES_RESERVAS } from './opciones.js'
 import Selector from './Selector.jsx'
 
 // A que serie va cada estado: { dictada: 'dictada', cancelada: 'no_se_dio', ... }
@@ -51,7 +51,7 @@ function frase(lista, agrupar) {
   const pico = lista.reduce((mejor, columna) => (total(columna) > total(mejor) ? columna : mejor))
 
   const reservas = (n) => (n === 1 ? '1 reserva' : `${n} reservas`)
-  const ahora = `${reservas(actual)} ${ESTE_TRAMO[agrupar]}`
+  const ahora = `${reservas(actual)} ${ESTE_PERIODO[agrupar]}`
   if (total(pico) === actual) return `${ahora}, el pico del periodo`
   // "la semana del 12 de octubre", "octubre de 2026", "2025"
   const cuando = agrupar === 'semana' ? `la ${pico.larga}` : pico.larga
