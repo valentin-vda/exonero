@@ -90,6 +90,18 @@ export function cambiarEstadoFicha(estado) {
 }
 
 // ---------------------------------------------------------------------------
+// Ficha publica - 1f y 1g
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /api/profesores/{id} -> la ficha publica (FichaProfesorOut).
+ * Recibe el id del USUARIO profesor. 404 profesor_no_existe si no esta publicada.
+ */
+export function obtenerFichaPublica(id) {
+  return pedir(`/api/profesores/${id}`)
+}
+
+// ---------------------------------------------------------------------------
 // Catalogos - el endpoint es de P2
 // ---------------------------------------------------------------------------
 

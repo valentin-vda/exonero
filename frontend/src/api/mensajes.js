@@ -50,6 +50,19 @@ const MENSAJES = {
   etapa_educativa_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
   centro_educativo_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
 
+  // --- Reservas y clases (1g, 1b, 1i) ---
+  sin_precio: 'Este profe no da clases en esa modalidad. Elegi otra.',
+  horario_ocupado: 'Ese horario ya no esta libre. Volve al perfil del profe y elegi otro.',
+  estado_invalido: 'La clase cambio de estado mientras tanto. Recarga la pagina.',
+  clase_no_existe: 'Esa clase ya no existe. Recarga la pagina.',
+  profesor_no_existe: 'Ese profe no existe o pauso su ficha.',
+
+  // --- Pagos y tarjetas (1g, 1e) ---
+  cobro_rechazado: 'La tarjeta rechazo el pago. Proba con otra.',
+  tarjeta_vencida: 'Esa tarjeta esta vencida. Usa otra o agrega una nueva.',
+  tarjeta_invalida: 'El numero de tarjeta no es valido.',
+  tarjeta_no_existe: 'Esa tarjeta ya no esta guardada. Recarga la pagina.',
+
   // --- Generales ---
   datos_invalidos: 'Revisa los datos: hay algo que no esta bien.',
   error_servidor:
