@@ -58,10 +58,18 @@ npm run dev                     # queda en http://localhost:5173
 
 Abrí `http://localhost:5173` y te va a recibir el login.
 
-Los seeds dejan cargados veinte usuarios, todos con la clave `exonero123`:
-`profe1@example.com` a `profe8@example.com` y `alumno1@example.com` a
-`alumno12@example.com`. En el login hay dos botones, **Alumno** y **Profe**,
-que completan el formulario con el primero de cada uno.
+Los seeds dejan la app con datos como para verla en uso: 94 usuarios, todos
+con la clave `exonero123` (`profe1@example.com` a `profe34@example.com` y
+`alumno1@example.com` a `alumno60@example.com`), más de mil clases con cinco
+meses de historia y las próximas dos semanas, sus cobros, reseñas en los dos
+sentidos, conversaciones con mensajes sin leer, franjas y bloqueos de agenda.
+Al terminar imprimen cuánto quedó en cada tabla. En el login hay dos botones,
+**Alumno** y **Profe**, que completan el formulario con `alumno1` y `profe1`:
+son los usuarios con más para mirar (tienen clases entre ellos, próximas y
+pasadas, y mensajes sin leer).
+
+Los seeds **vacían todas las tablas** antes de cargar: lo que hayas creado a
+mano en tu base local (una cuenta, una reserva) se pierde al volver a correrlos.
 
 ¿Por qué `example.com` y no un dominio inventado como `exonero.test`? Porque
 el validador de correos del backend rechaza los dominios `.test` (son de "uso
@@ -851,14 +859,14 @@ Las tres pantallas de autenticación comparten `MarcoAuth.jsx`:
 ```
 ┌───────────────────────────┬───────────────────────────┐
 │                           │                           │
-│  Panel terracota          │  Fondo crema              │
+│  Panel azul oscuro        │  Fondo de la app          │
 │                           │                           │
-│  Exonero                  │   Ingresa a tu cuenta     │
+│  (buho) Exonero           │   Ingresa a tu cuenta     │
 │                           │   Entra con tu correo...  │
-│                           │                           │
-│                           │   Correo                  │
-│                           │   [___________]           │
-│                           │   Contrasena              │
+│        .-------.          │                           │
+│        | BUHO  |          │   Correo                  │
+│        | grande|          │   [___________]           │
+│        '-------'          │   Contrasena              │
 │  Clases particulares      │   [________] Mostrar      │
 │  con profes de tu barrio  │                           │
 │                           │   [    Entrar    ]        │
@@ -867,6 +875,15 @@ Las tres pantallas de autenticación comparten `MarcoAuth.jsx`:
 │                           │   No tenes cuenta? Crear  │
 └───────────────────────────┴───────────────────────────┘
 ```
+
+El panel de la izquierda es del azul oscuro de la marca (`--color-marca` en
+`tokens.css`), con el logo completo arriba (el búho y la palabra) y el búho
+gigante sobre la columna en el centro. Ese búho grande es
+`assets/buho-auth.png`, hecho a partir de `public/buho_auth.png` (2048 px, 1 MB):
+recortado al dibujo, pintado del celeste del logo (el original es gris oscuro
+y sobre el azul no se veía) y achicado a 900 px de alto, unos 80 KB.
+`--color-marca` no cambia en modo oscuro a propósito: el panel de la marca es
+siempre azul oscuro.
 
 Debajo de 900px de ancho el panel izquierdo se esconde y queda solo el
 formulario, centrado. En el celular lo que importa es entrar, no el marketing.
@@ -1688,7 +1705,7 @@ Para ver el error de pago de 1g: agregá una tarjeta terminada en `0000`
 (`POST /api/pagos/tarjetas` con `"numero": "4000 0000 0000 0000"`) y reservá con
 ella. Responde 402 `cobro_rechazado` y la clase no se crea.
 
-**Las 276 comprobaciones.** `backend/verificar_p4.py` recorre todos los
+**Las 278 comprobaciones.** `backend/verificar_p4.py` recorre todos los
 endpoints de P4 con los usuarios de los seeds: los flujos de la plata de punta a
 punta, los errores de cada uno (roles cruzados, ids que no existen, estados
 inválidos), que los importes cuadren al centésimo, la migración de ida y vuelta
@@ -1706,7 +1723,7 @@ cd backend
 python -m alembic upgrade head
 python -m app.seeds
 python -m uvicorn app.main:app --port 8001     # en otra terminal, con el mismo BASE_URL
-python verificar_p4.py                          # "276 de 276 comprobaciones pasaron."
+python verificar_p4.py                          # "278 de 278 comprobaciones pasaron."
 ```
 
 ### El ciclo de vida, en una tabla
@@ -1737,7 +1754,7 @@ Solo una `pendiente` se aprueba o se rechaza; solo una `pendiente` o una
 | `pagos/modelos.py` | `cobro.clase_id` ahora admite NULL (ver abajo) |
 | `app/fechas.py` | La zona de Montevideo: rangos de días, los períodos de 1d, las ventanas de los gráficos y el `date_trunc` |
 | `alembic/versions/6d0c95b67436_cobro_sobrevive_al_rechazo.py` | La migración de `cobro` |
-| `verificar_p4.py` | Las 276 comprobaciones |
+| `verificar_p4.py` | Las 278 comprobaciones |
 
 ### Los endpoints de `clases`
 
@@ -1839,8 +1856,8 @@ sobre todo lo anterior. Dos detalles:
   131,018 → 131,02; IVA 317,064 → 317,06; total **1758,26**. Es el caso con
   decimales que prueba `verificar_p4.py`, contra una cuenta hecha aparte.
 
-Los seeds ya no tienen su propio `_desglose()`: usan `desglosar()`, y sus treinta
-clases dan los mismos totales que antes.
+Los seeds ya no tienen su propio `_desglose()`: todas sus clases usan
+`desglosar()`.
 
 **Qué valida cotizar, en orden.** Modalidad `presencial` u `online` (400
 `modalidad_invalida`; una clase concreta no puede ser "ambas"); que el profesor
@@ -2431,9 +2448,16 @@ legítimas. El profesor elige cuál aprueba.
   `EXCLUDE`
 - **La segunda migración** (`6d0c95b67436_cobro_sobrevive_al_rechazo.py`, de
   P4): `cobro.clase_id` nullable con `ON DELETE SET NULL` (ver la sección 9)
-- **Los seeds** (`app/seeds.py`): catálogos, veinte usuarios con sus perfiles
-  y su oferta, franjas de disponibilidad y treinta clases con su cobro, con los
-  importes calculados por `clases.logica.desglosar()`
+- **Los seeds** (`app/seeds.py`), con datos en las 24 tablas: 26 barrios, 16
+  materias, 22 centros, 34 profesores (29 publicados) con toda su oferta, 60
+  alumnos con sus tarjetas, franjas y bloqueos, más de mil clases (cinco meses
+  de historia y las próximas dos semanas) con su cobro y los importes de
+  `clases.logica.desglosar()`, solicitudes rechazadas, reseñas en los dos
+  sentidos con el promedio en cada perfil, y conversaciones con mensajes sin
+  leer. Las clases respetan las franjas, el descanso, el tope diario, el aviso
+  mínimo y los bloqueos de cada profesor, y no se pisan. Los veinte usuarios
+  de antes (`profe1`–`profe8`, `alumno1`–`alumno12`) conservan sus datos y
+  sus ids
 - `schema.sql` completo, de referencia
 - El frontend entero: proxy, rutas, contexto de autenticación, sistema de
   diseño y componentes
@@ -2475,7 +2499,7 @@ legítimas. El profesor elige cuál aprueba.
   esquema de resultados; pines sin duplicados y en el orden pedido; cercanos;
   ids y rangos inválidos; delegación del filtro de disponibilidad a agenda; y
   ranking con el mínimo de reseñas dentro de una transacción revertida
-- P4, backend: **276 comprobaciones** (`backend/verificar_p4.py`) contra una base
+- P4, backend: **278 comprobaciones** (`backend/verificar_p4.py`) contra una base
   real recién sembrada, que recorren los 19 endpoints con tokens de los usuarios
   de los seeds: el flujo cotizar → crear → aprobar → cancelar con el reembolso
   llegando en segundo plano; crear → rechazar con el cobro liberado en el
@@ -2489,9 +2513,8 @@ legítimas. El profesor elige cuál aprueba.
   períodos y las tres agrupaciones, contra cuentas hechas en SQL; los bordes de
   los días en Montevideo. Y además: la app importa, `alembic downgrade -1` /
   `upgrade head` / `check` sin diferencias, y los seeds dos veces seguidas sin
-  duplicar, con las treinta clases cuadrando con `desglosar()` y los mismos
-  totales que antes. Las 276 pasan también sobre el código ya integrado (las
-  tres ramas de P4 juntas)
+  duplicar, con todas sus clases cuadrando con `desglosar()`. Con los seeds
+  grandes son 278 y pasan todas
 - P4, frontend, en el navegador sobre el código integrado y contra una base
   recién sembrada: **1g** reservando con una tarjeta guardada (la clase queda
   `pendiente` con el cobro `retenido` y el mismo total que la cotización), con
