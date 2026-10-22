@@ -8,7 +8,8 @@
  * Se usa como ruta padre en App.jsx: todo lo que cuelgue de el sale con barra.
  */
 
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { useAuth } from '../auth/ContextoAuth.jsx'
 import logoExonero from '../assets/logo-exonero.png'
@@ -33,37 +34,88 @@ const MENU_PROFESOR = [
 export default function Layout() {
   const { usuario, salir } = useAuth()
   const menu = usuario?.rol === 'profesor' ? MENU_PROFESOR : MENU_ESTUDIANTE
+  const [menuAbierto, setMenuAbierto] = useState(false)
+  const navegacion = useRef(null)
+  const ubicacion = useLocation()
+
+  useEffect(() => {
+    setMenuAbierto(false)
+  }, [ubicacion.pathname])
+
+  useEffect(() => {
+    if (!menuAbierto) return undefined
+
+    function cerrarConEscape(evento) {
+      if (evento.key === 'Escape') setMenuAbierto(false)
+    }
+
+    function cerrarAlTocarAfuera(evento) {
+      if (!navegacion.current?.contains(evento.target)) setMenuAbierto(false)
+    }
+
+    document.addEventListener('keydown', cerrarConEscape)
+    document.addEventListener('pointerdown', cerrarAlTocarAfuera)
+
+    return () => {
+      document.removeEventListener('keydown', cerrarConEscape)
+      document.removeEventListener('pointerdown', cerrarAlTocarAfuera)
+    }
+  }, [menuAbierto])
 
   return (
     <>
-      <nav className="nav">
-        <Link to={usuario?.rol === 'profesor' ? '/panel' : '/inicio'} className="nav-brand">
+      <nav className="nav" ref={navegacion}>
+        <Link
+          to={usuario?.rol === 'profesor' ? '/panel' : '/inicio'}
+          className="nav-brand"
+          aria-label="Exonero — Inicio"
+        >
           <img className="nav-logo" src={logoExonero} alt="" />
           <span>Exonero</span>
         </Link>
 
-        {/* NavLink pone aria-current="page" solo en el enlace activo, y el CSS
-            lo pinta con el color de acento. */}
-        {menu.map((item) => (
-          <NavLink key={item.a} to={item.a}>
-            {item.texto}
-          </NavLink>
-        ))}
+        <button
+          type="button"
+          className="nav-hamburguesa"
+          aria-label={menuAbierto ? 'Cerrar menú' : 'Abrir menú'}
+          aria-expanded={menuAbierto}
+          aria-controls="menu-principal"
+          onClick={() => setMenuAbierto((abierto) => !abierto)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
 
-        <div className="nav-actions">
-          {/* El contador de mensajes no leidos viene adentro de
-              GET /usuarios/yo, asi que no hace falta otra llamada para pintarlo. */}
-          {usuario?.mensajes_no_leidos > 0 && (
-            <span className="tag tag-accent">{usuario.mensajes_no_leidos} sin leer</span>
-          )}
+        <div
+          id="menu-principal"
+          className={`nav-menu${menuAbierto ? ' esta-abierto' : ''}`}
+        >
+          <div className="nav-enlaces">
+            {/* NavLink pone aria-current="page" solo en el enlace activo, y el CSS
+                lo pinta con el color de acento. */}
+            {menu.map((item) => (
+              <NavLink key={item.a} to={item.a}>
+                {item.texto}
+              </NavLink>
+            ))}
+          </div>
 
-          <button type="button" className="btn btn-ghost nav-salir" onClick={salir}>
-            Salir
-          </button>
+          <div className="nav-actions">
+            {/* El contador de mensajes no leidos viene adentro de
+                GET /usuarios/yo, asi que no hace falta otra llamada para pintarlo. */}
+            {usuario?.mensajes_no_leidos > 0 && (
+              <span className="tag tag-accent">{usuario.mensajes_no_leidos} sin leer</span>
+            )}
 
-          {/* La foto o las iniciales (ver Avatar.jsx). Al cambiar la foto en el
-              perfil, se actualiza sola: el usuario viene del contexto. */}
-          <Avatar persona={usuario} />
+            <button type="button" className="btn btn-ghost nav-salir" onClick={salir}>
+              Salir
+            </button>
+
+            {/* La foto o las iniciales (ver Avatar.jsx). Al cambiar la foto en el
+                perfil, se actualiza sola: el usuario viene del contexto. */}
+            <Avatar persona={usuario} />
+          </div>
         </div>
       </nav>
 

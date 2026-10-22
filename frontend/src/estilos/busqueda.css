@@ -309,7 +309,7 @@
   place-items: center;
   border: 2px solid var(--color-bg);
   border-radius: 999px;
-  color: var(--color-bg);
+  color: white;
   background: var(--color-accent);
   box-shadow: 0 1px 4px color-mix(in srgb, var(--color-text) 35%, transparent);
   font-family: var(--font-heading);
@@ -328,8 +328,9 @@
 }
 
 .mapa-profesores .leaflet-popup-content strong {
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
   font-size: 15px;
+  font-weight: 600;
 }
 
 .mapa-popup-meta {

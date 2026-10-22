@@ -11,8 +11,9 @@
 .publico-error { max-width: 620px; margin: 40px auto 0; }
 
 .publico-cabecera {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-areas: "avatar identidad precio";
+  grid-template-columns: auto minmax(0, 1fr) max-content;
   align-items: center;
   gap: 26px;
   margin-top: 14px;
@@ -30,15 +31,18 @@
   color: var(--color-accent-2-900);
 }
 
-.publico-identidad { min-width: 0; flex: 1 1 360px; }
-.publico-identidad h1 { margin: 0; font-size: 34px; line-height: 1.05; }
+.publico-avatar { grid-area: avatar; }
+.publico-identidad { grid-area: identidad; min-width: 0; width: 100%; }
+.publico-identidad h1 { max-width: none; margin: 0; font-size: 34px; line-height: 1.05; }
 .publico-identidad > p { margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent); font-size: 14px; }
 .publico-etiquetas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 .publico-metricas { display: flex; flex-wrap: wrap; gap: 26px; margin-top: 18px; }
 .publico-metricas div { display: flex; flex-direction: column; color: color-mix(in srgb, var(--color-text) 62%, transparent); font-size: 12.5px; }
 .publico-metricas strong { max-width: 210px; color: var(--color-text); font-family: var(--font-heading); font-size: 20px; font-weight: var(--font-heading-weight); line-height: 1.1; }
+.publico-metricas div:last-child { min-width: 260px; flex: 1 1 300px; }
+.publico-metricas div:last-child strong { max-width: none; text-wrap: balance; }
 
-.publico-precio { display: flex; flex: none; flex-direction: column; align-items: flex-end; margin-left: auto; text-align: right; }
+.publico-precio { display: flex; grid-area: precio; flex-direction: column; align-items: flex-end; text-align: right; }
 .publico-precio > strong { font-family: var(--font-heading); font-size: 44px; font-weight: var(--font-heading-weight); line-height: 0.98; }
 .publico-precio > span,
 .publico-precio div span { color: color-mix(in srgb, var(--color-text) 60%, transparent); font-size: 13px; }
@@ -135,10 +139,29 @@
   .publico-lateral { position: static; }
 }
 
+@media (max-width: 920px) {
+  .publico-cabecera {
+    grid-template-areas:
+      "avatar identidad"
+      "avatar precio";
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+  .publico-precio { align-items: flex-start; text-align: left; }
+  .publico-estrellas { margin-top: 10px; }
+}
+
 @media (max-width: 700px) {
-  .publico-cabecera { padding: 20px; }
+  .publico-cabecera {
+    grid-template-areas:
+      "avatar"
+      "identidad"
+      "precio";
+    grid-template-columns: minmax(0, 1fr);
+    padding: 20px;
+  }
   .publico-avatar .avatar-grande { width: 112px; height: 112px; font-size: 36px; }
-  .publico-precio { align-items: flex-start; width: 100%; margin-left: 0; text-align: left; }
+  .publico-precio { align-items: flex-start; width: 100%; text-align: left; }
   .publico-calendario { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .publico-galeria { grid-template-columns: 1fr 1fr; }
   .publico-foto.principal { grid-row: auto; height: 160px; }

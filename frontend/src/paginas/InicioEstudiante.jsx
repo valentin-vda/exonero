@@ -104,14 +104,49 @@ function ProximaClase({ clase, cargando, error }) {
   )
 }
 
+function EstrellasPuntaje({ valor, cantidad }) {
+  const valorSeguro = Math.max(0, Math.min(5, Number(valor) || 0))
+
+  return (
+    <div
+      className="inicio-profe-puntaje"
+      aria-label={`${puntaje(valorSeguro)} de 5, ${cantidad} reseñas`}
+    >
+      <span className="inicio-profe-estrellas" aria-hidden="true">
+        {[0, 1, 2, 3, 4].map((indice) => {
+          const relleno = Math.max(0, Math.min(1, valorSeguro - indice)) * 100
+          return (
+            <span
+              className="inicio-profe-estrella"
+              key={indice}
+              style={{ '--relleno-estrella': `${relleno}%` }}
+            >
+              ★
+            </span>
+          )
+        })}
+      </span>
+      <span>{puntaje(valorSeguro)} · {cantidad} reseñas</span>
+    </div>
+  )
+}
+
 function TarjetaProfesor({ profesor }) {
+  const ubicacion = unir([
+    profesor.barrio,
+    profesor.distancia_km != null && `${profesor.distancia_km.toLocaleString('es-UY')} km`,
+  ])
+
   return (
     <article className="inicio-profe-card">
       <div className="inicio-profe-identidad">
         <Avatar persona={profesor} />
-        <div>
+        <div className="inicio-profe-resumen">
           <h3>{profesor.nombre} {profesor.apellido}</h3>
-          <span>{unir([profesor.barrio, profesor.distancia_km != null && `${profesor.distancia_km.toLocaleString('es-UY')} km`])}</span>
+          <EstrellasPuntaje
+            valor={profesor.puntaje_promedio}
+            cantidad={profesor.cantidad_resenas}
+          />
         </div>
       </div>
       <div className="inicio-profe-tags">
@@ -119,8 +154,10 @@ function TarjetaProfesor({ profesor }) {
         <span>{modalidadVisible(profesor.modalidad)}</span>
       </div>
       <div className="inicio-profe-datos">
-        <strong>{profesor.precio_hora == null ? 'Consultar' : `${pesos(profesor.precio_hora)}/h`}</strong>
-        <span>★ {puntaje(profesor.puntaje_promedio)} · {profesor.cantidad_resenas} reseñas</span>
+        <strong className="inicio-profe-precio">
+          {profesor.precio_hora == null ? 'Consultar' : `${pesos(profesor.precio_hora)}/h`}
+        </strong>
+        <span className="inicio-profe-ubicacion">{ubicacion}</span>
       </div>
       <Link className="btn btn-primary" to={`/profesor/${profesor.id}`}>Reservar</Link>
     </article>
@@ -213,10 +250,6 @@ export default function InicioEstudiante() {
   return (
     <div className="inicio-pagina">
       <div className="inicio-superior">
-        <header className="inicio-saludo">
-          <h1>¡Hola {usuario?.nombre}!</h1>
-        </header>
-
         <ProximaClase clase={proxima} cargando={cargando} error={errorProxima} />
       </div>
 
