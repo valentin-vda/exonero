@@ -14,6 +14,7 @@
  *   +-- la seccion elegida:
  *         SeccionDatosProfesor   datos personales, titulo, barrio base
  *         SeccionEnsena          materias, modalidad, precios, duraciones
+ *         EditorFranjas          la disponibilidad semanal (el mismo de 1i, P3)
  *         SeccionBio             titular, biografia, como es una clase
  *         SeccionFotos           fotos del lugar
  *         SeccionClave           cambiar la contrasena, darse de baja
@@ -30,6 +31,7 @@ import { cambiarEstadoFicha, obtenerCatalogos, obtenerMiFicha } from '../api/per
 import { useAuth } from '../auth/ContextoAuth.jsx'
 import Alerta from '../componentes/Alerta.jsx'
 import { ESTRELLA, mesYAnio, puntaje, unir } from '../utiles/formato.js'
+import EditorFranjas from './agenda/EditorFranjas.jsx'
 import CabeceraPerfil from './perfil/CabeceraPerfil.jsx'
 import MenuLateral from './perfil/MenuLateral.jsx'
 import { AVISO_SIN_CATALOGOS, ESTADOS_FICHA } from './perfil/opciones.js'
@@ -42,6 +44,7 @@ import SeccionFotos from './perfil/SeccionFotos.jsx'
 const PESTANIAS = [
   { id: 'datos', texto: 'Informacion personal' },
   { id: 'ensena', texto: 'Materias y modalidad' },
+  { id: 'disponibilidad', texto: 'Disponibilidad' },
   { id: 'bio', texto: 'Biografia' },
   { id: 'fotos', texto: 'Fotos del lugar' },
   { id: 'seguridad', texto: 'Contrasena' },
@@ -187,6 +190,14 @@ export default function PerfilProfesor() {
           {/* {...props} pasa ficha, catalogos y alGuardar de una vez. */}
           {pestania === 'datos' && <SeccionDatosProfesor {...props} />}
           {pestania === 'ensena' && <SeccionEnsena {...props} />}
+          {/* La misma edicion que la pestania Disponibilidad de la agenda (1i):
+              carga y guarda sus franjas sola, no usa la ficha. */}
+          {pestania === 'disponibilidad' && (
+            <section className="panel">
+              <h4 style={{ marginBottom: '4px' }}>Disponibilidad</h4>
+              <EditorFranjas />
+            </section>
+          )}
           {pestania === 'bio' && <SeccionBio {...props} />}
           {pestania === 'fotos' && <SeccionFotos {...props} />}
           {pestania === 'seguridad' && <SeccionClave />}

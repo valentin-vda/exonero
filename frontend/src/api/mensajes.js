@@ -36,7 +36,8 @@ const MENSAJES = {
 
   // --- Perfil del profesor (1j) ---
   ficha_incompleta:
-    'Para publicar tu ficha te falta al menos una materia y el precio de cada modalidad que ofreces.',
+    'Para publicar tu ficha te falta al menos una materia, el precio de cada modalidad que ofreces ' +
+    'y una franja de disponibilidad (en Agenda o en la pestania Disponibilidad).',
   duraciones_incoherentes: 'La duracion maxima no puede ser menor que la minima.',
   duracion_fuera_de_rango: 'Las duraciones que ofreces tienen que estar entre la minima y la maxima.',
   cupos_incoherentes: 'El minimo de alumnos no puede ser mayor que el maximo.',
@@ -64,6 +65,17 @@ const MENSAJES = {
   duracion_no_modificable:
     'Al reprogramar no se puede cambiar la duracion: el importe ya quedo fijo. Cancela y reserva de nuevo.',
   estado_no_permitido: 'Ese estado no corresponde para esta clase.',
+
+  // --- Agenda (1i, 1j, 1f) ---
+  rango_invalido: 'El rango de fechas no es valido (como mucho, 31 dias).',
+  franja_invalida: 'Cada franja tiene que terminar despues de empezar.',
+  franjas_superpuestas: 'Hay dos franjas del mismo dia que se pisan. Unilas o achica una.',
+  bloqueo_invalido: 'El bloqueo tiene que terminar despues de empezar, y no puede estar en el pasado.',
+  bloqueo_superpuesto: 'Ya tenes un bloqueo en ese horario. Borralo o elegi otro rato.',
+  hay_clase_aprobada:
+    'Ese rato pisa una clase confirmada. Primero cancelala o reprogramala, y despues bloquealo.',
+  bloqueo_no_existe: 'Ese bloqueo ya no existe. Recarga la pagina.',
+  perfil_no_existe: 'No encontramos tu perfil de profesor.',
 
   // --- Reseñas (1b y 1i) ---
   ya_resenado: 'Ya calificaste a esta persona. Podés editar tu reseña anterior.',

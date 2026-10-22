@@ -53,10 +53,10 @@ export default function Saludo({ ficha }) {
       </div>
 
       <div className="tablero-botones">
-        <Link to="/agenda" className="btn btn-secondary">
+        <Link to="/agenda#disponibilidad" className="btn btn-secondary">
           Editar disponibilidad
         </Link>
-        <Link to="/agenda" className="btn btn-primary">
+        <Link to="/agenda#bloqueos" className="btn btn-primary">
           Bloquear horario
         </Link>
       </div>

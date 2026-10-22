@@ -559,6 +559,14 @@ MOTIVOS_CANCELACION = [
     "Me cambiaron el horario del trabajo.",
 ]
 
+# Los bloqueos fijos de P3: (profeN, dias habiles desde hoy, desde, hasta, motivo).
+# Los usa verificar_p3.py. Las clases de los seeds se ubican fuera de ellos.
+PLAN_BLOQUEOS = [
+    (1, 8, time(14), time(16), "Turno medico"),
+    (2, 9, time(15), time(21), "Mesa de examen en el liceo"),
+    (3, 10, time(0), time(23, 59), "Congreso de docentes"),
+]
+
 MOTIVOS_BLOQUEO_DIA = ["Viaje a Buenos Aires", "Congreso de educación", "Mesa de examen en el liceo",
                        "Casamiento de un amigo"]
 MOTIVOS_BLOQUEO_RATO = ["Turno médico", "Reunión de profesores", "Trámite en el banco", "Parcial en facultad"]
@@ -762,28 +770,48 @@ def sembrar_agenda(db, usuarios: dict) -> None:
             for dia, inicio, fin in profe["franjas"]
         )
 
+        fijos = [b for b in PLAN_BLOQUEOS if b[0] == profe["numero"]]
+        if fijos:
+            # profe1, profe2 y profe3 tienen los bloqueos fijos de P3 y ninguno
+            # mas: verificar_p3.py cuenta con ellos (por ejemplo, que el de
+            # profe1 caiga adentro de su franja y sea el unico que tiene).
+            bloqueos = [
+                (datetime.combine(_dia_habil(hoy, dias), desde, ZONA),
+                 datetime.combine(_dia_habil(hoy, dias), hasta, ZONA), motivo)
+                for _, dias, desde, hasta, motivo in fijos
+            ]
+        else:
+            bloqueos = _bloqueos_al_azar(profe, hoy, azar)
+
         profe["bloqueos"] = []
-        dias = []
-        if azar.random() < 0.4:
-            dias.append(hoy + timedelta(days=azar.randint(2, DIAS_POR_DELANTE)))
-        if azar.random() < 0.3:
-            dias.append(hoy - timedelta(days=azar.randint(5, 60)))
-        for dia in dias:
-            tramos = [(a, b) for d, a, b in profe["franjas"] if d == _dia_semana(dia)]
-            if tramos and azar.random() < 0.5:
-                # Un rato adentro de la franja de ese dia.
-                desde, _ = azar.choice(tramos)
-                inicio = datetime.combine(dia, desde, ZONA)
-                fin = inicio + timedelta(hours=2)
-                motivo = azar.choice(MOTIVOS_BLOQUEO_RATO)
-            else:
-                # El dia entero.
-                inicio = datetime.combine(dia, time(0), ZONA)
-                fin = inicio + timedelta(days=1)
-                motivo = azar.choice(MOTIVOS_BLOQUEO_DIA)
+        for inicio, fin, motivo in bloqueos:
             db.add(Bloqueo(perfil_profesor_id=perfil.id, inicio=inicio, fin=fin, motivo=motivo))
             profe["bloqueos"].append((inicio, fin))
     db.flush()
+
+
+def _bloqueos_al_azar(profe: dict, hoy: date, azar: random.Random) -> list[tuple]:
+    """Ninguno, uno o dos bloqueos: uno en las proximas dos semanas y otro ya pasado.
+
+    La mitad son un rato adentro de la franja de ese dia ("Turno medico") y la
+    otra mitad, el dia entero ("Viaje a Buenos Aires").
+    """
+    dias = []
+    if azar.random() < 0.4:
+        dias.append(hoy + timedelta(days=azar.randint(2, DIAS_POR_DELANTE)))
+    if azar.random() < 0.3:
+        dias.append(hoy - timedelta(days=azar.randint(5, 60)))
+    bloqueos = []
+    for dia in dias:
+        tramos = [(a, b) for d, a, b in profe["franjas"] if d == _dia_semana(dia)]
+        if tramos and azar.random() < 0.5:
+            desde, _ = azar.choice(tramos)
+            inicio = datetime.combine(dia, desde, ZONA)
+            bloqueos.append((inicio, inicio + timedelta(hours=2), azar.choice(MOTIVOS_BLOQUEO_RATO)))
+        else:
+            inicio = datetime.combine(dia, time(0), ZONA)
+            bloqueos.append((inicio, inicio + timedelta(days=1), azar.choice(MOTIVOS_BLOQUEO_DIA)))
+    return bloqueos
 
 
 def sembrar_clases(db, usuarios: dict, catalogos: dict) -> dict:
@@ -1564,6 +1592,15 @@ def _dia_semana(dia: date) -> int:
     Date.getDay() de JavaScript.
     """
     return (dia.weekday() + 1) % 7
+
+
+def _dia_habil(hoy: date, dias: int) -> date:
+    """hoy + dias, corrido al dia habil mas cercano en la misma direccion."""
+    dia = hoy + timedelta(days=dias)
+    paso = timedelta(days=1 if dias > 0 else -1)
+    while dia.weekday() >= 5:  # 5 = sabado, 6 = domingo (aca es datetime, no Date.getDay)
+        dia += paso
+    return dia
 
 
 def _se_pisa(inicio: datetime, fin: datetime, intervalos: list) -> bool:

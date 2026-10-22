@@ -270,10 +270,11 @@ ok("crear a domicilio: ubicacion = casa del alumno",
 
 # Los errores de tarjeta, en un horario que alumno1 todavia no pidio (si no,
 # el control de doble pedido responderia 409 antes de mirar la tarjeta).
-# A las 20 y no a las 16: futuro() corre el fin de semana al lunes, y segun el
+# A las 19 y no a las 16: futuro() corre el fin de semana al lunes, y segun el
 # dia en que se corra, el dia 18 puede caer el mismo lunes que el 16, donde
-# ya hay una reserva a las 16.
-libre = {**reserva, "inicio": futuro(18, 20)}
+# ya hay una reserva a las 16. Y no mas tarde: la clase (90 min) tiene que
+# entrar en la franja de profe4, que termina a las 21.
+libre = {**reserva, "inicio": futuro(18, 19)}
 antes = cantidad_clases()
 error("crear con tarjeta terminada en 0000", pedir("POST", "/clases", {**libre, "tarjeta_id": TARJETA_0000}, token=alumno1), 402, "cobro_rechazado")
 ok("cobro rechazado: la clase NO queda creada", cantidad_clases() == antes)
