@@ -758,18 +758,18 @@ estudiante, y la pantalla va a salir con la barra de navegación arriba.
 | `/recuperar` | Recuperar contraseña | — | Hecha |
 | `/inicio` | Inicio del estudiante | 1a | **Hecha**, P2 |
 | `/buscar` | Buscar profes | 1c | **Hecha**, P2: filtros, mapa y resultados reales |
-| `/profesor/:id` | Detalle del profesor | 1f | **Hecha**, P2; espera horarios y reseñas de P3 |
+| `/profesor/:id` | Detalle del profesor | 1f | **Hecha**, P2 (horarios y reseñas de P3) |
 | `/checkout` | Checkout | 1g | **Hecha**, P4 |
-| `/mis-clases` | Mis clases | 1b | Pendiente, P3 |
-| `/resenas/redactar/:destinatarioId` | Redactar o editar una reseña | Flujo de 1b y 1i | Pendiente, P3 |
+| `/mis-clases` | Mis clases | 1b | **Hecha**, P3 |
+| `/resenas/redactar/:destinatarioId` | Redactar o editar una reseña | Flujo de 1b y 1i | **Hecha**, P3 |
 | `/mi-perfil` | Perfil del estudiante | 1e | **Hecha**, P1 (y "Medios de pago", P4) |
 | `/panel` | Panel del profesor | 1d | **Hecha**, P4 |
-| `/agenda` | Agenda del profesor | 1i | Pendiente, P3 |
+| `/agenda` | Agenda del profesor | 1i | **Hecha**, P3 |
 | `/perfil-profesor` | Perfil del profesor | 1j | **Hecha**, P1 |
-| `/mensajes` | Mensajes | 1h | Pendiente, P3 |
+| `/mensajes` | Mensajes | 1h | **Hecha**, P3 |
 
-Las pendientes ya están enrutadas y muestran un cartel de `EnConstruccion`. Se
-puede navegar por toda la app desde el día uno sin que se rompa nada.
+Ya no queda ninguna pantalla con el cartel de `EnConstruccion`: el componente
+sigue en `componentes/` por si hace falta para algo nuevo.
 
 La pantalla de redactar reseña no es una pestaña del menú. Se abre desde el
 botón **Calificar** de “Reseñas pendientes” en 1b o desde la persona equivalente
@@ -2449,7 +2449,11 @@ legítimas. El profesor elige cuál aprueba.
   plano, las métricas y series del panel, lo que leen agenda y reseñas, y las
   pantallas **1g** (checkout), **1d** (panel del profesor) y la pestaña
   "Medios de pago" de **1e**, con modo oscuro
-- Las pantallas restantes enrutadas con un marcador
+- **Todo lo de P3**: los módulos `agenda`, `resenas` y `mensajeria` completos
+  y las pantallas **1i** (agenda del profesor), **1b** (mis clases), **1h**
+  (mensajes) y el formulario de reseña; además la pestaña "Disponibilidad" de
+  **1j**, "Mis reseñas" de **1e**, el contador de no leídos de la cabecera
+  (cada diez segundos) y los botones "Mensaje" de 1a, 1d y 1f
 
 ### Verificado
 
@@ -2504,56 +2508,38 @@ legítimas. El profesor elige cuál aprueba.
   (todos los estados vacíos y el 204), los tres selectores. Las tres en modo
   oscuro y a 375 px sin scroll horizontal, sin errores de JavaScript, y
   `npm run build` sin advertencias. En la consola solo aparece el 500 de
-  `POST /agenda/verificar`, que es de P3 y el checkout tolera
+  `POST /agenda/verificar`, que es de P3 y el checkout tolera (ya no: P3 lo
+  implementó)
+- P3, backend: **148 comprobaciones** (`backend/verificar_p3.py`) contra una base
+  de prueba recién sembrada: los huecos libres con cada regla (franjas,
+  bloqueos, aprobadas, descanso, aviso mínimo, tope diario) y cada motivo de
+  `verificar`; franjas y bloqueos con sus errores; el filtro de 1c por día y
+  franja; reseñas (alta y edición, recálculo del promedio en los dos sentidos,
+  anonimato, paginación); mensajería (quién abre un hilo, el contador, abrir es
+  leer, el historial hacia atrás, la búsqueda sin tildes y que la bandeja no
+  haga N+1); y que los seeds cuadren. `verificar_p4.py` sigue pasando sobre la
+  agenda real, salvo cinco casos que dependen del día en que se corre (cuando
+  `futuro(16, …)` y `futuro(18, …)` caen el mismo lunes chocan con el control de
+  pedido duplicado)
+- P3, frontend, en el navegador: 1i (aprobar, rechazar, semanas, huecos como los
+  ve el alumno, reprogramar con su motivo, bloquear encima de una confirmada), 1j
+  Disponibilidad, 1b (próxima clase, calificar, editar, historial, `?clase=` desde
+  1a), 1e Mis reseñas, y 1h con dos usuarios a la vez (el mensaje llega solo en
+  menos de diez segundos y el contador baja al abrir), también a 390 px
 
 ### Falta
 
-Todavía faltan funciones del backend de **P3**. P1, P2 y P4 ya tienen su lógica
-y sus rutas; las pantallas 1c y 1f de P2 consumen los endpoints disponibles.
-En 1f, el calendario y la lista detallada de reseñas muestran un estado vacío
-controlado hasta que P3 complete sus rutas.
-Cada pendiente de P3 tiene su docstring con lo que debería hacer y termina con:
-
-```python
-raise NotImplementedError("P3 - agenda: calcular los huecos libres")
-```
-
-Ese texto dice **quién** la tiene que escribir y **de qué módulo** es.
-
-Para encontrarlas todas:
+Las diez pantallas están hechas y conectadas contra el backend real. Lo que
+queda es lo de la semana 9 y 10 de la spec: integración de punta a punta,
+corrección de errores, datos de demostración y el ensayo. Para revisar que no
+quede nada a medio hacer:
 
 ```bash
 grep -rn "TODO (P" backend/app/
 grep -rn "NotImplementedError" backend/app/
 ```
 
-#### Pantalla pendiente de P3: redactar una reseña
-
-La ruta ya reservada es
-`/resenas/redactar/:destinatarioId`. Está protegida para los dos roles, usa el
-`Layout` común y por ahora muestra `EnConstruccion`. No se agrega al menú: se
-abre desde una persona concreta.
-
-En **1b, Mis clases**, P3 debe leer `GET /api/clases/mis-profesores`. La sección
-“Reseñas pendientes” muestra las filas cuyo `mi_resena` sea `null`; cada una
-tiene el botón **Calificar**, que navega a la ruta anterior usando
-`persona.id` como `destinatarioId`. Las filas que ya tengan `mi_resena` deben
-permitir **Editar reseña**. En **1i** se repite el mismo flujo con
-`GET /api/clases/mis-alumnos`.
-
-El formulario pide un puntaje obligatorio de 1 a 5 y un comentario opcional.
-Usa las funciones ya preparadas en `frontend/src/api/resenas.js`:
-
-- `dejarResena(datos)` hace `POST /api/resenas` cuando `mi_resena` es `null`;
-- `editarResena(datos)` hace `PUT /api/resenas` cuando ya existe;
-- `datos` tiene `{ destinatario_id, puntaje, texto }`.
-
-Al guardar, vuelve a 1b o 1i y recarga la lista para que la persona deje de
-aparecer como pendiente. Cancelar vuelve sin escribir. El backend valida que
-ambos hayan tenido una clase `dictada`, impide una segunda creación para el
-mismo par y mantiene anónimo al autor en las respuestas públicas. Los errores
-esperados son `sin_clases_con_esa_persona` y `ya_resenado`, ya traducidos en
-`frontend/src/api/mensajes.js`.
+Las decisiones abiertas están en la sección 13.
 
 El orden de la spec:
 
@@ -2568,28 +2554,16 @@ El orden de la spec:
 
 ### Por dónde empezar
 
-**P1 ya terminó**, así que el login, el registro y el token funcionan: todas
-las rutas con `Yo`, `Estudiante` o `Profesor` ya resuelven al usuario. Lo que
-más destraba ahora:
+Ya no hay dependencias cruzadas pendientes: las funciones que P2 y P4 llamaban
+"por las dudas" (`agenda.filtrar_con_hueco`, `primera_hora_libre`,
+`verificar`, `hay_bloqueo_encima`, `resenas.resena_de`,
+`mensajeria.contar_no_leidos`) ya responden de verdad, y los `try/except
+NotImplementedError` que las envolvían se pueden dejar o limpiar sin cambiar
+el comportamiento.
 
-**P2**: 1a, 1c y 1f ya están conectadas. Día, franja, próxima hora y reseñas
-detalladas dependen de P3.
-
-**P3**: `mensajeria/logica.py` → `contar_no_leidos()`. Hoy el contador de la
-barra de arriba muestra siempre 0. Y una función pública en `agenda` para
-saber si un profesor tiene franjas, para sumarla al chequeo de publicar.
-Además, P4 ya llama a tres funciones de P3 y las va a usar apenas existan, sin
-cambiar nada (sección 9): `agenda.verificar()` (hoy crear y reprogramar no
-saben de franjas ni bloqueos), `agenda.hay_bloqueo_encima()` y
-`resenas.resena_de()`. Lo que agenda y reseñas necesitan de `clases`
-(`clases_entre`, `clases_aprobadas_entre`, `tuvieron_clase`) ya está.
-En frontend, también le corresponde reemplazar la ruta pendiente
-`/resenas/redactar/:destinatarioId` y conectar los botones **Calificar** de 1b
-y 1i con `POST` o `PUT /api/resenas`.
-
-**P4**: terminado, backend y pantallas. 1f ya arma el enlace al checkout cuando
-Agenda entrega un hueco. Falta que P3 implemente `agenda.verificar()` para que
-1g avise antes de confirmar si el horario ya no está libre.
+Para probar todo junto: `python -m app.seeds` y entrar como `alumno1` y
+`profe1` (clave `exonero123`) en dos pestañas: el chat, el contador, reservar
+desde 1f, aprobar en 1i y calificar en 1b se ven pasar de un lado al otro.
 
 ---
 

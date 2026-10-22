@@ -79,7 +79,17 @@ const MENSAJES = {
 
   // --- Reseñas (1b y 1i) ---
   ya_resenado: 'Ya calificaste a esta persona. Podés editar tu reseña anterior.',
-  sin_clases_con_esa_persona: 'Solo podés calificar a alguien con quien tuviste una clase dictada.',
+  // Lo usan resenas (hace falta una clase DICTADA) y mensajes (un profe solo
+  // le escribe a un alumno con el que tiene alguna clase).
+  sin_clases_con_esa_persona: 'Para eso tienen que haber tenido una clase juntos.',
+  resena_no_existe: 'Todavia no calificaste a esta persona. Recarga la pagina.',
+  orden_invalido: 'Ese orden no existe. Elegi recientes o puntaje.',
+  usuario_no_existe: 'Esa persona ya no existe.',
+
+  // --- Mensajes (1h) ---
+  hilo_no_existe: 'Esa conversacion ya no existe. Volve a la bandeja.',
+  mensaje_vacio: 'El mensaje esta vacio.',
+  estudiante_no_existe: 'Ese alumno ya no existe.',
 
   // --- Panel del profesor (1d) ---
   periodo_invalido: 'Ese periodo no existe. Elegi mes, trimestre o anio.',

@@ -13,18 +13,20 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import RutaProtegida from './auth/RutaProtegida.jsx'
-import EnConstruccion from './componentes/EnConstruccion.jsx'
 import Layout from './componentes/Layout.jsx'
 import AgendaProfesor from './paginas/AgendaProfesor.jsx'
 import BuscarProfesores from './paginas/BuscarProfesores.jsx'
 import Checkout from './paginas/Checkout.jsx'
 import InicioEstudiante from './paginas/InicioEstudiante.jsx'
 import Login from './paginas/Login.jsx'
+import Mensajes from './paginas/Mensajes.jsx'
+import MisClases from './paginas/MisClases.jsx'
 import PanelProfesor from './paginas/PanelProfesor.jsx'
 import PerfilEstudiante from './paginas/PerfilEstudiante.jsx'
 import PerfilPublicoProfesor from './paginas/PerfilPublicoProfesor.jsx'
 import PerfilProfesor from './paginas/PerfilProfesor.jsx'
 import RecuperarClave from './paginas/RecuperarClave.jsx'
+import RedactarResena from './paginas/RedactarResena.jsx'
 import Registro from './paginas/Registro.jsx'
 
 export default function App() {
@@ -47,17 +49,8 @@ export default function App() {
           <Route path="/profesor/:id" element={<PerfilPublicoProfesor />} />
           {/* 1g - P4. Se llega desde 1f con los datos en la URL (ver Checkout.jsx). */}
           <Route path="/checkout" element={<Checkout />} />
-          <Route
-            path="/mis-clases"
-            element={
-              <EnConstruccion
-                codigo="1b"
-                nombre="Mis clases"
-                dueno="P3"
-                descripcion="Próxima clase, semana, reseñas pendientes con el botón Calificar y mis profesores."
-              />
-            }
-          />
+          {/* 1b - P3 */}
+          <Route path="/mis-clases" element={<MisClases />} />
           {/* 1e - P1 */}
           <Route path="/mi-perfil" element={<PerfilEstudiante />} />
         </Route>
@@ -83,28 +76,9 @@ export default function App() {
       <Route element={<RutaProtegida />}>
         <Route element={<Layout />}>
           {/* P3. Se abre desde Calificar en 1b o 1i; no es una pestaña del menu. */}
-          <Route
-            path="/resenas/redactar/:destinatarioId"
-            element={
-              <EnConstruccion
-                codigo="1b / 1i"
-                nombre="Redactar reseña"
-                dueno="P3"
-                descripcion="Formulario para calificar con 1 a 5 estrellas y escribir un comentario opcional. También permite editar la reseña propia."
-              />
-            }
-          />
-          <Route
-            path="/mensajes"
-            element={
-              <EnConstruccion
-                codigo="1h"
-                nombre="Mensajes"
-                dueno="P3"
-                descripcion="Bandeja de hilos y conversacion."
-              />
-            }
-          />
+          <Route path="/resenas/redactar/:destinatarioId" element={<RedactarResena />} />
+          {/* 1h - P3. ?hilo=ID abre esa conversacion. */}
+          <Route path="/mensajes" element={<Mensajes />} />
         </Route>
       </Route>
 

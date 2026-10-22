@@ -1,0 +1,165 @@
+/* ===========================================================================
+   Estilos de mis clases (1b), del formulario de resena (/resenas/redactar) y
+   del resumen de resenas (1e).
+
+     Mis clases
+     +------------------------------------------------------------------+
+     | (LF) PROXIMA CLASE · en 2 h        Matematica con ...  [Detalle]  |  azul
+     +------------------------------------------------------------------+
+     | Contanos como te fue (los profes sin calificar)                   |
+     +------------------------------------------------------------------+
+     | Calendario semanal (el de 1i: ver agenda.css)                     |
+     +------------------------------------------------------------------+
+     | Mis profesores | Historial                                        |
+     +------------------------------------------------------------------+
+
+   Las tarjetas y encabezados son los de panel.css ("tablero-"); el
+   calendario y el detalle de la clase, los de agenda.css ("cal-", "detalle-").
+   Todo con las variables de tokens.css, asi el modo oscuro funciona solo.
+   =========================================================================== */
+
+/* --- Proxima clase -------------------------------------------------------- */
+
+.mis-clases-proxima {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 18px;
+  padding: 20px 22px;
+  border-radius: 32px;
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+.mis-clases-proxima h3 { margin: 2px 0 4px; font-size: 22px; }
+.mis-clases-proxima p { margin: 0; font-size: 14px; opacity: 0.9; }
+.mis-clases-proxima .btn-primary { background: var(--color-bg); color: var(--color-accent); }
+.mis-clases-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.mis-clases-proxima-vacia {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.mis-clases-proxima-vacia h3 { font-size: 18px; margin: 0; }
+
+/* --- Listas de profesores ------------------------------------------------- */
+
+.mis-clases-lista,
+.mis-clases-historial,
+.resumen-resenas-lista,
+.resumen-resenas-barras {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mis-clases-lista { display: flex; flex-direction: column; gap: 10px; }
+.mis-clases-lista > li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--color-bg);
+}
+.tablero-bloque-acento .mis-clases-lista > li { background: var(--color-surface); }
+.mis-clases-lista-quien {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.mis-clases-lista > li > .tablero-botones,
+.mis-clases-lista > li > .btn { margin-left: auto; }
+
+/* --- Historial ------------------------------------------------------------ */
+
+.mis-clases-historial li {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) auto;
+  gap: 4px 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--color-divider);
+  font-size: 14px;
+}
+.mis-clases-historial li:last-child { border-bottom: 0; }
+.mis-clases-historial-total { font-variant-numeric: tabular-nums; }
+
+/* --- Formulario de resena ------------------------------------------------- */
+
+.resena-redactar { max-width: 620px; padding-top: 8px; }
+.resena-redactar .perfil-titulo { margin-bottom: 16px; }
+.resena-quien { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.resena-estrellas { border: 0; margin: 0 0 16px; padding: 0; }
+.resena-estrellas legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.resena-estrellas-fila { display: flex; align-items: center; gap: 4px; }
+.resena-estrella {
+  position: relative;
+  font-size: 34px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-divider);
+  transition: transform 0.1s ease;
+}
+.resena-estrella input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.resena-estrella-llena { color: var(--color-accent-2); }
+.resena-estrella:hover { transform: scale(1.12); }
+.resena-estrella:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 6px; }
+.resena-significado { margin-left: 10px; font-size: 14px; font-weight: 600; }
+.resena-texto { min-height: 110px; resize: vertical; }
+
+/* --- Resumen de resenas (1e) ---------------------------------------------- */
+
+.resumen-resenas-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 32px;
+  margin-bottom: 18px;
+}
+.resumen-resenas-promedio { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.resumen-resenas-promedio strong { font-size: 40px; line-height: 1; }
+.resumen-resenas-promedio [aria-hidden] { color: var(--color-accent-2); letter-spacing: 2px; }
+.resumen-resenas-barras { flex: 1 1 260px; display: flex; flex-direction: column; gap: 4px; }
+.resumen-resenas-barras li {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.resumen-resenas-barra {
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  overflow: hidden;
+}
+.resumen-resenas-barra > span { display: block; height: 100%; border-radius: 999px; background: var(--color-accent-2); }
+.resumen-resenas-lista li {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-divider);
+  font-size: 14px;
+}
+.resumen-resenas-puntaje { font-weight: 700; color: var(--color-accent-2); }
+
+/* --- Celular -------------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  .mis-clases-proxima { grid-template-columns: auto minmax(0, 1fr); }
+  .mis-clases-proxima > .tablero-botones { grid-column: 1 / -1; }
+  .mis-clases-historial li { grid-template-columns: minmax(0, 1fr) auto; }
+  .mis-clases-historial-cuando { grid-column: 1 / -1; font-weight: 600; }
+  .resumen-resenas-lista li { grid-template-columns: 48px minmax(0, 1fr); }
+  .resumen-resenas-lista li > .texto-chico { grid-column: 2; }
+}

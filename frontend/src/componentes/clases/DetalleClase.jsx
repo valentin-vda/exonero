@@ -1,5 +1,6 @@
 /**
- * Lo que se puede hacer con la clase que se toco en el calendario (1i):
+ * Lo que se puede hacer con la clase que se toco en el calendario. Lo usan 1i
+ * (el profesor) y 1b (el alumno); lo que se ofrece depende del rol del token:
  *
  *   Martes 27 de octubre · 17:00 · 1 h 30 min        [Confirmada]       x
  *   (AP) Ana Perez · Bachillerato · Liceo Bauza
@@ -8,9 +9,12 @@
  *   [Marcar dictada] [No asistio]                <- confirmada, ya paso
  *   [Aprobar] [Rechazar] [Reprogramar] [Cancelar] <- a confirmar
  *
- * Son los mismos endpoints que usa el alumno en 1b (cancelar y reprogramar):
- * quien lo hizo sale del token. Aprobar, rechazar y completar son solo del
- * profesor.
+ * El alumno ve solo Reprogramar y Cancelar (en una confirmada por delante o
+ * en una a confirmar). Son los mismos endpoints para los dos: quien lo hizo
+ * sale del token. Aprobar, rechazar y completar son solo del profesor.
+ *
+ * `contraparte` es la otra persona: el alumno si mira el profesor, y el
+ * profesor si mira el alumno (por eso el verificar usa su id en 1b).
  *
  * Reprogramar pregunta primero a POST /agenda/verificar para dar el motivo
  * concreto (fuera de franja, bloqueado...). Si dice "ocupado" se intenta
@@ -29,12 +33,13 @@ import {
 } from '../../api/clases.js'
 import { mensajeDeError } from '../../api/mensajes.js'
 import { useAuth } from '../../auth/ContextoAuth.jsx'
-import Alerta from '../../componentes/Alerta.jsx'
-import Avatar from '../../componentes/Avatar.jsx'
+import { MOTIVOS_NO_LIBRE, MOTIVOS_NO_LIBRE_ALUMNO } from '../../paginas/agenda/opciones.js'
+import { diaEnMontevideo, duracion } from '../../paginas/panel/fechas.js'
+import { ESTADOS_CLASE, MODALIDAD_CLASE } from '../../paginas/panel/opciones.js'
 import { CRUZ, diaYHora, hora, pesos, unir } from '../../utiles/formato.js'
-import { diaEnMontevideo, duracion } from '../panel/fechas.js'
-import { ESTADOS_CLASE, MODALIDAD_CLASE } from '../panel/opciones.js'
-import { MOTIVOS_NO_LIBRE } from './opciones.js'
+import Alerta from '../Alerta.jsx'
+import Avatar from '../Avatar.jsx'
+import BotonMensaje from '../BotonMensaje.jsx'
 
 export default function DetalleClase({ clase, alCerrar, alCambiar }) {
   const { usuario } = useAuth()
@@ -46,11 +51,15 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
   const [ocupado, setOcupado] = useState(false)
   const [error, setError] = useState(null)
 
-  const alumno = clase.contraparte
-  const nombre = [alumno.nombre, alumno.apellido].filter(Boolean).join(' ')
+  const esProfesor = usuario.rol === 'profesor'
+  const otra = clase.contraparte
+  const nombre = [otra.nombre, otra.apellido].filter(Boolean).join(' ')
   const estado = ESTADOS_CLASE[clase.estado] || { texto: clase.estado, clase: 'tag-neutral' }
   const yaPaso = new Date(clase.inicio).getTime() + clase.duracion_min * 60000 <= Date.now()
-  const activa = clase.estado === 'pendiente' || clase.estado === 'aprobada'
+  // Lo que queda por hacer con la clase. Una confirmada que ya paso solo la
+  // cierra el profesor (dictada o no asistio); el alumno ya no puede tocarla.
+  const activa = clase.estado === 'pendiente' || (clase.estado === 'aprobada' && (esProfesor || !yaPaso))
+  const motivos = esProfesor ? MOTIVOS_NO_LIBRE : MOTIVOS_NO_LIBRE_ALUMNO
 
   async function hacer(accion) {
     setError(null)
@@ -72,15 +81,16 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
     setError(null)
     setOcupado(true)
     try {
-      const respuesta = await verificarHorario({ profesor_id: usuario.id, inicio, duracion_min: clase.duracion_min })
+      const profesorId = esProfesor ? usuario.id : otra.id
+      const respuesta = await verificarHorario({ profesor_id: profesorId, inicio, duracion_min: clase.duracion_min })
       if (!respuesta.libre && respuesta.motivo !== 'ocupado') {
-        setError(MOTIVOS_NO_LIBRE[respuesta.motivo] || 'Ese horario no esta disponible.')
+        setError(motivos[respuesta.motivo] || 'Ese horario no esta disponible.')
         return
       }
       await reprogramarClase(clase.id, { inicio })
       alCambiar()
     } catch (err) {
-      setError(err.codigo === 'horario_ocupado' ? MOTIVOS_NO_LIBRE.ocupado : mensajeDeError(err.codigo))
+      setError(err.codigo === 'horario_ocupado' ? motivos.ocupado : mensajeDeError(err.codigo))
     } finally {
       setOcupado(false)
     }
@@ -105,8 +115,9 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
       </div>
 
       <div className="detalle-quien">
-        <Avatar persona={alumno} />
-        <span><strong>{nombre}</strong> {unir([alumno.etapa, alumno.centro]) && `· ${unir([alumno.etapa, alumno.centro])}`}</span>
+        <Avatar persona={otra} />
+        <span><strong>{nombre}</strong> {unir([otra.etapa, otra.centro]) && `· ${unir([otra.etapa, otra.centro])}`}</span>
+        <BotonMensaje personaId={otra.id} className="btn btn-ghost" />
       </div>
       <p className="detalle-datos">
         {unir([clase.materia, clase.tema, MODALIDAD_CLASE[clase.modalidad], clase.ubicacion, pesos(clase.total)])}
@@ -116,7 +127,7 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
 
       {activa && (
         <div className="tablero-botones">
-          {clase.estado === 'pendiente' && (
+          {esProfesor && clase.estado === 'pendiente' && (
             <>
               <button type="button" className="btn btn-primary" disabled={ocupado}
                       onClick={() => hacer(() => aprobarClase(clase.id))}>Aprobar</button>
@@ -124,7 +135,7 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
                       onClick={() => abrir('rechazar')} aria-expanded={abierto === 'rechazar'}>Rechazar</button>
             </>
           )}
-          {clase.estado === 'aprobada' && yaPaso ? (
+          {esProfesor && clase.estado === 'aprobada' && yaPaso ? (
             <>
               <button type="button" className="btn btn-primary" disabled={ocupado}
                       onClick={() => hacer(() => completarClase(clase.id, 'dictada'))}>Marcar dictada</button>
@@ -153,11 +164,14 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
       {abierto === 'cancelar' && (
         <form className="detalle-formulario" onSubmit={(e) => { e.preventDefault(); hacer(() => cancelarClase(clase.id, motivo.trim() || null)) }}>
           <div className="field">
-            <label htmlFor="motivo-cancelar">Motivo (lo ve el alumno)</label>
+            <label htmlFor="motivo-cancelar">Motivo (lo ve {esProfesor ? 'el alumno' : 'el profe'})</label>
             <input id="motivo-cancelar" className="input" value={motivo} maxLength={300}
-                   onChange={(e) => setMotivo(e.target.value)} placeholder="Me surgio una mesa de examen" />
+                   onChange={(e) => setMotivo(e.target.value)}
+                   placeholder={esProfesor ? 'Me surgio una mesa de examen' : 'Me surgio un parcial ese dia'} />
           </div>
-          <p className="texto-chico">La clase queda cancelada en el historial y al alumno se le devuelve el total.</p>
+          <p className="texto-chico">
+            La clase queda cancelada en el historial y {esProfesor ? 'al alumno se le devuelve' : 'se te devuelve'} el total.
+          </p>
           <button type="submit" className="btn btn-primary" disabled={ocupado}>
             {ocupado ? 'Cancelando...' : 'Confirmar cancelacion'}
           </button>
@@ -178,7 +192,8 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
             </div>
           </div>
           <p className="texto-chico">
-            Misma duracion ({duracion(clase.duracion_min)}) y mismo importe. La clase vuelve a quedar a confirmar.
+            Misma duracion ({duracion(clase.duracion_min)}) y mismo importe. La clase vuelve a quedar a confirmar
+            {esProfesor ? '.' : ': el profe tiene que aprobar el horario nuevo.'}
           </p>
           <button type="submit" className="btn btn-primary" disabled={ocupado || !dia || !horaNueva}>
             {ocupado ? 'Moviendo...' : 'Mover la clase'}

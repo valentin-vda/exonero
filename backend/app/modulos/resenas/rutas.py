@@ -4,12 +4,14 @@ Todo cuelga de /api/resenas.
 
 Un solo par de endpoints para los dos sentidos: quien resena a quien sale del
 rol del token, no del cuerpo.
+
+Igual que en el resto: cada ruta llama a logica.py, hace el commit y responde.
 """
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Query, status
 
 from app.dependencias import Db, Yo
-from app.modulos.resenas import esquemas
+from app.modulos.resenas import esquemas, logica
 
 router = APIRouter(prefix="/resenas", tags=["resenas"])
 
@@ -23,10 +25,10 @@ def dejar_resena(datos: esquemas.ResenaIn, yo: Yo, db: Db):
 
     Errores: 409 ya_resenado (usar PUT para editarla),
              403 sin_clases_con_esa_persona.
-
-    TODO (P3): implementar. Envolver logica.dejar_o_editar().
     """
-    raise NotImplementedError("P3 - resenas: POST /resenas")
+    resena = logica.dejar_o_editar(db, yo.id, yo.rol, datos, crear=True)
+    db.commit()
+    return resena
 
 
 @router.put("", response_model=esquemas.ResenaOut)
@@ -35,9 +37,11 @@ def editar_resena(datos: esquemas.ResenaIn, yo: Yo, db: Db):
 
     Se puede editar justamente porque el autor se guarda en la tabla.
 
-    TODO (P3): implementar.
+    Errores: 404 resena_no_existe, 403 sin_clases_con_esa_persona.
     """
-    raise NotImplementedError("P3 - resenas: PUT /resenas")
+    resena = logica.dejar_o_editar(db, yo.id, yo.rol, datos, crear=False)
+    db.commit()
+    return resena
 
 
 @router.get("/resumen/{usuario_id}", response_model=esquemas.ResumenResenasOut)
@@ -46,22 +50,20 @@ def resumen_resenas(usuario_id: int, db: Db):
 
     Mismo contrato para un profesor y para un alumno.
 
-    OJO CON EL ORDEN: /resumen/{id} va ANTES que /usuario/{id}? No hace falta,
-    son prefijos distintos. Pero si alguien agrega /resenas/{id}, tiene que ir
-    despues de estas dos.
+    Si alguien agrega /resenas/{id}, tiene que ir despues de estas dos.
 
-    TODO (P3): implementar. Envolver logica.resumen().
+    Error: 404 usuario_no_existe.
     """
-    raise NotImplementedError("P3 - resenas: GET /resenas/resumen/{usuario_id}")
+    return logica.resumen(db, usuario_id)
 
 
 @router.get("/usuario/{usuario_id}", response_model=esquemas.PaginaResenasOut)
-def resenas_de_usuario(usuario_id: int, db: Db, orden: str = "recientes", pagina: int = 1):
-    """Las resenas que recibio una persona, paginadas. 1e y 1f.
+def resenas_de_usuario(usuario_id: int, db: Db, orden: str = "recientes", pagina: int = Query(1, ge=1)):
+    """Las resenas que recibio una persona, paginadas de a diez. 1e y 1f.
 
     SIN AUTOR, sin id de autor, sin nada que permita deducir quien la escribio.
     Solo puntaje, comentario y fecha.
 
-    TODO (P3): implementar. orden: recientes o puntaje.
+    Errores: 400 orden_invalido (orden es recientes o puntaje), 404 usuario_no_existe.
     """
-    raise NotImplementedError("P3 - resenas: GET /resenas/usuario/{id}")
+    return logica.pagina(db, usuario_id, orden, pagina)
