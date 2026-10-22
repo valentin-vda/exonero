@@ -13,6 +13,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/ContextoAuth.jsx'
 import logoExonero from '../assets/logo-exonero.png'
 import Avatar from './Avatar.jsx'
+import useNoLeidos from './useNoLeidos.js'
 
 // Los enlaces de cada rol. Cada uno ve su propio menu.
 const MENU_ESTUDIANTE = [
@@ -33,6 +34,9 @@ const MENU_PROFESOR = [
 export default function Layout() {
   const { usuario, salir } = useAuth()
   const menu = usuario?.rol === 'profesor' ? MENU_PROFESOR : MENU_ESTUDIANTE
+  // Los mensajes sin leer: arranca con el de GET /usuarios/yo y se actualiza
+  // cada diez segundos (ver useNoLeidos.js, de P3).
+  const sinLeer = useNoLeidos()
 
   return (
     <>
@@ -47,16 +51,13 @@ export default function Layout() {
         {menu.map((item) => (
           <NavLink key={item.a} to={item.a}>
             {item.texto}
+            {item.a === '/mensajes' && sinLeer > 0 && (
+              <span className="nav-sin-leer" aria-label={`, ${sinLeer} sin leer`}>{sinLeer}</span>
+            )}
           </NavLink>
         ))}
 
         <div className="nav-actions">
-          {/* El contador de mensajes no leidos viene adentro de
-              GET /usuarios/yo, asi que no hace falta otra llamada para pintarlo. */}
-          {usuario?.mensajes_no_leidos > 0 && (
-            <span className="tag tag-accent">{usuario.mensajes_no_leidos} sin leer</span>
-          )}
-
           <button type="button" className="btn btn-ghost nav-salir" onClick={salir}>
             Salir
           </button>

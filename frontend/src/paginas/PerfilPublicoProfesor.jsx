@@ -7,6 +7,7 @@ import { mensajeDeError } from '../api/mensajes.js'
 import { obtenerFichaPublica } from '../api/perfiles.js'
 import { obtenerResenas } from '../api/resenas.js'
 import Avatar from '../componentes/Avatar.jsx'
+import BotonMensaje from '../componentes/BotonMensaje.jsx'
 import MapaUbicacionProfesor from '../componentes/perfil-publico/MapaUbicacionProfesor.jsx'
 import { ESTRELLA, pesos, puntaje, unir } from '../utiles/formato.js'
 
@@ -354,7 +355,7 @@ export default function PerfilPublicoProfesor() {
 
             <div className="publico-total"><span>Total estimado</span><strong>{cotizacion ? pesos(cotizacion.total) : '—'}</strong></div>
             <button type="button" className="publico-reservar ancho" disabled={!horario} onClick={reservar}>Reservar</button>
-            <Link to="/mensajes" className="btn btn-secondary btn-block">Enviar mensaje</Link>
+            <BotonMensaje personaId={ficha.id} className="btn btn-secondary btn-block">Enviar mensaje</BotonMensaje>
           </section>
 
           {esPresencial && ficha.latitud != null && ficha.longitud != null && (

@@ -7,10 +7,12 @@ un uvicorn levantado contra esa misma base:
     python verificar_p3.py                          # contra http://127.0.0.1:8001
     python verificar_p3.py http://127.0.0.1:8000
 
-Por ahora cubre agenda (paso 1 de P3, pantalla 1i): los huecos libres con
-todas sus reglas, cada motivo de verificar, las franjas, los bloqueos, el
-calendario semanal y lo que consumen busqueda, clases y perfiles. Mensajeria
-y resenas suman su seccion cuando esten.
+Cubre agenda (1i): los huecos libres con todas sus reglas, cada motivo de
+verificar, las franjas, los bloqueos, el calendario semanal y lo que consumen
+busqueda, clases y perfiles. Resenas (1b, 1i, 1e, 1f): las reglas de alta,
+el recalculo del promedio, el anonimato y la paginacion. Y mensajeria (1h y
+la cabecera): quien puede abrir un hilo, el contador de no leidos, abrir es
+leer, el historial hacia atras, la busqueda y que la bandeja no haga N+1.
 
 OJO: ensucia la base (cambia reglas y franjas de profe1, crea bloqueos) y al
 final la vuelve a sembrar. Por eso se niega a correr si el .env apunta a la
@@ -22,6 +24,7 @@ import json
 import subprocess
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import date, datetime, time, timedelta
 
@@ -160,7 +163,17 @@ ID = {
 PERFIL1 = sql("SELECT id FROM perfil_profesor WHERE usuario_id = :u", u=ID["profe1"])
 profe1, profe2, alumno1 = login("profe1@example.com"), login("profe2@example.com"), login("alumno1@example.com")
 
-APROBADA = filas("SELECT id, inicio, fin FROM clase WHERE profesor_id = :p AND estado = 'aprobada'", p=ID["profe1"])[0]
+# La primera aprobada de profe1 en un dia habil, a mas de un dia, y en un dia
+# sin bloqueos: con los seeds grandes hay muchas, y algunas caen un sabado o
+# el dia del "Turno medico", donde los chequeos de abajo ("otra hora del dia
+# de la aprobada") darian otro motivo.
+APROBADA = filas(
+    "SELECT c.id, c.inicio, c.fin FROM clase c WHERE c.profesor_id = :p AND c.estado = 'aprobada' "
+    "AND c.inicio > now() + interval '1 day' "
+    "AND extract(isodow FROM c.inicio AT TIME ZONE 'America/Montevideo') <= 5 "
+    "AND NOT EXISTS (SELECT 1 FROM bloqueo b WHERE b.perfil_profesor_id = :perfil "
+    "AND (b.inicio AT TIME ZONE 'America/Montevideo')::date = (c.inicio AT TIME ZONE 'America/Montevideo')::date) "
+    "ORDER BY c.inicio", p=ID["profe1"], perfil=PERFIL1)[0]
 PENDIENTE = filas("SELECT id, inicio, fin FROM clase WHERE profesor_id = :p AND estado = 'pendiente'", p=ID["profe1"])[0]
 FRANJAS_ORIGINALES = [
     {"dia_semana": f.dia_semana, "hora_inicio": f.hora_inicio.isoformat(), "hora_fin": f.hora_fin.isoformat(),
@@ -269,7 +282,9 @@ ok("encima de la aprobada: ocupado", cuerpo.get("motivo") == "ocupado", cuerpo)
 _, cuerpo = verificar(ID["profe1"], PENDIENTE.inicio.isoformat())
 ok("encima de una pendiente: libre", cuerpo.get("libre") is True, cuerpo)
 reglas(max_clases_dia=1)
-otra_hora = APROBADA.inicio.astimezone(fechas.ZONA).replace(hour=14, minute=0)
+# Una hora de la franja de profe1 (14 a 20) que no pise la aprobada.
+inicio_aprobada = APROBADA.inicio.astimezone(fechas.ZONA)
+otra_hora = inicio_aprobada.replace(hour=14 if inicio_aprobada.hour >= 16 else 18, minute=0)
 _, cuerpo = verificar(ID["profe1"], otra_hora.isoformat())
 ok("con tope 1, otra hora del dia de la aprobada: tope_diario", cuerpo.get("motivo") == "tope_diario", cuerpo)
 reglas(max_clases_dia=None)
@@ -463,6 +478,250 @@ with SesionLocal() as db:
 
 
 # ===========================================================================
+# RESENAS - POST y PUT /resenas, GET /resenas/resumen y /usuario
+# ===========================================================================
+
+def puntaje_en_perfil(usuario_id: int):
+    """(promedio, cantidad) desnormalizados en el perfil, sea profesor o alumno."""
+    fila = filas("SELECT puntaje_promedio, cantidad_resenas FROM perfil_profesor WHERE usuario_id = :u "
+                 "UNION ALL SELECT puntaje_promedio, cantidad_resenas FROM perfil_estudiante WHERE usuario_id = :u",
+                 u=usuario_id)[0]
+    return float(fila[0]), fila[1]
+
+
+def en_tabla(usuario_id: int):
+    """(promedio, cantidad) calculados en vivo sobre la tabla resena."""
+    fila = filas("SELECT coalesce(round(avg(puntaje), 2), 0), count(*) FROM resena WHERE destinatario_id = :u",
+                 u=usuario_id)[0]
+    return float(fila[0]), fila[1]
+
+
+seccion("Resenas: dejar y editar")
+# Un par (alumno, profe) con clase dictada y SIN resena del alumno todavia.
+sin_resena = filas(
+    "SELECT DISTINCT c.estudiante_id, c.profesor_id FROM clase c WHERE c.estado = 'dictada' AND NOT EXISTS "
+    "(SELECT 1 FROM resena r WHERE r.autor_id = c.estudiante_id AND r.destinatario_id = c.profesor_id) "
+    "ORDER BY 1, 2 LIMIT 1")[0]
+alumno_id, profe_id = sin_resena.estudiante_id, sin_resena.profesor_id
+token_alumno = login(sql("SELECT correo FROM usuario WHERE id = :u", u=alumno_id))
+nunca = sql("SELECT id FROM usuario WHERE rol = 'profesor' AND id NOT IN "
+            "(SELECT profesor_id FROM clase WHERE estudiante_id = :a AND estado = 'dictada') LIMIT 1", a=alumno_id)
+HOY_ISO = fechas.ahora().date().isoformat()
+
+error("a alguien con quien nunca tuvo clase dictada",
+      pedir("POST", "/resenas", {"destinatario_id": nunca, "puntaje": 5}, token=token_alumno),
+      403, "sin_clases_con_esa_persona")
+error("PUT sin haber dejado ninguna", pedir("PUT", "/resenas", {"destinatario_id": profe_id, "puntaje": 4},
+                                           token=token_alumno), 404, "resena_no_existe")
+for malo in (0, 6):
+    estado, _ = pedir("POST", "/resenas", {"destinatario_id": profe_id, "puntaje": malo}, token=token_alumno)
+    ok(f"puntaje {malo}: 422", estado == 422, estado)
+estado, _ = pedir("POST", "/resenas", {"destinatario_id": profe_id, "puntaje": 4, "texto": "x" * 501}, token=token_alumno)
+ok("texto de mas de 500: 422", estado == 422, estado)
+error("sin token", pedir("POST", "/resenas", {"destinatario_id": profe_id, "puntaje": 4}), 401, "sin_token")
+
+antes = puntaje_en_perfil(profe_id)
+estado, creada = pedir("POST", "/resenas", {"destinatario_id": profe_id, "puntaje": 2, "texto": "  Llego tarde  "},
+                       token=token_alumno)
+ok("POST: 201, texto limpio, fecha de hoy",
+   estado == 201 and creada == {"puntaje": 2, "texto": "Llego tarde", "fecha": HOY_ISO}, creada)
+ok("POST: el sentido sale del rol (alumno_a_profesor)", sql(
+    "SELECT sentido::text FROM resena WHERE autor_id = :a AND destinatario_id = :p", a=alumno_id, p=profe_id)
+   == "alumno_a_profesor")
+ok("POST: el perfil del profe se recalculo", puntaje_en_perfil(profe_id) == en_tabla(profe_id)
+   and puntaje_en_perfil(profe_id)[1] == antes[1] + 1, (antes, puntaje_en_perfil(profe_id)))
+error("POST otra vez", pedir("POST", "/resenas", {"destinatario_id": profe_id, "puntaje": 5}, token=token_alumno),
+      409, "ya_resenado")
+estado, editada = pedir("PUT", "/resenas", {"destinatario_id": profe_id, "puntaje": 5, "texto": ""}, token=token_alumno)
+ok("PUT: cambia puntaje, texto vacio queda en null",
+   estado == 200 and editada["puntaje"] == 5 and editada["texto"] is None, editada)
+ok("PUT: el promedio se recalculo y la cantidad no cambio", puntaje_en_perfil(profe_id) == en_tabla(profe_id)
+   and puntaje_en_perfil(profe_id)[1] == antes[1] + 1)
+_, mis = pedir("GET", "/clases/mis-profesores", token=token_alumno)
+ok("mis-profesores: mi_resena ya viene llena", [m["mi_resena"] for m in mis if m["persona"]["id"] == profe_id]
+   == [{"puntaje": 5, "texto": None, "fecha": HOY_ISO}], mis)
+
+seccion("Resenas: del profesor al alumno")
+par = filas(
+    "SELECT DISTINCT c.estudiante_id, c.profesor_id FROM clase c WHERE c.estado = 'dictada' AND NOT EXISTS "
+    "(SELECT 1 FROM resena r WHERE r.autor_id = c.profesor_id AND r.destinatario_id = c.estudiante_id) "
+    "ORDER BY 2, 1 LIMIT 1")[0]
+token_profe = login(sql("SELECT correo FROM usuario WHERE id = :u", u=par.profesor_id))
+estado, _ = pedir("POST", "/resenas", {"destinatario_id": par.estudiante_id, "puntaje": 4, "texto": "Muy aplicada"},
+                  token=token_profe)
+ok("POST del profe: 201 y sentido profesor_a_alumno", estado == 201 and sql(
+    "SELECT sentido::text FROM resena WHERE autor_id = :p AND destinatario_id = :a",
+    p=par.profesor_id, a=par.estudiante_id) == "profesor_a_alumno")
+ok("el perfil del ALUMNO se recalculo", puntaje_en_perfil(par.estudiante_id) == en_tabla(par.estudiante_id))
+_, alumnos = pedir("GET", "/clases/mis-alumnos", token=token_profe)
+ok("mis-alumnos: mi_resena llena", any(a["persona"]["id"] == par.estudiante_id and a["mi_resena"]
+                                       and a["mi_resena"]["puntaje"] == 4 for a in alumnos), alumnos)
+_, yo = pedir("GET", "/usuarios/yo", token=login(sql("SELECT correo FROM usuario WHERE id = :u", u=par.estudiante_id)))
+ok("GET /usuarios/yo del alumno: su puntaje en la cabecera",
+   (yo["estudiante"]["puntaje_promedio"], yo["estudiante"]["cantidad_resenas"]) == en_tabla(par.estudiante_id), yo)
+
+seccion("Resenas: leer")
+estado, resumen = pedir("GET", f"/resenas/resumen/{profe_id}")
+ok("resumen: las cinco estrellas siempre, de 5 a 1",
+   estado == 200 and list(resumen["distribucion"]) == ["5", "4", "3", "2", "1"], resumen)
+ok("resumen: total y promedio = la tabla", (resumen["promedio"], resumen["total"]) == en_tabla(profe_id), resumen)
+ok("resumen: la distribucion suma el total", sum(resumen["distribucion"].values()) == resumen["total"])
+_, vacio = pedir("GET", f"/resenas/resumen/{ID['profe7']}")
+ok("resumen sin resenas: ceros",
+   vacio == {"total": 0, "promedio": 0.0, "distribucion": {"5": 0, "4": 0, "3": 0, "2": 0, "1": 0}}, vacio)
+error("resumen de alguien que no existe", pedir("GET", "/resenas/resumen/99999"), 404, "usuario_no_existe")
+error("orden invalido", pedir("GET", f"/resenas/usuario/{profe_id}?orden=autor"), 400, "orden_invalido")
+estado, _ = pedir("GET", f"/resenas/usuario/{profe_id}?pagina=0")
+ok("pagina 0: 422", estado == 422, estado)
+
+_, por_puntaje = pedir("GET", f"/resenas/usuario/{profe_id}?orden=puntaje")
+puntajes = [r["puntaje"] for r in por_puntaje["resenas"]]
+ok("orden=puntaje: de mayor a menor",
+   puntajes == sorted(puntajes, reverse=True) and len(puntajes) == resumen["total"], puntajes)
+_, recientes = pedir("GET", f"/resenas/usuario/{profe_id}")
+ok("orden=recientes: la mas nueva primero", recientes["resenas"][0]["fecha"] == HOY_ISO, recientes["resenas"][:1])
+
+# El anonimato: ni el id ni el nombre del autor en ninguna respuesta publica.
+nombre_autor = sql("SELECT nombre FROM usuario WHERE id = :u", u=alumno_id)
+crudo = json.dumps([resumen, por_puntaje, recientes])
+ok("anonimas: ninguna respuesta trae autor ni el nombre de quien escribio",
+   "autor" not in crudo and nombre_autor not in crudo, crudo[:200])
+ok("anonimas: cada resena es solo puntaje, texto y fecha",
+   all(set(r) == {"puntaje", "texto", "fecha"} for r in por_puntaje["resenas"]))
+
+# Pagina 2: once resenas mas para profe2, insertadas directo (con los seeds no
+# hay tantos alumnos con clase dictada como para armarlo por la API).
+mucho = ID["profe2"]
+otros = [u for (u,) in filas("SELECT id FROM usuario WHERE rol = 'estudiante' AND id NOT IN "
+                              "(SELECT autor_id FROM resena WHERE destinatario_id = :p) ORDER BY id LIMIT 11", p=mucho)]
+for u in otros:
+    ejecutar("INSERT INTO resena (autor_id, destinatario_id, sentido, puntaje) "
+             "VALUES (:a, :p, 'alumno_a_profesor', 3)", a=u, p=mucho)
+_, p1 = pedir("GET", f"/resenas/usuario/{mucho}")
+_, p2 = pedir("GET", f"/resenas/usuario/{mucho}?pagina=2")
+ok("paginas de a 10: la 1 trae 10 y la 2 el resto", len(p1["resenas"]) == 10
+   and len(p2["resenas"]) == p1["total"] - 10 and p1["total"] == p2["total"], (p1["total"], len(p2["resenas"])))
+
+
+# ===========================================================================
+# MENSAJERIA - /mensajes/no-leidos, /hilos y /hilos/{id}/mensajes
+# ===========================================================================
+
+def no_leidos(token: str) -> int:
+    return pedir("GET", "/mensajes/no-leidos", token=token)[1]["no_leidos"]
+
+
+seccion("Mensajeria: abrir hilos")
+alumno3 = login("alumno3@example.com")
+error("sin token", pedir("GET", "/mensajes/no-leidos"), 401, "sin_token")
+error("alumno sin profesor_id", pedir("POST", "/mensajes/hilos", {"estudiante_id": ID["alumno2"]}, token=alumno3),
+      400, "datos_invalidos")
+error("alumno con el id de otro alumno", pedir("POST", "/mensajes/hilos", {"profesor_id": ID["alumno2"]}, token=alumno3),
+      404, "profesor_no_existe")
+assert sql("SELECT count(*) FROM hilo WHERE estudiante_id = :a AND profesor_id = :p",
+           a=ID["alumno3"], p=ID["profe1"]) == 0
+estado, nuevo_hilo = pedir("POST", "/mensajes/hilos", {"profesor_id": ID["profe1"]}, token=alumno3)
+ok("alumno abre un hilo nuevo: 201, contraparte con materias, sin mensajes",
+   estado == 201 and nuevo_hilo["contraparte"]["id"] == ID["profe1"] and nuevo_hilo["contraparte"]["materias"]
+   and nuevo_hilo["ultimo_mensaje"] is None and nuevo_hilo["no_leidos"] == 0, nuevo_hilo)
+estado, otra_vez = pedir("POST", "/mensajes/hilos", {"profesor_id": ID["profe1"]}, token=alumno3)
+ok("abrirlo otra vez: 200 y el MISMO hilo", estado == 200 and otra_vez["id"] == nuevo_hilo["id"], (estado, otra_vez))
+
+sin_clase = sql("SELECT id FROM usuario WHERE rol = 'estudiante' AND id NOT IN "
+                "(SELECT estudiante_id FROM clase WHERE profesor_id = :p) ORDER BY id LIMIT 1", p=ID["profe1"])
+error("profe con un alumno sin ninguna clase", pedir("POST", "/mensajes/hilos", {"estudiante_id": sin_clase},
+                                                     token=profe1), 403, "sin_clases_con_esa_persona")
+error("profe sin estudiante_id", pedir("POST", "/mensajes/hilos", {"profesor_id": ID["profe2"]}, token=profe1),
+      400, "datos_invalidos")
+con_clase = sql("SELECT estudiante_id FROM clase WHERE profesor_id = :p AND estudiante_id NOT IN "
+                "(SELECT estudiante_id FROM hilo WHERE profesor_id = :p) ORDER BY estudiante_id LIMIT 1", p=ID["profe1"])
+estado, del_profe = pedir("POST", "/mensajes/hilos", {"estudiante_id": con_clase}, token=profe1)
+ok("profe con un alumno con clase: 201, contraparte con etapa y sin materias",
+   estado == 201 and del_profe["contraparte"]["id"] == con_clase and del_profe["contraparte"]["materias"] == []
+   and del_profe["contraparte"]["rol"] == "estudiante", del_profe)
+
+seccion("Mensajeria: enviar y leer")
+error("mensaje vacio", pedir("POST", f"/mensajes/hilos/{nuevo_hilo['id']}/mensajes", {"texto": "   "}, token=alumno3),
+      400, "mensaje_vacio")
+estado, _ = pedir("POST", f"/mensajes/hilos/{nuevo_hilo['id']}/mensajes", {"texto": "x" * 2001}, token=alumno3)
+ok("mensaje de mas de 2000: 422", estado == 422, estado)
+error("escribir en un hilo ajeno", pedir("POST", f"/mensajes/hilos/{nuevo_hilo['id']}/mensajes", {"texto": "hola"},
+                                         token=alumno1), 403, "no_es_tuyo")
+error("leer un hilo ajeno", pedir("GET", f"/mensajes/hilos/{nuevo_hilo['id']}/mensajes", token=alumno1),
+      403, "no_es_tuyo")
+error("hilo que no existe", pedir("GET", "/mensajes/hilos/99999/mensajes", token=alumno1), 404, "hilo_no_existe")
+
+antes_profe, antes_alumno = no_leidos(profe1), no_leidos(alumno3)
+estado, enviado = pedir("POST", f"/mensajes/hilos/{nuevo_hilo['id']}/mensajes", {"texto": "  Hola! Tenes lugar el martes?  "},
+                        token=alumno3)
+pedir("POST", f"/mensajes/hilos/{nuevo_hilo['id']}/mensajes", {"texto": "Es para matematica."}, token=alumno3)
+ok("enviar: 201, texto limpio, autor = quien envia", estado == 201 and enviado["contenido"] == "Hola! Tenes lugar el martes?"
+   and enviado["autor_id"] == ID["alumno3"], enviado)
+ok("el contador sube para el que recibe (y no para el que envia)",
+   no_leidos(profe1) == antes_profe + 2 and no_leidos(alumno3) == antes_alumno, (no_leidos(profe1), antes_profe))
+_, yo_profe = pedir("GET", "/usuarios/yo", token=profe1)
+ok("GET /usuarios/yo trae el mismo contador", yo_profe["mensajes_no_leidos"] == no_leidos(profe1), yo_profe)
+_, bandeja = pedir("GET", "/mensajes/hilos", token=profe1)
+ok("bandeja del profe: el hilo recien escrito queda primero, con 2 sin leer y el ultimo mensaje",
+   bandeja[0]["id"] == nuevo_hilo["id"] and bandeja[0]["no_leidos"] == 2
+   and bandeja[0]["ultimo_mensaje"] == "Es para matematica.", bandeja[:1])
+ok("bandeja: ordenada por actividad (sin mensajes al final)",
+   [h["ultimo_mensaje_el"] is None for h in bandeja] == sorted(h["ultimo_mensaje_el"] is None for h in bandeja)
+   and [h["ultimo_mensaje_el"] for h in bandeja if h["ultimo_mensaje_el"]]
+   == sorted((h["ultimo_mensaje_el"] for h in bandeja if h["ultimo_mensaje_el"]), reverse=True))
+
+estado, leidos = pedir("GET", f"/mensajes/hilos/{nuevo_hilo['id']}/mensajes", token=profe1)
+ok("abrir el hilo: los mensajes en orden cronologico", estado == 200
+   and [m["contenido"] for m in leidos] == ["Hola! Tenes lugar el martes?", "Es para matematica."], leidos)
+ok("abrir el hilo los marca como leidos: el contador baja", no_leidos(profe1) == antes_profe, no_leidos(profe1))
+ok("en la base: leido_el puesto en los del alumno", sql(
+    "SELECT count(*) FROM mensaje WHERE hilo_id = :h AND leido_el IS NULL", h=nuevo_hilo["id"]) == 0)
+pedir("POST", f"/mensajes/hilos/{nuevo_hilo['id']}/mensajes", {"texto": "Si, a las 16."}, token=profe1)
+pedir("GET", f"/mensajes/hilos/{nuevo_hilo['id']}/mensajes", token=profe1)
+ok("el que abre NO marca sus propios mensajes como leidos", sql(
+    "SELECT count(*) FROM mensaje WHERE hilo_id = :h AND leido_el IS NULL AND autor_id = :p",
+    h=nuevo_hilo["id"], p=ID["profe1"]) == 1)
+
+seccion("Mensajeria: historial y busqueda")
+largo = sql("SELECT hilo_id FROM mensaje GROUP BY hilo_id HAVING count(*) >= 6 ORDER BY hilo_id LIMIT 1")
+token_largo = login(sql("SELECT u.correo FROM hilo h JOIN usuario u ON u.id = h.estudiante_id WHERE h.id = :h", h=largo))
+total_largo = sql("SELECT count(*) FROM mensaje WHERE hilo_id = :h", h=largo)
+_, ultimos = pedir("GET", f"/mensajes/hilos/{largo}/mensajes?limite=4", token=token_largo)
+_, anteriores = pedir("GET", f"/mensajes/hilos/{largo}/mensajes?limite=4&antes={ultimos[0]['id']}", token=token_largo)
+ok("limite=4: los 4 mas nuevos, en orden", len(ultimos) == 4
+   and [m["enviado_el"] for m in ultimos] == sorted(m["enviado_el"] for m in ultimos), ultimos)
+ok("antes=: el resto, sin repetir ninguno", len(anteriores) == total_largo - 4
+   and not {m["id"] for m in anteriores} & {m["id"] for m in ultimos}
+   and anteriores[-1]["enviado_el"] <= ultimos[0]["enviado_el"], anteriores)
+estado, _ = pedir("GET", f"/mensajes/hilos/{largo}/mensajes?limite=101", token=token_largo)
+ok("limite de mas de 100: 422", estado == 422, estado)
+
+# Con tilde y en mayusculas, codificado en la URL como lo manda el navegador.
+_, con_q = pedir("GET", f"/mensajes/hilos?q={urllib.parse.quote('LUCÍA')}", token=alumno1)
+ok("q sin importar mayusculas ni tildes", con_q and all(h["contraparte"]["nombre"] == "Lucia" for h in con_q), con_q)
+_, nada = pedir("GET", "/mensajes/hilos?q=zzzz", token=alumno1)
+ok("q sin coincidencias: vacio", nada == [], nada)
+
+from sqlalchemy import event  # noqa: E402
+
+from app.modulos.mensajeria import logica as mensajeria  # noqa: E402
+
+with SesionLocal() as db:
+    consultas = []
+    event.listen(db.get_bind(), "before_cursor_execute", lambda *a: consultas.append(1))
+    con_muchos = sql("SELECT profesor_id FROM hilo GROUP BY 1 ORDER BY count(*) DESC LIMIT 1")
+    # Los dos profesores: la contraparte es del mismo tipo (alumnos) y se arma igual.
+    con_uno = sql("SELECT profesor_id FROM hilo GROUP BY 1 ORDER BY count(*), 1 LIMIT 1")
+    consultas.clear()
+    hilos_muchos = mensajeria.bandeja(db, con_muchos)
+    cuantas_muchos = len(consultas)
+    consultas.clear()
+    mensajeria.bandeja(db, con_uno)
+    ok("bandeja sin N+1: las mismas consultas con 1 hilo que con varios",
+       len(hilos_muchos) > 1 and len(consultas) == cuantas_muchos, (len(hilos_muchos), cuantas_muchos, len(consultas)))
+
+
+# ===========================================================================
 # SISTEMA - la app importa y los seeds cuadran
 # ===========================================================================
 
@@ -478,6 +737,25 @@ r = correr("-c", "import app.modulos.agenda.logica")
 ok("agenda se puede importar primero (sin importacion circular)", r.returncode == 0, r.stderr[-400:])
 primera, segunda = correr("-m", "app.seeds"), correr("-m", "app.seeds")
 ok("seeds dos veces seguidas", primera.returncode == 0 and segunda.returncode == 0, (primera.stderr + segunda.stderr)[-400:])
+ok("seeds: los promedios de todos los perfiles cuadran con la tabla resena", sql(
+    "SELECT count(*) FROM (SELECT usuario_id, puntaje_promedio, cantidad_resenas FROM perfil_profesor UNION ALL "
+    "SELECT usuario_id, puntaje_promedio, cantidad_resenas FROM perfil_estudiante) p LEFT JOIN "
+    "(SELECT destinatario_id, round(avg(puntaje), 2) AS prom, count(*) AS n FROM resena GROUP BY 1) r "
+    "ON r.destinatario_id = p.usuario_id "
+    "WHERE p.puntaje_promedio <> coalesce(r.prom, 0) OR p.cantidad_resenas <> coalesce(r.n, 0)") == 0)
+ok("seeds: resenas en los dos sentidos, todas sobre pares con clase dictada",
+   sql("SELECT count(DISTINCT sentido) FROM resena") == 2 and sql(
+       "SELECT count(*) FROM resena r WHERE NOT EXISTS (SELECT 1 FROM clase c WHERE c.estado = 'dictada' AND "
+       "((c.estudiante_id = r.autor_id AND c.profesor_id = r.destinatario_id) OR "
+       "(c.profesor_id = r.autor_id AND c.estudiante_id = r.destinatario_id)))") == 0)
+# Los seeds cargan cientos de hilos: alcanza con que haya y que todos cuadren.
+ok("seeds: cada hilo tiene ultimo_mensaje_el = su ultimo mensaje", sql(
+    "SELECT count(*) FROM hilo h WHERE h.ultimo_mensaje_el IS DISTINCT FROM "
+    "(SELECT max(enviado_el) FROM mensaje m WHERE m.hilo_id = h.id)") == 0
+   and sql("SELECT count(*) FROM hilo") > 0)
+ok("seeds: en cada hilo, el orden por id es el orden por hora (el historial pagina por id)", sql(
+    "SELECT count(*) FROM (SELECT enviado_el < lag(enviado_el) OVER (PARTITION BY hilo_id ORDER BY id) AS mal "
+    "FROM mensaje) x WHERE mal") == 0)
 # Los seeds cargan bloqueos para muchos profesores; los fijos de P3 son los
 # tres de profe1, profe2 y profe3.
 ok("seeds: los 3 bloqueos de profe1 a profe3, y ningun bloqueo encima de una aprobada",

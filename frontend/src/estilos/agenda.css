@@ -13,6 +13,9 @@
      | [Disponibilidad] [Bloqueos] [Mis alumnos]                        |
      +------------------------------------------------------------------+
 
+   El calendario semanal y el detalle de la clase los comparte con 1b (Mis
+   clases): sus clases "cal-" y "detalle-" estan aca.
+
    Reusa las tarjetas y encabezados de panel.css ("tablero-"). Las clases
    propias empiezan con "cal-" (el calendario), "solicitud", "franjas",
    "bloqueos", "mis-alumnos" y "detalle-".

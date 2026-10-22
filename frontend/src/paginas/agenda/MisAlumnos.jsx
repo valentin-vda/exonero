@@ -57,7 +57,10 @@ export default function MisAlumnos() {
                 </span>
               )}
             </div>
+            {/* state: el formulario ya sabe a quien califica y si tiene resena,
+                sin pedir nada; y a donde volver al guardar. */}
             <Link to={`/resenas/redactar/${persona.id}`} className={`btn ${resena ? 'btn-ghost' : 'btn-secondary'}`}
+                  state={{ persona, miResena: resena, volver: '/agenda#alumnos' }}
                   aria-label={`${resena ? 'Editar la resena de' : 'Calificar a'} ${nombre}`}>
               {resena ? 'Editar resena' : 'Calificar'}
             </Link>

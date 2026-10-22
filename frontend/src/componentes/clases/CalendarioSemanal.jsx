@@ -1,5 +1,6 @@
 /**
- * El calendario semanal de 1i, con GET /api/agenda/yo/semana:
+ * El calendario semanal. Lo usan 1i (el profesor, con GET /api/agenda/yo/semana)
+ * y 1b (el alumno, con GET /api/clases de la semana):
  *
  *   [<] Semana del 19 al 25 de octubre [>] [Hoy]     [ ] Ver como lo ve el alumno
  *          lun 19   mar 20   mie 21   jue 22   vie 23   sab 24   dom 25
@@ -17,16 +18,21 @@
  * Tocar una clase avisa a la pantalla (`alElegirClase`), que muestra sus
  * acciones abajo del calendario.
  *
+ * Lo que es solo del profesor es opcional: sin `franjas` no se pinta el fondo,
+ * sin `alCambiarVerHuecos` no aparece el "Ver como lo ve el alumno", y los
+ * bloqueos solo salen si `datos.bloqueos` trae alguno. Asi el alumno de 1b ve
+ * solo sus clases, y "contraparte" es el profesor.
+ *
  * Todas las horas son de Montevideo (formato.js y fechas.js), no las de la
  * computadora. En el celular la grilla no entra: se muestra una lista por dia
  * (ver agenda.css).
  */
 
-import Alerta from '../../componentes/Alerta.jsx'
+import { DIAS } from '../../paginas/agenda/opciones.js'
+import { diaEnMontevideo, hoy, lunesDe, sumarDias } from '../../paginas/panel/fechas.js'
+import { ESTADOS_CLASE } from '../../paginas/panel/opciones.js'
 import { hora } from '../../utiles/formato.js'
-import { ESTADOS_CLASE } from '../panel/opciones.js'
-import { diaEnMontevideo, hoy, lunesDe, sumarDias } from '../panel/fechas.js'
-import { DIAS } from './opciones.js'
+import Alerta from '../Alerta.jsx'
 
 // Cuantos pixeles mide una hora en la grilla.
 const ALTO_HORA = 44
@@ -161,10 +167,12 @@ export default function CalendarioSemanal({
             <button type="button" className="btn btn-ghost" onClick={() => alCambiarSemana(lunesDe(hoyDia))}>Hoy</button>
           )}
         </div>
-        <label className="cal-ver-huecos">
-          <input type="checkbox" checked={verHuecos} onChange={(e) => alCambiarVerHuecos(e.target.checked)} />
-          Ver como lo ve el alumno
-        </label>
+        {alCambiarVerHuecos && (
+          <label className="cal-ver-huecos">
+            <input type="checkbox" checked={verHuecos} onChange={(e) => alCambiarVerHuecos(e.target.checked)} />
+            Ver como lo ve el alumno
+          </label>
+        )}
       </div>
 
       {error && <Alerta tipo="error">No pudimos traer tu semana. {error}</Alerta>}
@@ -231,11 +239,11 @@ export default function CalendarioSemanal({
           </ol>
 
           <ul className="cal-leyenda" aria-label="Referencias">
-            <li><i className="cal-franja" /> Tu disponibilidad</li>
+            {franjas && <li><i className="cal-franja" /> Tu disponibilidad</li>}
             <li><i className="cal-aprobada" /> Confirmada</li>
             <li><i className="cal-pendiente" /> A confirmar</li>
             <li><i className="cal-cerrada" /> Dictada o no asistio</li>
-            <li><i className="cal-bloqueo" /> Bloqueo</li>
+            {franjas && <li><i className="cal-bloqueo" /> Bloqueo</li>}
             {verHuecos && <li><i className="cal-hueco" /> Libre para el alumno (1 h)</li>}
           </ul>
         </div>

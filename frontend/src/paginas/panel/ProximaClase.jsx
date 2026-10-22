@@ -16,6 +16,7 @@
 import { Link } from 'react-router-dom'
 
 import Alerta from '../../componentes/Alerta.jsx'
+import BotonMensaje from '../../componentes/BotonMensaje.jsx'
 import { hora, SEPARADOR } from '../../utiles/formato.js'
 import { cuandoEs, cuantoFalta, finDe } from './fechas.js'
 import { MODALIDAD_CLASE } from './opciones.js'
@@ -118,9 +119,7 @@ export default function ProximaClase({ bloque }) {
       </div>
 
       <div className="tablero-botones">
-        <Link to="/mensajes" className="btn btn-secondary">
-          Mensaje
-        </Link>
+        <BotonMensaje personaId={alumno.id} />
         <Link to="/agenda" className="btn btn-primary">
           Ver reserva
         </Link>

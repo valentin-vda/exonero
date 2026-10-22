@@ -30,7 +30,7 @@ export const MODALIDADES_FRANJA = [
 
 /**
  * Lo que dice la pantalla cuando POST /agenda/verificar responde
- * { libre: false, motivo }. Lo usa el reprogramar de 1i.
+ * { libre: false, motivo }. Lo usa el reprogramar de 1i (DetalleClase).
  */
 export const MOTIVOS_NO_LIBRE = {
   ocupado: 'Ya tenes una clase confirmada en ese horario.',
@@ -38,6 +38,15 @@ export const MOTIVOS_NO_LIBRE = {
   fuera_de_franja: 'Ese horario esta fuera de tu disponibilidad.',
   aviso_minimo: 'Es demasiado sobre la hora: no llega al aviso minimo que pediste.',
   tope_diario: 'Ese dia ya llegaste al maximo de clases que configuraste.',
+}
+
+/** Lo mismo, dicho para el alumno que reprograma desde 1b. */
+export const MOTIVOS_NO_LIBRE_ALUMNO = {
+  ocupado: 'El profe ya tiene otra clase confirmada en ese horario.',
+  bloqueado: 'El profe bloqueo ese horario en su agenda.',
+  fuera_de_franja: 'El profe no da clases en ese horario.',
+  aviso_minimo: 'Es demasiado sobre la hora: el profe pide mas aviso.',
+  tope_diario: 'Ese dia el profe ya llego a su maximo de clases.',
 }
 
 /** Las pestanias de abajo del calendario. El id es tambien el #hash de la URL. */

@@ -544,7 +544,12 @@ ok("mis-profesores: persona con materias y precio_hora",
 ok("mis-profesores: cantidad_clases = dictadas",
    all(p["cantidad_clases"] == sql("SELECT count(*) FROM clase WHERE estudiante_id = :u AND profesor_id = :p AND estado = 'dictada'",
                                    u=ID["alumno1"], p=p["persona"]["id"]) for p in mp))
-ok("mis-profesores: mi_resena null mientras P3 no este", all(p["mi_resena"] is None for p in mp))
+# mi_resena la arma resenas (P3): null si alumno1 no califico a ese profe, y
+# si no, su puntaje (cuando P3 no estaba, venia siempre null).
+ok("mis-profesores: mi_resena coincide con la tabla resena",
+   all((p["mi_resena"] or {}).get("puntaje") == sql(
+       "SELECT puntaje FROM resena WHERE autor_id = :u AND destinatario_id = :p",
+       u=ID["alumno1"], p=p["persona"]["id"]) for p in mp), mp)
 error("mis-profesores como profesor", pedir("GET", "/clases/mis-profesores", token=profe1), 403, "no_es_tuyo")
 estado, ma = pedir("GET", "/clases/mis-alumnos", token=profe1)
 esperados = sql("SELECT count(DISTINCT estudiante_id) FROM clase WHERE profesor_id = :u AND estado = 'dictada'", u=ID["profe1"])

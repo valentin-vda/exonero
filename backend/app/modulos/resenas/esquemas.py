@@ -18,7 +18,7 @@ class ResenaIn(BaseModel):
 
     destinatario_id: int
     puntaje: int = Field(ge=1, le=5)
-    texto: str | None = None
+    texto: str | None = Field(None, max_length=500)
 
 
 class ResenaOut(BaseModel):

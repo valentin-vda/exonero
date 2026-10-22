@@ -53,7 +53,7 @@ import base64
 import random
 from collections import Counter, defaultdict
 from datetime import date, datetime, time, timedelta
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -103,6 +103,7 @@ from app.modulos.perfiles.modelos import (
     ProfesorZona,
     PuntoMetodo,
 )
+from app.modulos.resenas import logica as resenas
 from app.modulos.resenas.modelos import Resena
 
 CLAVE_DE_PRUEBA = "exonero123"
@@ -929,15 +930,14 @@ def sembrar_resenas(db, pares: dict) -> None:
     alrededor de ella: asi hay profesores muy bien puntuados y otros no tanto,
     y el ranking de 1a (que pide 5 resenas como minimo) tiene de donde elegir.
 
-    El puntaje promedio y la cantidad se escriben en los perfiles, como hace
-    resenas.recalcular(): estan desnormalizados (ver la seccion 4 de la
-    documentacion).
+    El puntaje promedio y la cantidad de cada perfil (estan desnormalizados,
+    ver la seccion 4 de la documentacion) los calcula resenas.recalcular(), la
+    misma funcion que usa la API: es la unica puerta por la que cambian.
     """
     ahora = datetime.now(ZONA)
     azar = random.Random(SEMILLA + 4)
     calidad = {}
-    puntajes = defaultdict(list)  # usuario_id del destinatario -> [puntajes]
-    perfiles = {}
+    destinatarios = set()
 
     for clave in sorted(pares):
         par = pares[clave]
@@ -945,8 +945,6 @@ def sembrar_resenas(db, pares: dict) -> None:
         if not dictadas:
             continue
         alumno, profe = par["alumno"], par["profe"]
-        perfiles[alumno["usuario"].id] = alumno["perfil"]
-        perfiles[profe["usuario"].id] = profe["perfil"]
 
         sentidos = []
         if azar.random() < 0.8:
@@ -967,12 +965,11 @@ def sembrar_resenas(db, pares: dict) -> None:
                 texto=None if azar.random() < 0.15 else azar.choice(textos[puntaje]),
                 creado_el=cuando,
             ))
-            puntajes[destino_id].append(puntaje)
+            destinatarios.add(destino_id)
 
-    for usuario_id, lista in puntajes.items():
-        promedio = Decimal(sum(lista)) / Decimal(len(lista))
-        perfiles[usuario_id].puntaje_promedio = promedio.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        perfiles[usuario_id].cantidad_resenas = len(lista)
+    db.flush()  # recalcular() lee la tabla: las resenas tienen que estar escritas
+    for usuario_id in sorted(destinatarios):
+        resenas.recalcular(db, usuario_id)
     db.flush()
 
 
@@ -996,7 +993,16 @@ def sembrar_mensajes(db, pares: dict, usuarios: dict, catalogos: dict) -> None:
     }
     charlas = []  # (alumno, profe, [(autor_id, texto, cuando)], es de un usuario de prueba)
 
+    # verificar_p3.py abre, del lado del profesor, un hilo de profe1 con un
+    # alumno suyo que todavia no tiene charla: se deja uno asi (el de id mas
+    # alto que no sea alumno1).
+    de_profe1 = sorted(clave for clave, par in pares.items()
+                       if par["profe"]["numero"] == 1 and par["alumno"]["numero"] != 1)
+    sin_charla = set(de_profe1[-1:])
+
     for clave in sorted(pares):
+        if clave in sin_charla:
+            continue
         par = pares[clave]
         # Los usuarios de prueba del login (alumno1 y profe1) tienen siempre su
         # charla, y es mas probable que les quede algo sin leer: es lo primero
@@ -1018,6 +1024,10 @@ def sembrar_mensajes(db, pares: dict, usuarios: dict, catalogos: dict) -> None:
 
     hilos = []
     for alumno, profe, mensajes, de_prueba in charlas:
+        # verificar_p3.py abre desde cero el hilo de alumno3 con profe1 (y
+        # comprueba que antes no existia): ese par no tiene que tener charla.
+        if (alumno["numero"], profe["numero"]) == (3, 1):
+            continue
         mensajes = sorted((m for m in mensajes if m[2] <= ahora), key=lambda m: m[2])
         if not mensajes:
             continue
