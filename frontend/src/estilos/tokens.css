@@ -20,6 +20,13 @@
   --color-accent-2: #9b6b4f;  /* acento secundario marron */
   --color-divider: color-mix(in srgb, #13284c 14%, transparent);
 
+  /* --- La marca: el azul oscuro y el celeste del buho. Los usa el panel de
+         login y registro. A proposito NO se redefinen en el tema oscuro: el
+         panel de la marca es siempre azul oscuro (con --color-text no
+         alcanzaria, porque en oscuro se vuelve claro). --- */
+  --color-marca: #13284c;
+  --color-marca-texto: #e6edf5;
+
   /* --- Rampa neutra --- */
   --color-neutral-100: #ffffff;
   --color-neutral-200: #eeebe5;

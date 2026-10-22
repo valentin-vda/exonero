@@ -2,8 +2,9 @@
    Estilos propios de las pantallas de login y registro.
 
    El layout es de dos columnas:
-     izquierda  un panel terracota con la marca y para que sirve Exonero
-     derecha    la tarjeta del formulario, sobre el fondo crema
+     izquierda  un panel azul oscuro con el logo arriba, el buho gigante en el
+                medio y para que sirve Exonero abajo
+     derecha    la tarjeta del formulario, sobre el fondo de la app
 
    En pantallas angostas (menos de 900px) el panel de la izquierda se esconde
    y queda solo el formulario, centrado.
@@ -23,8 +24,8 @@
   flex-direction: column;
   justify-content: space-between;
   padding: var(--space-8) var(--space-8);
-  background: var(--color-accent);
-  color: var(--color-bg);
+  background: var(--color-marca);
+  color: var(--color-marca-texto);
   overflow: hidden;
 }
 
@@ -41,11 +42,33 @@
 .auth-panel::before { width: 420px; height: 420px; right: -140px; top: -120px; }
 .auth-panel::after  { width: 300px; height: 300px; left: -110px; bottom: -90px; }
 
+/* El logo completo, arriba a la izquierda: el buho y la palabra, como en la
+   barra de navegacion de adentro de la app. */
 .auth-marca {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   font-family: var(--font-heading);
   font-size: 30px;
   line-height: 1;
+}
+.auth-marca-logo {
+  width: 46px;
+  height: 44px;
+  object-fit: contain;
+}
+
+/* El buho gigante sobre la columna, centrado en el medio del panel. Es
+   decorativo (alt vacio y aria-hidden en el JSX). Como es alto y angosto, se
+   le fija el alto: el 44 % de la pantalla, entre 220 y 440px. La imagen mide
+   900px de alto, asi que se ve nitida tambien en pantallas retina. */
+.auth-buho {
+  position: relative;
+  align-self: center;
+  height: clamp(220px, 44vh, 440px);
+  width: auto;
+  margin: var(--space-4) 0;
 }
 
 .auth-lema {
