@@ -16,3 +16,8 @@ frontend/.env
 .idea/
 .DS_Store
 Thumbs.db
+
+Backend Exonero.pdf
+graphify-out
+agents.md
+claude.md

@@ -16,6 +16,11 @@
  *   6. pagos        los del checkout (1g) y de "Medios de pago" (1e)
  *   7. busqueda     los de buscar profesores (1c)
  *   8. inicio        los de la pantalla inicial del estudiante (1a)
+ *   9. agenda       los de la agenda del profesor (1i), su editor de franjas y
+ *                   el calendario semanal que comparte con 1b
+ *  10. mis-clases   los de mis clases (1b), el formulario de resena y el
+ *                   resumen de resenas (1e)
+ *  11. mensajes     los del chat (1h) y el contador de la cabecera
  */
 
 import { StrictMode } from 'react'
@@ -35,6 +40,9 @@ import './estilos/pagos.css'
 import './estilos/busqueda.css'
 import './estilos/perfil-publico.css'
 import './estilos/inicio.css'
+import './estilos/agenda.css'
+import './estilos/mis-clases.css'
+import './estilos/mensajes.css'
 
 createRoot(document.getElementById('root')).render(
   // StrictMode solo corre en desarrollo. Hace que los efectos se ejecuten dos

@@ -11,7 +11,7 @@
  *         SeccionPersonalEstudiante   datos de la cuenta y del perfil
  *         SeccionClave                cambiar la contrasena, darse de baja
  *         SeccionMediosPago           tarjetas e historial de pagos (P4)
- *         (Mis resenas)               de P3: todavia pendiente
+ *         ResumenResenas              Mis resenas: puntaje y resenas recibidas (P3)
  *
  * Que llamadas hace al entrar:
  *   GET /api/perfiles/estudiante/yo   etapa, centro, barrio, adulto...
@@ -28,7 +28,7 @@ import { mensajeDeError } from '../api/mensajes.js'
 import { obtenerCatalogos, obtenerPerfilEstudiante } from '../api/perfiles.js'
 import { useAuth } from '../auth/ContextoAuth.jsx'
 import Alerta from '../componentes/Alerta.jsx'
-import EnConstruccion from '../componentes/EnConstruccion.jsx'
+import ResumenResenas from '../componentes/resenas/ResumenResenas.jsx'
 import { ESTRELLA, mesYAnio, puntaje, unir } from '../utiles/formato.js'
 import CabeceraPerfil from './perfil/CabeceraPerfil.jsx'
 import MenuLateral from './perfil/MenuLateral.jsx'
@@ -106,14 +106,14 @@ export default function PerfilEstudiante() {
         {pestania === 'clave' && <SeccionClave />}
         {pestania === 'pagos' && <SeccionMediosPago />}
         {pestania === 'resenas' && (
-          <div className="panel">
-            <EnConstruccion
-              codigo="1e"
-              nombre="Mis resenas"
-              dueno="P3"
-              descripcion="Tu puntaje como estudiante y las resenas que te dejaron los profesores (GET /api/resenas/usuario/{id})."
-            />
-          </div>
+          <section className="panel">
+            <h4 style={{ marginBottom: '4px' }}>Mis resenas</h4>
+            <p className="panel-ayuda" style={{ marginTop: 0 }}>
+              Lo que opinaron los profesores con los que tuviste clase. Son anonimas: no se sabe quien dejo cada una.
+            </p>
+            <ResumenResenas usuarioId={usuario.id}
+                            vacio="Todavia no te calificaron. Despues de cada clase dictada, el profe te puede dejar una resena." />
+          </section>
         )}
       </div>
     </div>

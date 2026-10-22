@@ -16,6 +16,11 @@ QUE CARGA (segun la spec):
   - los idiomas
   - la comision de servicio y la tasa de IVA
   - veinte usuarios de ejemplo, con sus perfiles, disponibilidad y clases
+  - unos bloqueos de agenda (P3), para que 1i y 1f muestren alguno
+  - resenas en los dos sentidos sobre las clases dictadas (P3), con los
+    promedios ya recalculados en los perfiles
+  - conversaciones de chat (P3), con algunos mensajes sin leer para alumno1
+    y profe1
   - una foto de ejemplo del lugar de clase de profe1
 
 Todos los usuarios entran con la clave "exonero123":
@@ -30,7 +35,6 @@ usuarios no se podria hacer login.
 Las fechas de las clases se calculan desde HOY, asi siempre hay clases
 proximas y pasadas sin importar cuando se corra.
 
-QUE NO CARGA (todavia): mensajes, resenas ni bloqueos de agenda.
 """
 
 import base64
@@ -40,7 +44,7 @@ from decimal import Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 
 from app.config import ajustes
 from app.db import SesionLocal
@@ -52,6 +56,7 @@ from app.enums import (
     LugarClase,
     Modalidad,
     Rol,
+    SentidoResena,
     TipoCentro,
 )
 from app.registro_modelos import metadata
@@ -59,7 +64,7 @@ from app.seguridad import hashear_clave
 
 # seeds no es un modulo: es el unico script que escribe en las tablas de los
 # nueve a la vez, asi que importa los modelos de todos.
-from app.modulos.agenda.modelos import FranjaDisponibilidad
+from app.modulos.agenda.modelos import Bloqueo, FranjaDisponibilidad
 from app.modulos.catalogos.modelos import (
     Barrio,
     CentroEducativo,
@@ -71,7 +76,10 @@ from app.modulos.catalogos.modelos import (
 from app.modulos.clases.logica import desglosar, importes_congelados
 from app.modulos.clases.modelos import Clase
 from app.modulos.cuentas.modelos import Usuario
+from app.modulos.mensajeria.modelos import Hilo, Mensaje
 from app.modulos.pagos.modelos import Cobro, Tarjeta
+from app.modulos.resenas import logica as resenas
+from app.modulos.resenas.modelos import Resena
 from app.modulos.perfiles.modelos import (
     FotoLugar,
     PerfilEstudiante,
@@ -539,6 +547,153 @@ def sembrar_agenda(db, usuarios: dict) -> None:
     db.flush()
 
 
+# Los bloqueos de ejemplo: (profesor, dias desde hoy, desde, hasta, motivo).
+# Caen despues de la ultima clase de PLAN_CLASES (la pendiente, a 4 a 6 dias),
+# asi ninguno pisa una aprobada, que es justo lo que agenda no deja hacer.
+PLAN_BLOQUEOS = [
+    (0, 8, time(14), time(16), "Turno medico"),
+    (1, 9, time(15), time(21), "Mesa de examen en el liceo"),
+    (2, 10, time(0), time(23, 59), "Congreso de docentes"),
+]
+
+
+def sembrar_bloqueos(db, usuarios: dict) -> None:
+    """Carga unos bloqueos de agenda para profe1, profe2 y profe3.
+
+    Sin bloqueos, la pestana de 1i sale vacia y el calendario de 1f nunca
+    muestra un dia tapado.
+    """
+    hoy = datetime.now(ZONA).date()
+    for n, dias, desde, hasta, motivo in PLAN_BLOQUEOS:
+        dia = _dia_habil(hoy, dias)
+        db.add(Bloqueo(
+            perfil_profesor_id=usuarios["profesores"][n]["perfil"].id,
+            inicio=datetime.combine(dia, desde, ZONA),
+            fin=datetime.combine(dia, hasta, ZONA),
+            motivo=motivo,
+        ))
+    db.flush()
+
+
+# Los textos de las resenas de ejemplo, por sentido. Se reparten en orden.
+TEXTOS_A_PROFESOR = [
+    "Explica con mucha paciencia y trae ejercicios parecidos a los del parcial.",
+    "Muy claro. Me salve el escrito gracias a las clases.",
+    None,
+    "Puntual y organizado, aunque a veces va un poco rapido.",
+    "Lo recomiendo, se nota que sabe y que le gusta ensenar.",
+]
+TEXTOS_A_ALUMNO = [
+    "Viene con las dudas anotadas, asi da gusto trabajar.",
+    None,
+    "Muy buena disposicion, le falta practicar un poco mas entre clases.",
+]
+PUNTAJES = [5, 4, 5, 3, 4, 5]
+
+
+def sembrar_resenas(db) -> None:
+    """Resenas sobre los pares (alumno, profesor) que tuvieron clase DICTADA.
+
+    Es la misma condicion que exige la API (clases.tuvieron_clase). No todos
+    los pares resenan: unos dos tercios de los alumnos califican a su profesor
+    y la mitad de los profesores califica al alumno, asi en 1b y en 1i quedan
+    personas con el boton "Calificar".
+
+    Los promedios NO se cargan a mano: se recalculan con resenas.recalcular(),
+    la unica puerta por la que cambian.
+    """
+    pares = db.execute(
+        select(Clase.estudiante_id, Clase.profesor_id)
+        .where(Clase.estado == EstadoClase.dictada)
+        .distinct()
+        .order_by(Clase.profesor_id, Clase.estudiante_id)
+    ).all()
+    ahora = datetime.now(ZONA)
+    destinatarios = set()
+    for n, (alumno, profe) in enumerate(pares):
+        cuando = ahora - timedelta(days=2 + n)
+        if n % 3 != 2:
+            db.add(Resena(autor_id=alumno, destinatario_id=profe, sentido=SentidoResena.alumno_a_profesor,
+                          puntaje=PUNTAJES[n % len(PUNTAJES)], texto=TEXTOS_A_PROFESOR[n % len(TEXTOS_A_PROFESOR)],
+                          creado_el=cuando))
+            destinatarios.add(profe)
+        if n % 2 == 0:
+            db.add(Resena(autor_id=profe, destinatario_id=alumno, sentido=SentidoResena.profesor_a_alumno,
+                          puntaje=PUNTAJES[(n + 1) % len(PUNTAJES)], texto=TEXTOS_A_ALUMNO[n % len(TEXTOS_A_ALUMNO)],
+                          creado_el=cuando))
+            destinatarios.add(alumno)
+    db.flush()
+    for usuario_id in sorted(destinatarios):
+        resenas.recalcular(db, usuario_id)
+
+
+# Las conversaciones de ejemplo: (alumno, profe, [(quien, hace cuantos minutos, texto)]).
+# quien es "a" (alumno) o "p" (profe). Los numeros son posiciones en las
+# listas de usuarios: alumno 0 es alumno1, profe 0 es profe1.
+# Los minutos van BAJANDO dentro de cada conversacion (cada mensaje es mas
+# nuevo que el anterior): el historial pagina por id y ordena por hora, asi
+# que los dos ordenes tienen que coincidir, como pasa con los mensajes reales.
+CONVERSACIONES = [
+    (0, 0, [
+        ("a", 2 * 24 * 60, "Hola Lucia! Queria saber si das clases de derivadas para el escrito."),
+        ("p", 2 * 24 * 60 - 40, "Hola! Si, claro. Contame que tema estan viendo y armamos un plan."),
+        ("a", 2 * 24 * 60 - 45, "Limites y derivadas, el escrito es el jueves que viene."),
+        ("p", 26 * 60, "Perfecto. Traete el practico y los ejercicios que no te salieron."),
+        ("p", 25 * 60, "Ah, y si podes reservar la clase de 90 minutos mejor, asi llegamos a todo."),
+    ]),
+    (1, 0, [
+        ("a", 3 * 24 * 60, "Buenas, tenes lugar los martes de tarde?"),
+        ("p", 3 * 24 * 60 - 120, "Hola! Si, los martes de 14 a 20. Fijate en mi calendario."),
+        ("a", 90, "Genial, ya te mande la solicitud para el martes."),
+        ("a", 85, "Es para Fisica, cinematica."),
+    ]),
+    (0, 1, [
+        ("a", 5 * 24 * 60, "Hola Martin, das clases online?"),
+        ("p", 5 * 24 * 60 - 60, "Hola! Si, por videollamada. Te mando el enlace cuando confirmo."),
+        ("a", 4 * 24 * 60, "Dale, gracias!"),
+    ]),
+    (2, 1, [
+        ("a", 6 * 24 * 60, "Hola, me recomendaron tus clases de quimica."),
+        ("p", 6 * 24 * 60 - 10, "Que bueno! En que anio estas?"),
+        ("a", 6 * 24 * 60 - 20, "5.o de bachillerato, orientacion cientifica."),
+        ("p", 6 * 24 * 60 - 30, "Perfecto, conozco bien el programa. Cuando quieras reservamos."),
+        ("a", 5 * 24 * 60, "Buenisimo, la semana que viene te escribo."),
+        ("p", 5 * 24 * 60 - 5, "Dale, cualquier duda me avisas."),
+    ]),
+    (1, 2, [
+        ("a", 8 * 24 * 60, "Hola, tenes lugar para ingles conversacional?"),
+        ("p", 8 * 24 * 60 - 200, "Hola! Si, los lunes y miercoles."),
+    ]),
+]
+
+
+def sembrar_mensajes(db, usuarios: dict) -> None:
+    """Carga cinco conversaciones con sus mensajes.
+
+    Los ULTIMOS mensajes del otro quedan sin leer en dos hilos (alumno1 tiene
+    dos sin leer de profe1, y profe1 dos de alumno2), asi el contador de la
+    cabecera y la bandeja de 1h tienen algo que mostrar. Todo lo anterior,
+    leido. ultimo_mensaje_el queda igual al del ultimo mensaje, como lo deja
+    mensajeria al enviar.
+    """
+    ahora = datetime.now(ZONA)
+    for alumno_n, profe_n, mensajes in CONVERSACIONES:
+        alumno = usuarios["estudiantes"][alumno_n]["usuario"]
+        profe = usuarios["profesores"][profe_n]["usuario"]
+        hilo = Hilo(estudiante_id=alumno.id, profesor_id=profe.id)
+        db.add(hilo)
+        db.flush()
+        # Los del final de cada lado que cuentan como no leidos.
+        sin_leer = 2 if (alumno_n, profe_n) in ((0, 0), (1, 0)) else 0
+        for i, (quien, minutos, texto) in enumerate(mensajes):
+            enviado = ahora - timedelta(minutes=minutos)
+            leido = None if i >= len(mensajes) - sin_leer else enviado + timedelta(minutes=1)
+            db.add(Mensaje(hilo_id=hilo.id, autor_id=alumno.id if quien == "a" else profe.id,
+                           contenido=texto, enviado_el=enviado, leido_el=leido))
+            hilo.ultimo_mensaje_el = enviado
+    db.flush()
+
+
 def sembrar_clases(db, usuarios: dict, catalogos: dict) -> None:
     """Crea clases de ejemplo en los distintos estados, cada una con su cobro.
 
@@ -684,6 +839,9 @@ def main() -> None:
         usuarios = sembrar_usuarios(db, catalogos)
         sembrar_agenda(db, usuarios)
         sembrar_clases(db, usuarios, catalogos)
+        sembrar_bloqueos(db, usuarios)
+        sembrar_resenas(db)
+        sembrar_mensajes(db, usuarios)
         db.commit()
         print("Datos de prueba cargados.")
         print(f"  Profesores: profe1 a profe{len(PROFESORES)}@example.com")

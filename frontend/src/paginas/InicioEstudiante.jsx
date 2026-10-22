@@ -10,6 +10,7 @@ import {
 import { proximaClase } from '../api/clases.js'
 import { obtenerPerfilEstudiante } from '../api/perfiles.js'
 import Avatar from '../componentes/Avatar.jsx'
+import BotonMensaje from '../componentes/BotonMensaje.jsx'
 import MapaInicio from '../componentes/inicio/MapaInicio.jsx'
 import { hora, pesos, puntaje, unir } from '../utiles/formato.js'
 
@@ -97,7 +98,7 @@ function ProximaClase({ clase, cargando, error }) {
       </div>
       <div className="inicio-proxima-acciones">
         <span className="tag tag-neutral">Confirmada</span>
-        <Link className="btn btn-secondary" to="/mensajes">Mensaje</Link>
+        <BotonMensaje personaId={clase.contraparte.id} />
         <Link className="btn btn-primary" to={`/mis-clases?clase=${clase.id}`}>Ver detalle</Link>
       </div>
     </section>

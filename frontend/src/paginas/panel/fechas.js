@@ -2,8 +2,9 @@
  * Fechas del panel del profesor (1d): "hoy", "en 40 min", "6 h 30 min" y los
  * tramos de los graficos (semanas, meses, anios).
  *
- * Estan aca y no en utiles/formato.js porque por ahora solo las usa 1d. Si
- * otra pantalla las necesita, se mudan alla.
+ * Estan aca y no en utiles/formato.js porque nacieron para 1d. La agenda (1i,
+ * P3) tambien las usa (sumarDias, lunesDe, hoy...); si se suma una tercera
+ * pantalla, conviene mudarlas a utiles/.
  *
  * Todo se calcula en la zona de Montevideo, la misma que usa el backend
  * (ZONA_HORARIA en app/config.py): "hoy" es el hoy de Montevideo aunque la
@@ -39,6 +40,19 @@ function aFecha(dia) {
 /** Lo contrario: Date en UTC -> 'AAAA-MM-DD'. */
 function aDia(fecha) {
   return fecha.toISOString().slice(0, 10)
+}
+
+/** 'AAAA-MM-DD' + n dias -> 'AAAA-MM-DD' (n puede ser negativo). */
+export function sumarDias(dia, n) {
+  const fecha = aFecha(dia)
+  fecha.setUTCDate(fecha.getUTCDate() + n)
+  return aDia(fecha)
+}
+
+/** El lunes de la semana de ese dia: '2026-10-22' (jueves) -> '2026-10-19'. */
+export function lunesDe(dia) {
+  // getUTCDay(): 0 es domingo. (dia + 6) % 7 son los dias desde el lunes.
+  return sumarDias(dia, -((aFecha(dia).getUTCDay() + 6) % 7))
 }
 
 /** Cuantos dias hay del primero al segundo ('2026-10-20', '2026-10-21' -> 1). */
