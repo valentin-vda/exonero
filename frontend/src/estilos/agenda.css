@@ -1,0 +1,347 @@
+/* ===========================================================================
+   Estilos de la agenda del profesor (1i) y del editor de franjas (1i y 1j).
+
+     Agenda
+     +------------------------------------------------------------------+
+     | Solicitudes por aprobar (lista de tarjetas)                      |
+     +------------------------------------------------------------------+
+     | [<] Semana del 19 al 25 de octubre [>]      [ ] Ver como el alumno|
+     |       lun   mar   mie   jue   vie   sab   dom   (grilla)          |
+     +------------------------------------------------------------------+
+     | Detalle de la clase tocada (si hay)                              |
+     +------------------------------------------------------------------+
+     | [Disponibilidad] [Bloqueos] [Mis alumnos]                        |
+     +------------------------------------------------------------------+
+
+   Reusa las tarjetas y encabezados de panel.css ("tablero-"). Las clases
+   propias empiezan con "cal-" (el calendario), "solicitud", "franjas",
+   "bloqueos", "mis-alumnos" y "detalle-".
+
+   Todo con las variables de tokens.css, asi el modo oscuro funciona solo.
+   =========================================================================== */
+
+/* --- Solicitudes ---------------------------------------------------------- */
+
+.solicitudes,
+.mis-alumnos,
+.bloqueos-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.solicitud {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 16px);
+  background: var(--color-bg);
+}
+.solicitud-quien,
+.solicitud-clase,
+.mis-alumnos-quien {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.solicitud-acciones {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.solicitud-error { grid-column: 1 / -1; }
+.solicitud-error .alerta { margin: 0; }
+
+/* --- Calendario ----------------------------------------------------------- */
+
+.cal-navegacion {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cal-navegacion .btn { min-width: 36px; padding-inline: 10px; }
+.cal-ver-huecos {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.cal-grilla {
+  --cal-cabecera: 40px;
+  display: grid;
+  grid-template-columns: 48px repeat(7, minmax(0, 1fr));
+  gap: 0 4px;
+}
+.cal-hora {
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  transform: translateY(-7px);
+  text-align: right;
+  padding-right: 6px;
+}
+.cal-dia-cabecera {
+  height: var(--cal-cabecera);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+.cal-hoy .cal-dia-cabecera strong {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.cal-dia-cuerpo {
+  position: relative;
+  border-radius: 12px;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 43px,
+    var(--color-divider) 43px 44px
+  );
+  background-color: color-mix(in srgb, var(--color-text) 3%, transparent);
+}
+
+/* El fondo: lo que el profesor dijo que puede. */
+.cal-franja {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-radius: 8px;
+  background: var(--color-accent-100);
+}
+
+.cal-item {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: hidden;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 11.5px;
+  line-height: 1.25;
+  text-align: left;
+  z-index: 1;
+}
+button.cal-item { cursor: pointer; }
+button.cal-item:hover { filter: brightness(0.96); }
+.cal-item-hora { font-weight: 700; }
+.cal-item-texto { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+.cal-aprobada { background: var(--color-accent); color: var(--color-bg); }
+.cal-pendiente {
+  background: var(--color-surface);
+  color: var(--color-text);
+  outline: 1.5px dashed var(--color-accent);
+  outline-offset: -1.5px;
+}
+.cal-cerrada { background: var(--color-neutral-200); color: var(--color-neutral-800); }
+.cal-bloqueo {
+  color: var(--color-accent-2-800);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-accent-2-200) 0 6px,
+    color-mix(in srgb, var(--color-accent-2-200) 55%, transparent) 6px 12px
+  );
+}
+/* Los huecos van al fondo: una pendiente cae justo encima de un hueco (las
+   pendientes no ocupan), y tiene que verse la pendiente. */
+.cal-hueco {
+  z-index: 0;
+  background: color-mix(in srgb, var(--color-ok) 20%, var(--color-surface));
+  color: var(--color-ok);
+  outline: 1px solid color-mix(in srgb, var(--color-ok) 45%, transparent);
+  outline-offset: -1px;
+  pointer-events: none;
+}
+.cal-elegida { box-shadow: 0 0 0 2px var(--color-text); z-index: 2; }
+
+/* La version de celular: una lista por dia. Escondida en pantallas anchas. */
+.cal-lista { display: none; list-style: none; margin: 0; padding: 0; }
+.cal-lista > li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+.cal-lista-dia { font-weight: 700; font-size: 14px; }
+.cal-hoy .cal-lista-dia { color: var(--color-accent); }
+.cal-lista-item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+}
+button.cal-lista-item { cursor: pointer; }
+
+.cal-leyenda {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 12.5px;
+}
+.cal-leyenda li { display: inline-flex; align-items: center; gap: 6px; }
+.cal-leyenda i {
+  position: static;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+@media (max-width: 760px) {
+  .cal-grilla { display: none; }
+  .cal-lista { display: block; }
+}
+
+/* --- Detalle de la clase -------------------------------------------------- */
+
+.detalle-quien {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.detalle-datos { margin: 8px 0 12px; font-size: 13.5px; }
+.detalle-formulario {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-divider);
+  max-width: 520px;
+}
+.detalle-formulario .input { background: var(--color-bg); }
+.detalle-fila { display: flex; flex-wrap: wrap; gap: 12px; }
+.detalle-fila .field { flex: 1 1 160px; }
+
+/* --- Pestanias de abajo --------------------------------------------------- */
+
+.agenda-pestanias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.agenda-pestania {
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 14.5px;
+  cursor: pointer;
+}
+.agenda-pestania[aria-selected='true'] {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 700;
+}
+.agenda-pestania:hover:not([aria-selected='true']) {
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+/* --- Editor de franjas (1i y 1j) ------------------------------------------ */
+
+.franjas-dia {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+/* legend no se deja meter en un grid: se lo saca del flujo con float y el
+   grid lo acomoda como si fuera una celda. */
+.franjas-dia-nombre { float: left; padding: 8px 0 0; font-weight: 700; font-size: 14px; }
+.franjas-dia-renglones { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.franjas-renglon {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+.franjas-renglon .input { width: auto; background: var(--color-bg); }
+.franjas-renglon input[type='time'] { width: 110px; }
+.franjas-renglon-error .input { border-color: var(--color-error); }
+.franjas-vacio {
+  padding-top: 8px;
+  font-size: 13.5px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.franjas-agregar { padding-left: 0; }
+.franjas .alerta { margin-top: 12px; }
+
+@media (max-width: 560px) {
+  .franjas-dia { grid-template-columns: minmax(0, 1fr); }
+  .franjas-dia-nombre { float: none; padding: 0; }
+}
+
+/* --- Bloqueos ------------------------------------------------------------- */
+
+.bloqueos-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 12px;
+}
+.bloqueos-form .field { margin: 0; }
+.bloqueos-form .input { background: var(--color-bg); }
+.bloqueos-motivo { flex: 1 1 220px; }
+.bloqueos-todo-el-dia {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 10px;
+  font-size: 13.5px;
+}
+.bloqueos h4 { margin: 20px 0 8px; }
+.bloqueos-lista li,
+.mis-alumnos li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--color-bg);
+}
+.mis-alumnos li { justify-content: flex-start; }
+.mis-alumnos li .btn { margin-left: auto; }
+
+/* --- Celular -------------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  .solicitud { grid-template-columns: auto minmax(0, 1fr); }
+  .solicitud-clase,
+  .solicitud-acciones { grid-column: 1 / -1; }
+  .solicitud-acciones { justify-content: flex-start; }
+}

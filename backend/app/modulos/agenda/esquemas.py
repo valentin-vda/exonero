@@ -1,22 +1,31 @@
 """Contratos de entrada y salida del modulo agenda."""
 
 from datetime import datetime, time
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
+
+# Las filas del calendario semanal son las mismas de GET /clases: se reusa el
+# contrato de clases en vez de copiarlo (y que los dos se desfasen).
+from app.modulos.clases.esquemas import ClaseOut
 
 
 class FranjaIn(BaseModel):
     """Una franja semanal, tal como la manda el editor de 1i y 1j."""
 
-    dia_semana: int   # 0 domingo ... 6 sabado
+    dia_semana: int = Field(ge=0, le=6)   # 0 domingo ... 6 sabado
     hora_inicio: time
     hora_fin: time
-    modalidad: str = "ambas"
+    modalidad: Literal["presencial", "online", "ambas"] = "ambas"
     activa: bool = True
 
 
 class FranjaOut(FranjaIn):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
+    # En la tabla es un enum; aca sale como texto.
+    modalidad: str
 
 
 class FranjasIn(BaseModel):
@@ -32,10 +41,12 @@ class FranjasIn(BaseModel):
 class BloqueoIn(BaseModel):
     inicio: datetime
     fin: datetime
-    motivo: str | None = None
+    motivo: str | None = Field(None, max_length=200)
 
 
 class BloqueoOut(BloqueoIn):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
 
 
@@ -58,7 +69,7 @@ class VerificarIn(BaseModel):
 
     profesor_id: int
     inicio: datetime
-    duracion_min: int
+    duracion_min: int = Field(ge=15, le=480)
 
 
 class VerificarOut(BaseModel):
@@ -79,16 +90,14 @@ class VerificarOut(BaseModel):
 class SemanaOut(BaseModel):
     """GET /agenda/yo/semana - el calendario de 1i en una sola respuesta.
 
-    Trae aprobadas, pendientes y bloqueos juntos, para no hacer tres llamadas
-    y tener que cruzarlas en el frontend.
+    Trae aprobadas, pendientes, cerradas (dictadas y no asistidas) y bloqueos
+    juntos, para no hacer varias llamadas y tener que cruzarlas en el frontend.
+    Las clases tienen la misma forma que GET /clases.
     """
 
     desde: str
     hasta: str
-    aprobadas: list[dict] = []
-    pendientes: list[dict] = []
+    aprobadas: list[ClaseOut] = []
+    pendientes: list[ClaseOut] = []
+    cerradas: list[ClaseOut] = []
     bloqueos: list[BloqueoOut] = []
-
-
-class OkOut(BaseModel):
-    ok: bool = True

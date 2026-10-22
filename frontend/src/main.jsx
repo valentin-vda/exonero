@@ -16,6 +16,7 @@
  *   6. pagos        los del checkout (1g) y de "Medios de pago" (1e)
  *   7. busqueda     los de buscar profesores (1c)
  *   8. inicio        los de la pantalla inicial del estudiante (1a)
+ *   9. agenda       los de la agenda del profesor (1i) y su editor de franjas
  */
 
 import { StrictMode } from 'react'
@@ -35,6 +36,7 @@ import './estilos/pagos.css'
 import './estilos/busqueda.css'
 import './estilos/perfil-publico.css'
 import './estilos/inicio.css'
+import './estilos/agenda.css'
 
 createRoot(document.getElementById('root')).render(
   // StrictMode solo corre en desarrollo. Hace que los efectos se ejecuten dos

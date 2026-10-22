@@ -681,19 +681,21 @@ def cambiar_estado_ficha(db: Session, perfil: PerfilProfesor, estado: EstadoFich
     Antes de publicar se exige lo minimo para que la ficha sirva:
       - al menos una materia
       - precio para cada modalidad que ofrece (sin precio no se puede cotizar)
-
-    La spec pide ademas al menos una franja de disponibilidad. Las franjas son
-    del modulo agenda (P3) y perfiles no puede leer sus tablas. Cuando agenda
-    tenga una funcion publica para saberlo (por ejemplo tiene_franjas()), el
-    chequeo va aca, junto a los otros dos.
+      - al menos una franja de disponibilidad (sin franjas el calendario de 1f
+        sale vacio). Las franjas son del modulo agenda (P3): se le pregunta con
+        tiene_franjas().
     """
+    # Import local: agenda importa perfiles, y al reves seria una importacion
+    # circular al cargar los modulos.
+    from app.modulos.agenda import logica as agenda
+
     if estado == EstadoFicha.publicada:
         cantidad_materias = db.scalar(
             select(func.count())
             .select_from(ProfesorMateria)
             .where(ProfesorMateria.perfil_profesor_id == perfil.id)
         )
-        if cantidad_materias == 0 or not _tiene_precios(perfil):
+        if cantidad_materias == 0 or not _tiene_precios(perfil) or not agenda.tiene_franjas(db, perfil.id):
             raise ErrorAPI(400, "ficha_incompleta")
     perfil.estado_ficha = estado
     db.flush()

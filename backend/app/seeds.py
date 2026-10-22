@@ -16,6 +16,7 @@ QUE CARGA (segun la spec):
   - los idiomas
   - la comision de servicio y la tasa de IVA
   - veinte usuarios de ejemplo, con sus perfiles, disponibilidad y clases
+  - unos bloqueos de agenda (P3), para que 1i y 1f muestren alguno
   - una foto de ejemplo del lugar de clase de profe1
 
 Todos los usuarios entran con la clave "exonero123":
@@ -30,7 +31,7 @@ usuarios no se podria hacer login.
 Las fechas de las clases se calculan desde HOY, asi siempre hay clases
 proximas y pasadas sin importar cuando se corra.
 
-QUE NO CARGA (todavia): mensajes, resenas ni bloqueos de agenda.
+QUE NO CARGA (todavia): mensajes ni resenas.
 """
 
 import base64
@@ -59,7 +60,7 @@ from app.seguridad import hashear_clave
 
 # seeds no es un modulo: es el unico script que escribe en las tablas de los
 # nueve a la vez, asi que importa los modelos de todos.
-from app.modulos.agenda.modelos import FranjaDisponibilidad
+from app.modulos.agenda.modelos import Bloqueo, FranjaDisponibilidad
 from app.modulos.catalogos.modelos import (
     Barrio,
     CentroEducativo,
@@ -539,6 +540,34 @@ def sembrar_agenda(db, usuarios: dict) -> None:
     db.flush()
 
 
+# Los bloqueos de ejemplo: (profesor, dias desde hoy, desde, hasta, motivo).
+# Caen despues de la ultima clase de PLAN_CLASES (la pendiente, a 4 a 6 dias),
+# asi ninguno pisa una aprobada, que es justo lo que agenda no deja hacer.
+PLAN_BLOQUEOS = [
+    (0, 8, time(14), time(16), "Turno medico"),
+    (1, 9, time(15), time(21), "Mesa de examen en el liceo"),
+    (2, 10, time(0), time(23, 59), "Congreso de docentes"),
+]
+
+
+def sembrar_bloqueos(db, usuarios: dict) -> None:
+    """Carga unos bloqueos de agenda para profe1, profe2 y profe3.
+
+    Sin bloqueos, la pestana de 1i sale vacia y el calendario de 1f nunca
+    muestra un dia tapado.
+    """
+    hoy = datetime.now(ZONA).date()
+    for n, dias, desde, hasta, motivo in PLAN_BLOQUEOS:
+        dia = _dia_habil(hoy, dias)
+        db.add(Bloqueo(
+            perfil_profesor_id=usuarios["profesores"][n]["perfil"].id,
+            inicio=datetime.combine(dia, desde, ZONA),
+            fin=datetime.combine(dia, hasta, ZONA),
+            motivo=motivo,
+        ))
+    db.flush()
+
+
 def sembrar_clases(db, usuarios: dict, catalogos: dict) -> None:
     """Crea clases de ejemplo en los distintos estados, cada una con su cobro.
 
@@ -684,6 +713,7 @@ def main() -> None:
         usuarios = sembrar_usuarios(db, catalogos)
         sembrar_agenda(db, usuarios)
         sembrar_clases(db, usuarios, catalogos)
+        sembrar_bloqueos(db, usuarios)
         db.commit()
         print("Datos de prueba cargados.")
         print(f"  Profesores: profe1 a profe{len(PROFESORES)}@example.com")

@@ -15,6 +15,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import RutaProtegida from './auth/RutaProtegida.jsx'
 import EnConstruccion from './componentes/EnConstruccion.jsx'
 import Layout from './componentes/Layout.jsx'
+import AgendaProfesor from './paginas/AgendaProfesor.jsx'
 import BuscarProfesores from './paginas/BuscarProfesores.jsx'
 import Checkout from './paginas/Checkout.jsx'
 import InicioEstudiante from './paginas/InicioEstudiante.jsx'
@@ -69,17 +70,8 @@ export default function App() {
         <Route element={<Layout />}>
           {/* 1d - P4 */}
           <Route path="/panel" element={<PanelProfesor />} />
-          <Route
-            path="/agenda"
-            element={
-              <EnConstruccion
-                codigo="1i"
-                nombre="Agenda del profesor"
-                dueno="P3"
-                descripcion="Solicitudes por aprobar, calendario, franjas y bloqueos."
-              />
-            }
-          />
+          {/* 1i - P3 */}
+          <Route path="/agenda" element={<AgendaProfesor />} />
           {/* 1j - P1 */}
           <Route path="/perfil-profesor" element={<PerfilProfesor />} />
         </Route>
