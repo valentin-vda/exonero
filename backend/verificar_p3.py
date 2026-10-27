@@ -163,7 +163,17 @@ ID = {
 PERFIL1 = sql("SELECT id FROM perfil_profesor WHERE usuario_id = :u", u=ID["profe1"])
 profe1, profe2, alumno1 = login("profe1@example.com"), login("profe2@example.com"), login("alumno1@example.com")
 
-APROBADA = filas("SELECT id, inicio, fin FROM clase WHERE profesor_id = :p AND estado = 'aprobada'", p=ID["profe1"])[0]
+# La primera aprobada de profe1 en un dia habil, a mas de un dia, y en un dia
+# sin bloqueos: con los seeds grandes hay muchas, y algunas caen un sabado o
+# el dia del "Turno medico", donde los chequeos de abajo ("otra hora del dia
+# de la aprobada") darian otro motivo.
+APROBADA = filas(
+    "SELECT c.id, c.inicio, c.fin FROM clase c WHERE c.profesor_id = :p AND c.estado = 'aprobada' "
+    "AND c.inicio > now() + interval '1 day' "
+    "AND extract(isodow FROM c.inicio AT TIME ZONE 'America/Montevideo') <= 5 "
+    "AND NOT EXISTS (SELECT 1 FROM bloqueo b WHERE b.perfil_profesor_id = :perfil "
+    "AND (b.inicio AT TIME ZONE 'America/Montevideo')::date = (c.inicio AT TIME ZONE 'America/Montevideo')::date) "
+    "ORDER BY c.inicio", p=ID["profe1"], perfil=PERFIL1)[0]
 PENDIENTE = filas("SELECT id, inicio, fin FROM clase WHERE profesor_id = :p AND estado = 'pendiente'", p=ID["profe1"])[0]
 FRANJAS_ORIGINALES = [
     {"dia_semana": f.dia_semana, "hora_inicio": f.hora_inicio.isoformat(), "hora_fin": f.hora_fin.isoformat(),
@@ -272,7 +282,9 @@ ok("encima de la aprobada: ocupado", cuerpo.get("motivo") == "ocupado", cuerpo)
 _, cuerpo = verificar(ID["profe1"], PENDIENTE.inicio.isoformat())
 ok("encima de una pendiente: libre", cuerpo.get("libre") is True, cuerpo)
 reglas(max_clases_dia=1)
-otra_hora = APROBADA.inicio.astimezone(fechas.ZONA).replace(hour=14, minute=0)
+# Una hora de la franja de profe1 (14 a 20) que no pise la aprobada.
+inicio_aprobada = APROBADA.inicio.astimezone(fechas.ZONA)
+otra_hora = inicio_aprobada.replace(hour=14 if inicio_aprobada.hour >= 16 else 18, minute=0)
 _, cuerpo = verificar(ID["profe1"], otra_hora.isoformat())
 ok("con tope 1, otra hora del dia de la aprobada: tope_diario", cuerpo.get("motivo") == "tope_diario", cuerpo)
 reglas(max_clases_dia=None)
@@ -381,7 +393,14 @@ desde_semana = APROBADA.inicio.astimezone(fechas.ZONA).date() - timedelta(days=1
 estado, semana = pedir("GET", f"/agenda/yo/semana?desde={desde_semana}", token=profe1)
 ok("200 con desde y hasta (siete dias)", estado == 200 and semana["desde"] == desde_semana.isoformat()
    and semana["hasta"] == (desde_semana + timedelta(days=6)).isoformat(), semana)
-ok("trae la aprobada en aprobadas", [c["id"] for c in semana["aprobadas"]] == [APROBADA.id], semana["aprobadas"])
+# Con los seeds grandes profe1 tiene varias aprobadas por semana: tienen que
+# venir todas las de esos siete dias, y entre ellas la del calendario.
+aprobadas_semana = sorted(i for (i,) in filas(
+    "SELECT id FROM clase WHERE profesor_id = :p AND estado = 'aprobada' AND inicio >= :d AND inicio < :h",
+    p=ID["profe1"], d=fechas.inicio_del_dia(desde_semana), h=fechas.inicio_del_dia(desde_semana + timedelta(days=7))))
+ok("trae las aprobadas de la semana, y entre ellas la del calendario",
+   APROBADA.id in [c["id"] for c in semana["aprobadas"]]
+   and sorted(c["id"] for c in semana["aprobadas"]) == aprobadas_semana, (semana["aprobadas"], aprobadas_semana))
 ok("las filas tienen la forma de GET /clases (contraparte, total, cobro_estado)",
    all({"contraparte", "total", "cobro_estado", "materia"} <= set(c) for c in semana["aprobadas"]))
 en_rango = PENDIENTE.inicio.astimezone(fechas.ZONA).date() <= desde_semana + timedelta(days=6)
@@ -416,13 +435,24 @@ ok("franja=manana: 200 y solo los que tienen franjas de manana",
    (manana, de_manana))
 estado, domingo = pedir("GET", "/busqueda/profesores?dia=0")
 ok("dia=0 (domingo, nadie atiende): ninguno", estado == 200 and domingo["total"] == 0, domingo)
+# Con los seeds grandes hay profesores con la agenda llena: que tenga franja
+# no alcanza para aparecer, tiene que tener un hueco libre. Por eso se pide
+# que vengan algunos, y que todos los que vienen tengan esa franja.
 estado, finde = pedir("GET", "/busqueda/profesores?franja=fin_de_semana")
-ok("franja=fin_de_semana: los de los sabados", estado == 200 and {r["id"] for r in finde["resultados"]} == de_manana, finde)
+de_finde = {u for (u,) in filas(
+    "SELECT p.usuario_id FROM franja_disponibilidad f JOIN perfil_profesor p ON p.id = f.perfil_profesor_id "
+    "WHERE f.dia_semana IN (0, 6) AND p.estado_ficha = 'publicada'")}
+ok("franja=fin_de_semana: algunos, y solo de los que atienden sabado o domingo", estado == 200
+   and finde["total"] > 0 and {r["id"] for r in finde["resultados"]} <= de_finde, (finde, de_finde))
 # Un dia habil a 3 o mas dias, asi el aviso minimo no lo tapa.
 dia_tarde = dia_habil(3).isoweekday() % 7
 estado, martes = pedir("GET", f"/busqueda/profesores?dia={dia_tarde}&franja=tarde")
-ok("un dia habil de tarde: todos los publicados", estado == 200 and martes["total"] == sql(
-    "SELECT count(*) FROM perfil_profesor WHERE estado_ficha = 'publicada'"), martes.get("total"))
+de_tarde = {u for (u,) in filas(
+    "SELECT p.usuario_id FROM franja_disponibilidad f JOIN perfil_profesor p ON p.id = f.perfil_profesor_id "
+    "WHERE f.dia_semana = :d AND f.hora_inicio < '18:00' AND f.hora_fin > '12:00' AND p.estado_ficha = 'publicada'",
+    d=dia_tarde)}
+ok("un dia habil de tarde: algunos, y solo de los que atienden esa tarde", estado == 200
+   and martes["total"] > 0 and {r["id"] for r in martes["resultados"]} <= de_tarde, (martes.get("total"), de_tarde))
 
 error("reprogramar la aprobada a las 8 (fuera de franja): horario_ocupado",
       pedir("POST", f"/clases/{APROBADA.id}/reprogramar", {"inicio": iso(dia_habil(6), 8)}, token=profe1),
@@ -435,8 +465,10 @@ from app.modulos.agenda import logica as agenda  # noqa: E402
 with SesionLocal() as db:
     publicados = [u for (u,) in db.execute(text(
         "SELECT usuario_id FROM perfil_profesor WHERE estado_ficha = 'publicada' ORDER BY usuario_id"))]
-    ok("filtrar_con_hueco: respeta el orden recibido",
-       agenda.filtrar_con_hueco(db, list(reversed(publicados)), None, "tarde") == list(reversed(publicados)))
+    al_reves = list(reversed(publicados))
+    con_tarde = agenda.filtrar_con_hueco(db, al_reves, None, "tarde")
+    ok("filtrar_con_hueco: respeta el orden recibido (y deja afuera a los que no tienen tarde libre)",
+       con_tarde and con_tarde == [u for u in al_reves if u in con_tarde], con_tarde)
     ok("filtrar_con_hueco: lista vacia -> vacia", agenda.filtrar_con_hueco(db, [], 2, None) == [])
     primeras = agenda.primera_hora_libre(db, publicados + [ID["alumno1"]])
     ok("primera_hora_libre: uno por profesor, el alumno no", set(primeras) == set(publicados), primeras)
@@ -716,15 +748,20 @@ ok("seeds: resenas en los dos sentidos, todas sobre pares con clase dictada",
        "SELECT count(*) FROM resena r WHERE NOT EXISTS (SELECT 1 FROM clase c WHERE c.estado = 'dictada' AND "
        "((c.estudiante_id = r.autor_id AND c.profesor_id = r.destinatario_id) OR "
        "(c.profesor_id = r.autor_id AND c.estudiante_id = r.destinatario_id)))") == 0)
+# Los seeds cargan cientos de hilos: alcanza con que haya y que todos cuadren.
 ok("seeds: cada hilo tiene ultimo_mensaje_el = su ultimo mensaje", sql(
     "SELECT count(*) FROM hilo h WHERE h.ultimo_mensaje_el IS DISTINCT FROM "
     "(SELECT max(enviado_el) FROM mensaje m WHERE m.hilo_id = h.id)") == 0
-   and sql("SELECT count(*) FROM hilo") == 5)
+   and sql("SELECT count(*) FROM hilo") > 0)
 ok("seeds: en cada hilo, el orden por id es el orden por hora (el historial pagina por id)", sql(
     "SELECT count(*) FROM (SELECT enviado_el < lag(enviado_el) OVER (PARTITION BY hilo_id ORDER BY id) AS mal "
     "FROM mensaje) x WHERE mal") == 0)
-ok("seeds: 3 bloqueos, ninguno encima de una aprobada",
-   sql("SELECT count(*) FROM bloqueo") == 3 and sql(
+# Los seeds cargan bloqueos para muchos profesores; los fijos de P3 son los
+# tres de profe1, profe2 y profe3.
+ok("seeds: los 3 bloqueos de profe1 a profe3, y ningun bloqueo encima de una aprobada",
+   sql("SELECT count(*) FROM bloqueo b JOIN perfil_profesor p ON p.id = b.perfil_profesor_id "
+       "JOIN usuario u ON u.id = p.usuario_id "
+       "WHERE u.correo IN ('profe1@example.com', 'profe2@example.com', 'profe3@example.com')") == 3 and sql(
        "SELECT count(*) FROM bloqueo b JOIN perfil_profesor p ON p.id = b.perfil_profesor_id "
        "JOIN clase c ON c.profesor_id = p.usuario_id AND c.estado = 'aprobada' "
        "AND c.inicio < b.fin AND c.fin > b.inicio") == 0)

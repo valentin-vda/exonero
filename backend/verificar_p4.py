@@ -270,7 +270,11 @@ ok("crear a domicilio: ubicacion = casa del alumno",
 
 # Los errores de tarjeta, en un horario que alumno1 todavia no pidio (si no,
 # el control de doble pedido responderia 409 antes de mirar la tarjeta).
-libre = {**reserva, "inicio": futuro(18, 16)}
+# A las 19 y no a las 16: futuro() corre el fin de semana al lunes, y segun el
+# dia en que se corra, el dia 18 puede caer el mismo lunes que el 16, donde
+# ya hay una reserva a las 16. Y no mas tarde: la clase (90 min) tiene que
+# entrar en la franja de profe4, que termina a las 21.
+libre = {**reserva, "inicio": futuro(18, 19)}
 antes = cantidad_clases()
 error("crear con tarjeta terminada en 0000", pedir("POST", "/clases", {**libre, "tarjeta_id": TARJETA_0000}, token=alumno1), 402, "cobro_rechazado")
 ok("cobro rechazado: la clase NO queda creada", cantidad_clases() == antes)
@@ -388,10 +392,16 @@ falta = (momento(prox["inicio"]) - fechas.ahora()).total_seconds() / 60
 ok("proxima: minutos_restantes cuadra", prox["minutos_restantes"] > 0 and abs(prox["minutos_restantes"] - falta) <= 2, (prox["minutos_restantes"], falta))
 ok("proxima del profesor: el alumno con etapa, centro y telefono",
    prox["contraparte"]["etapa"] and prox["contraparte"]["centro"] and prox["contraparte"]["telefono"], prox["contraparte"])
-alumno_prox = sql("SELECT correo FROM usuario WHERE id = :i", i=sql("SELECT estudiante_id FROM clase WHERE id = :i", i=siguiente_id))
+alumno_prox_id = sql("SELECT estudiante_id FROM clase WHERE id = :i", i=siguiente_id)
+alumno_prox = sql("SELECT correo FROM usuario WHERE id = :i", i=alumno_prox_id)
 estado, prox_a = pedir("GET", "/clases/proxima", token=login(alumno_prox))
-ok("proxima del alumno: la misma clase, del otro lado", estado == 200 and prox_a["id"] == siguiente_id
-   and prox_a["contraparte"]["id"] == ID["profe1"] and prox_a["contraparte"]["cantidad_resenas"] is not None, prox_a)
+# Del lado del alumno, la proxima es SU primera aprobada por delante: puede
+# ser con otro profesor, si tiene una antes que la de profe1.
+suya = sql("SELECT id FROM clase WHERE estudiante_id = :a AND estado = 'aprobada' AND inicio > now() "
+           "ORDER BY inicio LIMIT 1", a=alumno_prox_id)
+ok("proxima del alumno: su primera aprobada, con el profesor del otro lado", estado == 200 and prox_a["id"] == suya
+   and prox_a["contraparte"]["id"] == sql("SELECT profesor_id FROM clase WHERE id = :i", i=suya)
+   and prox_a["contraparte"]["cantidad_resenas"] is not None, prox_a)
 estado, cuerpo = pedir("GET", "/clases/proxima", token=login("profe7@example.com"))
 ok("proxima sin clases aprobadas: 204 sin cuerpo", estado == 204 and cuerpo is None, (estado, cuerpo))
 
@@ -409,14 +419,17 @@ error("pendientes como alumno", pedir("GET", "/clases/pendientes", token=alumno1
 
 
 seccion("GET /clases/metricas")
-# profe5 tiene en los seeds dos dictadas y una cancelada este mes. Para que
-# haya variacion, se le cargan clases en el mes anterior: dos dictadas del
-# mismo alumno (60 y 90 min) y una cancelada.
+# profe5 tiene meses de historia en los seeds: sus metricas se comparan con
+# las mismas cuentas hechas en SQL. Y para comprobar la variacion contra
+# numeros conocidos, a profe7 (en borrador, sin ninguna clase en los seeds)
+# se le cargan clases en el mes anterior: dos dictadas del mismo alumno (60 y
+# 90 min) y una cancelada.
 profe5 = login("profe5@example.com")
 ID["profe5"] = sql("SELECT id FROM usuario WHERE correo = 'profe5@example.com'")
+profe7 = login("profe7@example.com")
 mes_ant, _ = fechas.rango_periodo("mes", atras=1)
 for dias, minutos, estado_clase in ((2, 60, "dictada"), (9, 90, "dictada"), (12, 60, "cancelada")):
-    insertar_clase(ID["alumno3"], ID["profe5"], mes_ant + timedelta(days=dias, hours=16), minutos, estado_clase)
+    insertar_clase(ID["alumno3"], ID["profe7"], mes_ant + timedelta(days=dias, hours=16), minutos, estado_clase)
 
 
 def indicadores_sql(profesor, desde, hasta) -> dict:
@@ -461,16 +474,17 @@ for periodo in ("mes", "trimestre", "anio"):
        set(m["variacion"]) == set(REDONDEO)
        and all(m["variacion"][k] == var_esperada(m[k], anterior[k], k) for k in REDONDEO), (m["variacion"], anterior))
 estado, m = pedir("GET", "/clases/metricas?periodo=mes", token=profe5)
-ok("metricas mes: el mes anterior tenia 1 alumno, 2,5 h, 1 recurrente, 33,3 % de cancelacion -> variaciones numericas",
-   all(isinstance(m["variacion"][k], float) for k in m["variacion"]), m["variacion"])
-ant = indicadores_sql(ID["profe5"], *fechas.rango_periodo("mes", atras=1))
-ok("metricas mes: el anterior es el que se cargo a mano",
-   ant["alumnos_atendidos"] == 1 and ant["horas_dictadas"] == Decimal("2.5") and ant["alumnos_recurrentes"] == 1, ant)
-ok("metricas mes: variacion de horas = (actual - 2,5) / 2,5",
-   m["variacion"]["horas_dictadas"] == round(float((Decimal(m["horas_dictadas"]) - Decimal("2.5")) * 100 / Decimal("2.5")), 1), m)
 ok("metricas mes: tasa_cancelacion en porcentaje (0 a 100)", Decimal("0") <= Decimal(m["tasa_cancelacion"]) <= 100, m)
-ok("metricas: variacion null cuando el anterior es 0",
-   pedir("GET", "/clases/metricas?periodo=mes", token=profe1)[1]["variacion"]["alumnos_atendidos"] is None)
+estado, m7 = pedir("GET", "/clases/metricas?periodo=mes", token=profe7)
+ant = indicadores_sql(ID["profe7"], *fechas.rango_periodo("mes", atras=1))
+ok("metricas mes: el anterior es el que se cargo a mano (1 alumno, 2,5 h, 1 recurrente)",
+   ant["alumnos_atendidos"] == 1 and ant["horas_dictadas"] == Decimal("2.5") and ant["alumnos_recurrentes"] == 1, ant)
+ok("metricas mes: con mes anterior, las variaciones son numeros",
+   estado == 200 and all(isinstance(m7["variacion"][k], float) for k in m7["variacion"]), m7)
+ok("metricas mes: variacion de horas = (actual - 2,5) / 2,5",
+   m7["variacion"]["horas_dictadas"] == round(float((Decimal(m7["horas_dictadas"]) - Decimal("2.5")) * 100 / Decimal("2.5")), 1), m7)
+ok("metricas: variacion null cuando el anterior es 0 (profe8, pausada, sin clases)",
+   pedir("GET", "/clases/metricas?periodo=mes", token=login("profe8@example.com"))[1]["variacion"]["alumnos_atendidos"] is None)
 error("metricas periodo invalido", pedir("GET", "/clases/metricas?periodo=semana", token=profe5), 400, "periodo_invalido")
 error("metricas como alumno", pedir("GET", "/clases/metricas", token=alumno1), 403, "no_es_tuyo")
 
@@ -776,11 +790,27 @@ ok("upgrade: la clave foranea es ON DELETE SET NULL", sql(
 r = correr("-m", "alembic", "check")
 ok("alembic check despues de ir y volver", r.returncode == 0, r.stderr[-400:])
 
-primera, segunda = correr("-m", "app.seeds"), correr("-m", "app.seeds")
+def contar(tablas: tuple) -> dict:
+    return {t: sql(f"SELECT count(*) FROM {t}") for t in tablas}
+
+
+# Lo que no depende de la hora tiene que quedar identico. Las clases (y lo
+# que cuelga de ellas) dependen un poco de cuando se corre: un horario que
+# justo empezo entre una corrida y la otra se descarta. Por eso alcanza con
+# que no se dupliquen.
+FIJAS = ("usuario", "tarjeta", "franja_disponibilidad", "materia", "barrio", "centro_educativo")
+CON_HORA = ("clase", "cobro", "resena", "mensaje")
+primera = correr("-m", "app.seeds")
+fijas_1, con_hora_1 = contar(FIJAS), contar(CON_HORA)
+segunda = correr("-m", "app.seeds")
+fijas_2, con_hora_2 = contar(FIJAS), contar(CON_HORA)
 ok("seeds dos veces seguidas", primera.returncode == 0 and segunda.returncode == 0, (primera.stderr + segunda.stderr)[-400:])
-ok("seeds: sin duplicar nada (20 usuarios, 30 clases, 30 cobros, 12 tarjetas)",
-   sql("SELECT (SELECT count(*) FROM usuario) || '|' || (SELECT count(*) FROM clase) || '|' || "
-       "(SELECT count(*) FROM cobro) || '|' || (SELECT count(*) FROM tarjeta)") == "20|30|30|12")
+ok("seeds: la segunda vez deja lo mismo (usuarios, tarjetas, franjas, catalogos)", fijas_1 == fijas_2, (fijas_1, fijas_2))
+ok("seeds: sin duplicar clases, cobros, resenas ni mensajes",
+   all(abs(con_hora_2[t] - con_hora_1[t]) <= con_hora_1[t] * 0.02 for t in CON_HORA), (con_hora_1, con_hora_2))
+ok("seeds: los veinte de siempre conservan su id (profe1..8 = 1..8, alumno1..12 = 9..20)",
+   sql("SELECT string_agg(correo, ',' ORDER BY id) FROM usuario WHERE id IN (1, 8, 9, 20)")
+   == "profe1@example.com,profe8@example.com,alumno1@example.com,alumno12@example.com")
 with SesionLocal() as db:
     clases_seeds = db.execute(text(
         "SELECT duracion_min, precio_hora, costo_traslado, pct_comision, pct_iva, subtotal, impuesto, total FROM clase")).all()
@@ -788,7 +818,7 @@ cuadran = [
     clases_logica.desglosar(c.precio_hora, c.duracion_min, c.costo_traslado, c.pct_comision, c.pct_iva)
     for c in clases_seeds
 ]
-ok("seeds: las 30 clases cuadran con desglosar() (el mismo calculo que el checkout)",
+ok(f"seeds: las {len(clases_seeds)} clases cuadran con desglosar() (el mismo calculo que el checkout)",
    all((d["subtotal"], d["impuesto"], d["total"]) == (c.subtotal, c.impuesto, c.total) for d, c in zip(cuadran, clases_seeds)))
 ok("seeds: cada cobro es el total de su clase",
    sql("SELECT count(*) FROM cobro co JOIN clase c ON c.id = co.clase_id WHERE co.importe <> c.total") == 0)
