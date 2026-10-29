@@ -5,8 +5,9 @@ Todo cuelga de /api/pagos.
 Las tarjetas son el mismo recurso desde dos pantallas: el alta desde el
 checkout (1g) y la administracion desde el perfil (1e). No se duplica.
 
-Tarjetas e historial son solo del alumno (`Estudiante`) y los ingresos solo
-del profesor (`Profesor`): con el otro rol, 403 no_es_tuyo.
+Tarjetas e historial son solo del alumno (`Estudiante`); los ingresos y las
+cuentas de cobro, solo del profesor (`Profesor`): con el otro rol, 403
+no_es_tuyo.
 
 Igual que en P1: cada ruta llama a logica.py, hace el commit y responde.
 """
@@ -91,3 +92,59 @@ def ingresos(yo: Profesor, db: Db, periodo: str = "mes", agrupar: str = "semana"
     Errores: 400 periodo_invalido, 400 agrupacion_invalida.
     """
     return logica.ingresos_de(db, yo.id, periodo, agrupar)
+
+
+# ---------------------------------------------------------------------------
+# Cuentas de cobro del profesor - 1j, la tarjeta "Cobros"
+# ---------------------------------------------------------------------------
+
+@router.get("/cuentas", response_model=list[esquemas.CuentaCobroOut])
+def listar_cuentas(yo: Profesor, db: Db):
+    """Las cuentas de cobro activas del profesor: la principal primero.
+
+    NUNCA devuelve el numero de cuenta completo: solo "•••• 3391". El correo
+    de Mercado Pago si va entero.
+    """
+    return logica.cuentas_de(db, yo.id)
+
+
+@router.post("/cuentas", response_model=esquemas.CuentaCobroOut, status_code=status.HTTP_201_CREATED)
+def agregar_cuenta(datos: esquemas.CuentaCobroIn, yo: Profesor, db: Db):
+    """Alta de una cuenta de cobro. La primera queda como principal.
+
+    Devuelve la version visible, la misma forma que GET.
+
+    Errores: 400 cuenta_invalida (el numero no es de 6 a 20 digitos, o falta
+             la moneda o el titular; los espacios y guiones del numero se
+             aceptan y se sacan), 400 banco_no_existe, 400 correo_invalido,
+             409 cuenta_repetida. 422 si tipo o moneda no son de la lista.
+    """
+    cuenta = logica.agregar_cuenta(db, yo.id, datos)
+    db.commit()
+    return cuenta
+
+
+@router.put("/cuentas/{cuenta_id}/principal", response_model=list[esquemas.CuentaCobroOut])
+def marcar_principal(cuenta_id: int, yo: Profesor, db: Db):
+    """Hace principal a esta cuenta; la que lo era pasa a alternativa.
+
+    Devuelve todas las cuentas ya reordenadas (cambian dos filas).
+
+    Errores: 404 cuenta_no_existe, 403 no_es_tuyo (es de otro profesor).
+    """
+    cuentas = logica.marcar_principal(db, yo.id, cuenta_id)
+    db.commit()
+    return cuentas
+
+
+@router.delete("/cuentas/{cuenta_id}", status_code=status.HTTP_204_NO_CONTENT)
+def borrar_cuenta(cuenta_id: int, yo: Profesor, db: Db):
+    """Da de baja una cuenta de cobro. Baja LOGICA, como las tarjetas.
+
+    Si era la principal, pasa a principal la mas vieja de las que quedan.
+
+    Errores: 404 cuenta_no_existe, 403 no_es_tuyo (es de otro profesor).
+    """
+    logica.dar_de_baja_cuenta(db, yo.id, cuenta_id)
+    db.commit()
+    return None

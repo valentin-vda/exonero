@@ -18,7 +18,7 @@
   --color-text: #13284c;      /* texto y encabezados azul oscuro */
   --color-azul-heading: #13284c;
   --color-accent: #4d7fb3;    /* botones, enlaces y controles activos */
-  --color-accent-2: #9b6b4f;  /* acento secundario marron */
+  --color-accent-2: #b08a1e;  /* acento secundario dorado */
   --color-divider: color-mix(in srgb, #13284c 14%, transparent);
   --color-text-muted: color-mix(in srgb, var(--color-text) 58%, transparent);
 
@@ -51,16 +51,18 @@
   --color-accent-800: #284a70;
   --color-accent-900: #18304d;
 
-  /* --- Rampa del acento secundario (oliva) --- */
-  --color-accent-2-100: #ffffff;
-  --color-accent-2-200: #efe0d4;
-  --color-accent-2-300: #e0c6b2;
-  --color-accent-2-400: #c9a084;
-  --color-accent-2-500: #a8785a;
-  --color-accent-2-600: #8b5e3c;
-  --color-accent-2-700: #6f4a30;
-  --color-accent-2-800: #523624;
-  --color-accent-2-900: #3a2c24;
+  /* --- Rampa del acento secundario (dorado). Antes era marron. Es el color
+         de lo destacado: el podio, los pines de los mejor rankeados, las
+         estrellas y los detalles dorados de la ficha de un profe del podio. --- */
+  --color-accent-2-100: #fdf7e3;
+  --color-accent-2-200: #f9ebbf;
+  --color-accent-2-300: #f1d88a;
+  --color-accent-2-400: #e4bf4f;
+  --color-accent-2-500: #cfa52d;
+  --color-accent-2-600: #b08a1e;
+  --color-accent-2-700: #8d6d16;
+  --color-accent-2-800: #6b5212;
+  --color-accent-2-900: #4a390d;
 
   /* --- Estados (no estan en el sistema base; los agregamos para formularios) --- */
   --color-error: #a33c2a;
@@ -139,16 +141,17 @@
   --color-accent-800: #aec3d6;
   --color-accent-900: #d5e1eb;
 
-  --color-accent-2: #b48669;
-  --color-accent-2-100: #211a16;
-  --color-accent-2-200: #30241d;
-  --color-accent-2-300: #443127;
-  --color-accent-2-400: #684a38;
-  --color-accent-2-500: #9b6b4f;
-  --color-accent-2-600: #c09072;
-  --color-accent-2-700: #d4aa90;
-  --color-accent-2-800: #e5c7b4;
-  --color-accent-2-900: #f4e4da;
+  /* El dorado en oscuro: la rampa se invierte (el 100 es el mas oscuro). */
+  --color-accent-2: #d9b44a;
+  --color-accent-2-100: #231c0b;
+  --color-accent-2-200: #332810;
+  --color-accent-2-300: #4a3a15;
+  --color-accent-2-400: #6e561d;
+  --color-accent-2-500: #a3801f;
+  --color-accent-2-600: #c9a32f;
+  --color-accent-2-700: #ddbb52;
+  --color-accent-2-800: #ecd383;
+  --color-accent-2-900: #f7e9bd;
 
   --color-error: #f2a395;
   --color-error-fondo: #2a1110;

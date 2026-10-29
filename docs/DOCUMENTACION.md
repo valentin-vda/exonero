@@ -1293,7 +1293,6 @@ opción con el valor actual → los campos se deshabilitan y aparece el aviso.
 | "Enviarme un enlace por correo" | No hay correo saliente. En su lugar se explica cómo usar "Olvidé mi contraseña" del login |
 | "Cuenta verificada", "Identidad verificada", "Título verificado" | No hay verificación de identidad en el modelo de datos |
 | "Materias en las que buscás apoyo" (1e) | No hay tabla para eso en el perfil del estudiante |
-| "Cuentas de cobro" del profesor (BROU, Mercado Pago) | El modelo no tiene cuenta bancaria del profesor: los ingresos son la suma de sus cobros |
 | "Precio por alumno en grupal" y "misma etapa" | No están en el modelo, y lo grupal está fuera de la v1 |
 | "Ver mi ficha pública" (1j) | La ficha pública es la pantalla 1f, que es de P2 y solo pueden abrirla los estudiantes |
 | La etapa "Primaria" | Las etapas salen del catálogo, y la lista que manda no la tiene (sección 13) |
@@ -1676,10 +1675,11 @@ agenda. No bloquean materia, etapa, ubicación, precio, modalidad ni puntaje.
 ## 9. Clases y pagos (P4), de punta a punta
 
 Todo lo de P4 está hecho: los módulos `clases` y `pagos`, la migración que
-arregla la tabla `cobro`, los seeds con el mismo cálculo de plata que el
-checkout, y sus tres pantallas: el checkout **1g**, la pestaña "Medios de pago"
-de **1e** y el panel del profesor **1d** (ver "El frontend de P4", más abajo).
-Esta sección es el mapa, con la misma forma que la 7.
+arregla la tabla `cobro`, las **cuentas de cobro** del profesor (con su tabla y
+su migración), los seeds con el mismo cálculo de plata que el checkout, y sus
+pantallas: el checkout **1g**, la pestaña "Medios de pago" de **1e**, el panel
+del profesor **1d** y la tarjeta "Cobros" de **1j** (ver "El frontend de P4",
+más abajo). Esta sección es el mapa, con la misma forma que la 7.
 
 ### Probarlo en dos minutos
 
@@ -1705,13 +1705,20 @@ Para ver el error de pago de 1g: agregá una tarjeta terminada en `0000`
 (`POST /api/pagos/tarjetas` con `"numero": "4000 0000 0000 0000"`) y reservá con
 ella. Responde 402 `cobro_rechazado` y la clase no se crea.
 
-**Las 278 comprobaciones.** `backend/verificar_p4.py` recorre todos los
+Las cuentas de cobro, con el token de `profe1@example.com`:
+`GET /api/pagos/cuentas` muestra las del mockup (BROU `"•••• 3391"` principal y
+Mercado Pago `lucia.fernandez@example.com` de alternativa). En la app: **Mi
+perfil**, pestaña "Contraseña y cobros".
+
+**Las 346 comprobaciones.** `backend/verificar_p4.py` recorre todos los
 endpoints de P4 con los usuarios de los seeds: los flujos de la plata de punta a
 punta, los errores de cada uno (roles cruzados, ids que no existen, estados
-inválidos), que los importes cuadren al centésimo, la migración de ida y vuelta
-y los seeds dos veces seguidas. **Ensucia la base** (crea y cancela clases,
-cambia el precio de profe4) y al final la vuelve a sembrar, así que se corre
-contra una base aparte, nunca contra la de todos los días (si el `.env` apunta a
+inválidos), que los importes cuadren al centésimo, las cuentas de cobro (alta,
+principal, bajas, validaciones, pedidos a la vez y las restricciones de la
+base), las dos migraciones de ida y vuelta y los seeds dos veces seguidas.
+**Ensucia la base** (crea y cancela clases, cambia el precio de profe4, agrega y
+quita cuentas de cobro) y al final la vuelve a sembrar, así que se corre contra
+una base aparte, nunca contra la de todos los días (si el `.env` apunta a
 `exonero`, se niega a correr):
 
 ```bash
@@ -1723,7 +1730,7 @@ cd backend
 python -m alembic upgrade head
 python -m app.seeds
 python -m uvicorn app.main:app --port 8001     # en otra terminal, con el mismo BASE_URL
-python verificar_p4.py                          # "278 de 278 comprobaciones pasaron."
+python verificar_p4.py                          # "346 de 346 comprobaciones pasaron."
 ```
 
 ### El ciclo de vida, en una tabla
@@ -1749,12 +1756,13 @@ Solo una `pendiente` se aprueba o se rechaza; solo una `pendiente` o una
 | `clases/logica.py` | `desglosar()` y `cotizar()`, crear y las cinco acciones, el calendario, la próxima clase, las solicitudes, las métricas y las series de 1d, y lo que leen agenda y reseñas |
 | `clases/rutas.py` | Los 14 endpoints de `/api/clases` |
 | `clases/esquemas.py` | Los contratos. `ClaseOut` suma `etapa` |
-| `pagos/logica.py` | Las cuatro transiciones del cobro, el reembolso en segundo plano, tarjetas, historial e ingresos |
-| `pagos/rutas.py` | Los 5 endpoints de `/api/pagos` |
-| `pagos/modelos.py` | `cobro.clase_id` ahora admite NULL (ver abajo) |
+| `pagos/logica.py` | Las cuatro transiciones del cobro, el reembolso en segundo plano, tarjetas, historial, ingresos y cuentas de cobro (con la lista fija de bancos, `BANCOS`) |
+| `pagos/rutas.py` | Los 9 endpoints de `/api/pagos` |
+| `pagos/modelos.py` | `cobro.clase_id` ahora admite NULL (ver abajo), y la tabla nueva `cuenta_cobro` |
 | `app/fechas.py` | La zona de Montevideo: rangos de días, los períodos de 1d, las ventanas de los gráficos y el `date_trunc` |
 | `alembic/versions/6d0c95b67436_cobro_sobrevive_al_rechazo.py` | La migración de `cobro` |
-| `verificar_p4.py` | Las 278 comprobaciones |
+| `alembic/versions/5a01195bec7c_cuentas_de_cobro.py` | La migración que crea `cuenta_cobro` |
+| `verificar_p4.py` | Las 346 comprobaciones |
 
 ### Los endpoints de `clases`
 
@@ -1788,9 +1796,24 @@ está en el estado que la acción necesita).
 | `DELETE /pagos/tarjetas/{id}` | Estudiante | Baja lógica. 204 | 404 `tarjeta_no_existe`, 403 `no_es_tuyo` |
 | `GET /pagos/historial?desde=&hasta=&pagina=` | Estudiante | Los movimientos de plata, del más nuevo al más viejo (1e) | — |
 | `GET /pagos/ingresos?periodo=&agrupar=` | Profesor | Cobrado, pendiente, promedio y la serie del gráfico (1d y 1j) | 400 `periodo_invalido`, 400 `agrupacion_invalida` |
+| `GET /pagos/cuentas` | Profesor | Las cuentas de cobro activas, la principal primero (1j). **Nunca** el número de cuenta completo: `"•••• 3391"` | — |
+| `POST /pagos/cuentas` | Profesor | Alta de una cuenta bancaria o de Mercado Pago. La primera queda como principal. 201 | 400 `cuenta_invalida`, 400 `banco_no_existe`, 400 `correo_invalido`, 409 `cuenta_repetida`; 422 si `tipo` o `moneda` no son de la lista |
+| `PUT /pagos/cuentas/{id}/principal` | Profesor | La hace principal y la que lo era pasa a alternativa. Devuelve **todas**, ya reordenadas | 404 `cuenta_no_existe`, 403 `no_es_tuyo` |
+| `DELETE /pagos/cuentas/{id}` | Profesor | Baja lógica. Si era la principal, pasa a principal la más vieja que queda. 204 | 404 `cuenta_no_existe`, 403 `no_es_tuyo` |
 
 Como en la sección 7: "Rol" quiere decir que con el otro rol la respuesta es
 403 `no_es_tuyo`, y toda ruta con token puede responder 401 `sin_token`.
+
+Qué quiere decir cada error de las cuentas de cobro:
+
+| Código | Cuándo |
+|---|---|
+| 400 `cuenta_invalida` | Una cuenta bancaria sin banco, sin moneda o sin titular, o con un número que no es de 6 a 20 dígitos (los espacios y guiones se aceptan y se sacan antes de contar) |
+| 400 `banco_no_existe` | El banco no es uno de los ocho de la lista |
+| 400 `correo_invalido` | El correo de Mercado Pago no pasa `EmailStr` (el mismo validador del registro) |
+| 404 `cuenta_no_existe` | No existe, o ya se dio de baja |
+| 403 `no_es_tuyo` | Es de otro profesor (o el que llama es un alumno) |
+| 409 `cuenta_repetida` | Ya tiene esa misma cuenta activa: el mismo banco y número, o el mismo correo (sin importar mayúsculas) |
 
 Los importes viajan como **texto** (`"1758.26"`): Pydantic serializa `Decimal`
 así para no perder centésimos. Las fechas, en ISO con zona.
@@ -1997,6 +2020,94 @@ cuatro, el titular y el vencimiento como `"MM/AA"`. Una tarjeta vale hasta el
 `tarjeta_invalida`. La baja es lógica: los cobros viejos siguen apuntando a la
 fila.
 
+**Cuentas de cobro: la tabla `cuenta_cobro`.** Es donde se le liquida al
+profesor lo que cobra (la tarjeta "Cobros" del mockup de 1j). No cambia nada
+de la plata: `cobro` sigue siendo la única tabla de plata y los ingresos siguen
+siendo `sum(importe)`; `cuenta_cobro` dice **a dónde** iría esa plata, no
+cuánta es. Como el cobro es simulado (sección 11), nadie deposita nada: es el
+dato que necesitaría una pasarela real.
+
+| Columna | Qué guarda |
+|---|---|
+| `usuario_id` | El profesor (id de **usuario**). `ON DELETE CASCADE`, como `tarjeta` |
+| `tipo` | `banco` o `mercado_pago` |
+| `banco` | El código del banco (`brou`, `itau`...). Solo en `banco` |
+| `identificador` | El número de cuenta, solo dígitos; o el correo de Mercado Pago, en minúsculas |
+| `titular` | A nombre de quién está. Solo en `banco` |
+| `moneda` | `UYU` o `USD`. Solo en `banco` |
+| `es_principal` | La que se usa para liquidar |
+| `activa` | Baja lógica, como las tarjetas |
+
+Tres decisiones del modelo:
+
+- **`tipo` y `moneda` son `text` con un `CHECK`, no un ENUM nuevo.** Un ENUM
+  obliga a acordarse del `DROP TYPE` en el `downgrade` (la trampa de la sección
+  4), y sumarle un valor después es más engorroso que cambiar un `CHECK`. Hay
+  un tercer `CHECK`, `datos_segun_tipo`: una cuenta bancaria tiene banco,
+  moneda y titular, y una de Mercado Pago no tiene ninguno de los tres.
+- **Una sola principal, garantizada por la base.** El índice único parcial
+  `ux_cuenta_cobro_principal ON cuenta_cobro (usuario_id) WHERE es_principal
+  AND activa`: puede haber muchas alternativas y muchas dadas de baja, pero una
+  sola principal activa por profesor. Va con `postgresql_where=text(...)`.
+- **Los bancos son una lista fija, no un catálogo.** Son los ocho de plaza
+  (BROU, Santander, Itaú, BBVA, Scotiabank, HSBC, Heritage, Bandes) y casi
+  nunca cambian: `BANCOS` en `pagos/logica.py`, código → nombre visible ("Itaú",
+  con tilde). El frontend tiene la misma lista en `paginas/perfil/opciones.js`
+  para el desplegable; si se suma un banco, se suma en los dos lados. `GET`
+  devuelve igual `banco_nombre`, así nadie tiene que traducir el código.
+
+**La migración `5a01195bec7c`.** Crea la tabla, los tres `CHECK` y el índice
+parcial. Es lo que generó `--autogenerate`, revisado y sin cambios: no crea
+ningún ENUM y no toca tablas que ya existían, así que el `downgrade` (borrar el
+índice y la tabla) deja la base exactamente como estaba. `schema.sql` está al
+día y `alembic check` no encuentra diferencias. `verificar_p4.py` ahora baja
+las **dos** revisiones de P4 de a una y las vuelve a subir.
+
+**Las reglas de la principal.** La **primera** cuenta activa que se agrega
+queda como principal sola (si no, tendría cuentas y ninguna donde liquidar); las
+siguientes entran como alternativas. "Hacer principal" desmarca la anterior y
+marca la nueva, **en ese orden y con un `flush` en el medio**: el índice único
+no admite dos principales ni por un instante. Si se quita la principal, pasa a
+principal la **más vieja** de las que quedan (por `creado_el` y, de desempate,
+el `id`: los seeds crean todas en la misma transacción). Si se quita la última,
+el profesor queda sin cuentas hasta que agregue otra. `GET` las devuelve con la
+principal primero y después de la más vieja a la más nueva: la que pasaría a
+principal es siempre la segunda de la lista.
+
+**Pedidos a la vez: un candado por profesor.** El índice único ya impide que
+queden dos principales, pero con dos pedidos simultáneos (un doble clic en
+"Agregar", o "Hacer principal" en dos pestañas) el segundo chocaría contra el
+índice y respondería 500. Por eso las tres escrituras empiezan con
+`_turno()`: `pg_advisory_xact_lock(hashtext('cuenta_cobro'), usuario_id)`, un
+candado de PostgreSQL que se suelta solo con el commit o el rollback. El
+segundo pedido espera, ve lo que dejó el primero y decide bien (entra como
+alternativa, o responde 409 `cuenta_repetida`). No bloquea filas de otro módulo
+ni frena a otros profesores. `verificar_p4.py` lo prueba con seis altas y con
+cuatro altas iguales al mismo tiempo.
+
+**Lo que se valida, y lo que se muestra.** El número se acepta como lo escribe
+la gente (`"001 234567-00"`): se sacan espacios y guiones y tienen que quedar
+entre 6 y 20 dígitos ASCII (`isascii()`, por lo mismo que en las tarjetas). El
+titular se guarda sin espacios de más. El correo de Mercado Pago pasa por
+`EmailStr` (el mismo validador del registro) y se guarda en minúsculas; en una
+cuenta de Mercado Pago, `banco`, `moneda` y `titular` se ignoran aunque vengan.
+La respuesta **nunca** trae el número entero: `visible` es `"•••• 3391"`. El
+correo de Mercado Pago sí va entero, como en el mockup: es con lo que el
+profesor reconoce la cuenta y no sirve para sacar plata. `tipo` y `moneda` son
+`Literal` en `CuentaCobroIn`: un valor que no está en la lista es un 422 de
+FastAPI, como el tema de la cuenta.
+
+**Los seeds.** Cada profesor con la ficha publicada tiene una o dos cuentas de
+cobro (tres de cada cuatro cobran en el banco), con su propia semilla
+(`SEMILLA + 7`) y sembradas después de todo lo demás: así sumar la tabla no
+movió ni un dato de las otras (se comprobó sembrando antes y después del
+cambio y comparando las otras 24 tablas fila por fila, salvo las columnas de
+fecha y hora, que dependen de cuándo se corre, y el hash de la clave, que
+bcrypt sala distinto cada vez). profe1 tiene las del mockup: BROU terminada en 3391 como
+principal y `lucia.fernandez@example.com` de alternativa. Borradores y pausadas
+(profe7 y profe8) no tienen ninguna: `verificar_p4.py` cuenta con eso. Los
+correos son todos de `example.com`.
+
 ### Cambios respecto de los contratos originales
 
 Al implementar hubo que ajustar algunos contratos. Los que consume el frontend
@@ -2027,10 +2138,16 @@ están marcados:
   400 `duracion_no_modificable` y 404 `cobro_no_existe` (defensivo: una clase sin
   cobro solo puede salir de tocar la base a mano). Además se reusan dos que ya
   estaban: 400 `materia_no_existe` y 400 `etapa_educativa_no_existe`.
+- **Las cuentas de cobro son nuevas** (no estaban en los contratos): la tabla
+  `cuenta_cobro`, `CuentaCobroIn` y `CuentaCobroOut`, los cuatro endpoints de
+  `/pagos/cuentas` y cinco códigos de error, ya con su texto en `mensajes.js`:
+  400 `cuenta_invalida`, 400 `banco_no_existe`, 400 `correo_invalido`, 404
+  `cuenta_no_existe` y 409 `cuenta_repetida`. *(frontend)*
 
 ### El frontend de P4
 
-Tres pantallas, armadas con el mismo esqueleto que 1e y 1j (sección 7). Todas
+Tres pantallas y una tarjeta de una cuarta (la de "Cobros" de 1j), armadas con
+el mismo esqueleto que 1e y 1j (sección 7). Todas
 hablan con el backend a través de `api/clases.js`, `api/pagos.js` y
 `api/agenda.js`, y **ninguna hace cuentas de plata**: los importes llegan como
 texto (`"1811.70"`) y `pesos()` de `utiles/formato.js` solo les da formato.
@@ -2146,6 +2263,64 @@ El resumen de "Reservas de hoy" no cuenta las canceladas, pero la tabla sí las
 muestra; en el celular, cada fila pasa a ser una tarjeta. Aprobar y rechazar son
 de 1i: "Ver" y "Confirmar" llevan a `/agenda`.
 
+#### 1j · La tarjeta "Cobros" (`/perfil-profesor`, pestaña "Contraseña y cobros")
+
+`paginas/perfil/SeccionCuentasCobro.jsx`: las cuentas donde se le liquida al
+profesor, con la forma del mockup.
+
+```
+  Cobros
+  ┌──────────────────────────────────────────────────────────────┐
+  │ Cuenta bancaria · BROU •••• 3391          [Principal] Quitar  │
+  │ Los cobros se liquidan los viernes · En pesos · Lucia ...     │
+  └──────────────────────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────────────────────┐
+  │ Mercado Pago · lucia.fernandez@example.com                    │
+  │ Alternativa                          Hacer principal  Quitar  │
+  └──────────────────────────────────────────────────────────────┘
+  [            Agregar cuenta de cobro            ]
+```
+
+**Dónde va, y por qué ahí.** En la pestaña de seguridad, debajo de la
+contraseña, que es donde la pone el mockup (que llama a la pestaña "Contraseña
+y cobros": así se llama ahora en 1j). Una pestaña propia era la otra opción,
+pero `PerfilProfesor.jsx` ya arma una pestaña con más de una pieza
+("Disponibilidad"), y la de seguridad es `SeccionClave.jsx`, compartida con 1e.
+Para no duplicarla ni meterle cosas del profesor, `SeccionClave` ahora acepta
+`children` y los dibuja **entre** "Cambiar la contraseña" y "Dar de baja la
+cuenta": 1j le pasa `<SeccionCuentasCobro />` y 1e no le pasa nada (queda
+igual). Así la baja, lo único que no se deshace, sigue al final. Es el mismo
+truco que `MenuLateral` con el % completo (sección 5, idea 8).
+
+| Qué | Llamada |
+|---|---|
+| Las cuentas, la principal primero (`Cuenta bancaria · BROU •••• 3391` o `Mercado Pago · correo`) | `GET /pagos/cuentas` al entrar |
+| "Agregar cuenta de cobro": tipo (banco o Mercado Pago, un control segmentado), banco, moneda, número y titular, o el correo | `POST /pagos/cuentas` |
+| "Hacer principal" en una alternativa | `PUT /pagos/cuentas/{id}/principal`: la respuesta trae la lista entera, ya reordenada |
+| "Quitar", con confirmación en línea (no `window.confirm`) | `DELETE /pagos/cuentas/{id}`; si era la principal, después vuelve a pedir la lista |
+
+Detalles:
+
+- **La confirmación dice qué va a pasar**: "¿Quitar esta cuenta? Los cobros
+  pasan a Mercado Pago · …" (la segunda de la lista, la misma que elige el
+  backend), "Te quedás sin cuenta de cobro hasta que agregues otra", o "Tu
+  cuenta principal no cambia". El foco va a "Cancelar", y después de cada
+  acción vuelve al título, como en "Medios de pago".
+- **La principal también se puede quitar** (el mockup solo le pone la etiqueta):
+  si se cerró esa cuenta, tiene que poder sacarla.
+- **El formulario valida antes de mandar** con las mismas reglas que el backend
+  (número de 6 a 20 dígitos, con espacios y guiones permitidos; banco, moneda y
+  titular obligatorios; correo con forma de correo), como `utiles/tarjetas.js`
+  con las tarjetas. Lo que solo sabe el backend (la cuenta repetida) llega con
+  su código y el texto de `mensajes.js`.
+- **Las filas son las de "Medios de pago"** (`.tarjetas-lista`, `.tarjeta-fila`,
+  `.medio-nombre`... de `pagos.css`): las dos listas se ven igual y el modo
+  oscuro anda solo. Lo único propio está en `perfil.css`: `.cuenta-dato`, para
+  que "BROU •••• 3391" no se parta en dos líneas en el celular. Un correo largo
+  se corta antes de la arroba (un `<wbr>`), no en cualquier letra.
+- **Los bancos del desplegable** son `BANCOS` de `paginas/perfil/opciones.js`,
+  la misma lista que el backend (ver "Cuentas de cobro: la tabla", arriba).
+
 #### Lo del mockup que no está en las pantallas de P4
 
 | En el mockup | Por qué no está |
@@ -2157,6 +2332,7 @@ de 1i: "Ver" y "Confirmar" llevan a `/agenda`.
 | "2 puntos menos" en la tasa de cancelación | La variación del backend es relativa, en %, no en puntos |
 | La tarjeta "Principal", "Hacer principal" y "Editar" (1e) | No hay tarjeta principal (se elige en cada reserva) ni endpoint de edición: se quita y se agrega otra |
 | Mercado Pago (1e) | Solo hay tarjetas |
+| "Los cobros se liquidan los viernes" (1j) | El texto está, pero no hay liquidaciones: el cobro es simulado y la cuenta principal es solo el dato de a dónde iría la plata |
 
 ### Lo que quedó afuera, y por qué
 
@@ -2169,6 +2345,8 @@ de 1i: "Ver" y "Confirmar" llevan a `/agenda`.
 | Reintentar un reembolso que falló | La `BackgroundTask` corre una vez. Si justo se cae el servidor entre la respuesta y la tarea, el cobro queda `cobrado` con la clase `cancelada`. Con un cobro simulado no vale la complejidad; con una pasarela real haría falta una cola con reintentos o un barrido de esos casos |
 | Que el promedio por clase cuente solo lo dictado | `promedio_por_clase` es lo cobrado del período sobre las dictadas del período, como pide la spec. Lo cobrado incluye las aprobadas que todavía no se dieron, así que a principio de mes puede salir alto |
 | Que el profesor marque como dictada solo una clase que ya pasó | No se exige: con los seeds, las aprobadas están todas en el futuro, y no se podría probar completar |
+| Editar una cuenta de cobro | No hay endpoint de edición, igual que con las tarjetas: se quita y se agrega otra |
+| Comprobar que la cuenta de cobro exista y sea del profesor | No hay conexión con los bancos ni con Mercado Pago: se valida la forma (dígitos, banco de la lista, correo), no que la cuenta sea real |
 
 ---
 
@@ -2457,7 +2635,8 @@ legítimas. El profesor elige cuál aprueba.
   leer. Las clases respetan las franjas, el descanso, el tope diario, el aviso
   mínimo y los bloqueos de cada profesor, y no se pisan. Los veinte usuarios
   de antes (`profe1`–`profe8`, `alumno1`–`alumno12`) conservan sus datos y
-  sus ids
+  sus ids, y `profe1` tiene siempre una clase aprobada con `alumno1` en tres
+  días hábiles a las 16
 - `schema.sql` completo, de referencia
 - El frontend entero: proxy, rutas, contexto de autenticación, sistema de
   diseño y componentes

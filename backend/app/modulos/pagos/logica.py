@@ -13,6 +13,9 @@ Quien consume que:
 Las cuatro primeras son las cuatro transiciones del estado de un cobro, y son
 la unica forma de escribir en esa tabla.
 
+Ademas, lo que solo usan las rutas de pagos: las tarjetas y el historial del
+alumno, los ingresos y las cuentas de cobro del profesor.
+
 Como en cuentas y perfiles: estas funciones validan y guardan, pero NO hacen
 commit (lo hace la ruta, o clases, que orquesta la transaccion entera). La
 unica excepcion es reembolsar(), que corre despues de la request con su
@@ -22,6 +25,7 @@ propia sesion (ver su docstring).
 from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
+from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy import Enum, column, func, select, table
 from sqlalchemy.orm import Session
 
@@ -30,7 +34,7 @@ from app.db import SesionLocal
 from app.enums import EstadoClase, EstadoCobro
 from app.errores import ErrorAPI, conflicto, no_es_tuyo, no_existe
 from app.modulos.cuentas import logica as cuentas
-from app.modulos.pagos.modelos import Cobro, Tarjeta
+from app.modulos.pagos.modelos import Cobro, CuentaCobro, Tarjeta
 
 # Filas por pagina del historial de 1e.
 POR_PAGINA = 50
@@ -425,6 +429,140 @@ def ingresos_de(db: Session, profesor_usuario_id: int, periodo: str, agrupar: st
 
 
 # ---------------------------------------------------------------------------
+# Cuentas de cobro del profesor - 1j
+# ---------------------------------------------------------------------------
+#
+# Donde se le liquida al profesor lo que cobra. El cobro sigue siendo
+# simulado: nadie deposita nada. Esto es el dato que una pasarela real
+# necesitaria, y lo que muestra la tarjeta "Cobros" de 1j.
+
+# Los bancos que se pueden elegir: codigo -> nombre que se muestra. Es una
+# lista fija y no un catalogo con tabla: son los bancos de plaza de Uruguay y
+# casi nunca cambian. El frontend tiene la misma lista en
+# paginas/perfil/opciones.js (BANCOS): si se suma uno aca, sumarlo alla.
+BANCOS = {
+    "brou": "BROU",
+    "santander": "Santander",
+    "itau": "Itaú",
+    "bbva": "BBVA",
+    "scotiabank": "Scotiabank",
+    "hsbc": "HSBC",
+    "heritage": "Heritage",
+    "bandes": "Bandes",
+}
+
+# El largo del numero de cuenta, ya sin espacios ni guiones. Los bancos de
+# plaza usan entre 7 y 14 digitos (con la sucursal adelante, en algunos);
+# 6 a 20 deja margen sin aceptar cualquier cosa.
+DIGITOS_MIN, DIGITOS_MAX = 6, 20
+
+# Lo que tapa el numero de cuenta: "•••• 3391", como las tarjetas en 1e.
+PUNTOS = "••••"
+
+# El mismo validador de correos que el registro (EmailStr en cuentas), para
+# no tener dos reglas distintas de que es un correo valido.
+_CORREO = TypeAdapter(EmailStr)
+
+
+def cuentas_de(db: Session, usuario_id: int) -> list[dict]:
+    """Las cuentas ACTIVAS del profesor, en su version visible (ver _cuenta_visible).
+
+    La principal primero; despues, de la mas vieja a la mas nueva. Es el mismo
+    orden en que dar_de_baja_cuenta() elige la que pasa a principal: la que
+    queda segunda en la lista.
+    """
+    return [_cuenta_visible(c) for c in _activas(db, usuario_id)]
+
+
+def agregar_cuenta(db: Session, usuario_id: int, datos) -> dict:
+    """Guarda una cuenta de cobro nueva y la devuelve en su version visible.
+
+    `datos` es un CuentaCobroIn. La PRIMERA cuenta activa del profesor queda
+    como principal sola: si no, tendria cuentas y ninguna donde liquidar. Las
+    siguientes entran como alternativas (para cambiar la principal esta
+    marcar_principal).
+
+    Errores: 400 cuenta_invalida (banco sin numero de 6 a 20 digitos, sin
+             moneda o sin titular), 400 banco_no_existe (no es de la lista),
+             400 correo_invalido (Mercado Pago), 409 cuenta_repetida (ya
+             tiene esa misma cuenta activa: un doble clic, o la cargo dos
+             veces).
+    """
+    # 1. Validar y dejar cada dato como se guarda.
+    if datos.tipo == "banco":
+        valores = _datos_de_banco(datos)
+    else:
+        valores = _datos_de_mercado_pago(datos)
+
+    # 2. Desde aca, un pedido por vez para este profesor (ver _turno): asi
+    #    "es la primera" y "ya la tiene" no cambian mientras se decide.
+    _turno(db, usuario_id)
+    activas = _activas(db, usuario_id)
+    if any(
+        c.tipo == datos.tipo and c.banco == valores["banco"] and c.identificador == valores["identificador"]
+        for c in activas
+    ):
+        raise conflicto("cuenta_repetida")
+
+    cuenta = CuentaCobro(usuario_id=usuario_id, tipo=datos.tipo, es_principal=not activas, **valores)
+    db.add(cuenta)
+    db.flush()  # para tener cuenta.id
+    return _cuenta_visible(cuenta)
+
+
+def marcar_principal(db: Session, usuario_id: int, cuenta_id: int) -> list[dict]:
+    """Hace principal a esta cuenta, y alternativa a la que lo era.
+
+    Devuelve TODAS las cuentas, ya reordenadas: cambiar la principal cambia
+    dos filas, y asi el frontend no tiene que volver a pedirlas. Si ya era la
+    principal, no cambia nada (y responde lo mismo).
+
+    Errores: 404 cuenta_no_existe (o esta dada de baja), 403 no_es_tuyo.
+    """
+    _turno(db, usuario_id)
+    cuenta = _cuenta_propia(db, usuario_id, cuenta_id)
+    if not cuenta.es_principal:
+        # 1. Primero se desmarca la que habia, y se manda a la base. El orden
+        #    importa: el indice unico parcial no admite dos principales ni por
+        #    un instante, y en un solo flush SQLAlchemy podria mandar los dos
+        #    UPDATE en cualquier orden.
+        for otra in _activas(db, usuario_id):
+            if otra.es_principal:
+                otra.es_principal = False
+        db.flush()
+        # 2. Recien ahora, la nueva.
+        cuenta.es_principal = True
+        db.flush()
+    return cuentas_de(db, usuario_id)
+
+
+def dar_de_baja_cuenta(db: Session, usuario_id: int, cuenta_id: int) -> None:
+    """Baja LOGICA (activa = false), no DELETE, igual que las tarjetas.
+
+    Si era la principal, pasa a principal la MAS VIEJA de las que quedan: la
+    que el profesor tiene hace mas tiempo es la mas probable de seguir
+    andando. Si era la ultima, el profesor queda sin cuentas hasta que
+    agregue otra (y esa va a ser la principal, por ser la primera).
+
+    Errores: 404 cuenta_no_existe (o ya estaba dada de baja), 403 no_es_tuyo.
+    """
+    _turno(db, usuario_id)
+    cuenta = _cuenta_propia(db, usuario_id, cuenta_id)
+    era_principal = cuenta.es_principal
+    cuenta.activa = False
+    # Una dada de baja no es principal de nada: asi la fila vieja no confunde
+    # a quien mire la tabla.
+    cuenta.es_principal = False
+    db.flush()  # antes de promover a otra, por el mismo indice unico
+
+    if era_principal:
+        siguiente = next(iter(_activas(db, usuario_id)), None)
+        if siguiente is not None:
+            siguiente.es_principal = True
+            db.flush()
+
+
+# ---------------------------------------------------------------------------
 # Auxiliares privadas
 # ---------------------------------------------------------------------------
 
@@ -467,6 +605,111 @@ def _segura(tarjeta: Tarjeta) -> dict:
         "ultimos4": tarjeta.numero[-4:],
         "titular": tarjeta.titular,
         "vence": f"{tarjeta.vence_mes:02d}/{tarjeta.vence_anio % 100:02d}",  # "MM/AA"
+    }
+
+
+def _activas(db: Session, usuario_id: int) -> list[CuentaCobro]:
+    """Las cuentas activas del profesor: la principal primero, despues por antiguedad.
+
+    El id desempata: los seeds crean todas en la misma transaccion, y now() es
+    el mismo para todas.
+    """
+    return list(db.scalars(
+        select(CuentaCobro)
+        .where(CuentaCobro.usuario_id == usuario_id, CuentaCobro.activa.is_(True))
+        .order_by(CuentaCobro.es_principal.desc(), CuentaCobro.creado_el, CuentaCobro.id)
+    ))
+
+
+def _cuenta_propia(db: Session, usuario_id: int, cuenta_id: int) -> CuentaCobro:
+    """La cuenta, si existe, es de este profesor y esta activa. Mismo orden que las tarjetas.
+
+    404 cuenta_no_existe si no existe o ya se dio de baja; 403 no_es_tuyo si
+    es de otro profesor.
+    """
+    cuenta = db.get(CuentaCobro, cuenta_id)
+    if cuenta is None:
+        raise no_existe("cuenta")
+    if cuenta.usuario_id != usuario_id:
+        raise no_es_tuyo()
+    if not cuenta.activa:
+        raise no_existe("cuenta")
+    return cuenta
+
+
+def _turno(db: Session, usuario_id: int) -> None:
+    """Hace esperar a cualquier otro pedido que toque las cuentas de este profesor.
+
+    Es un candado de PostgreSQL (pg_advisory_xact_lock) con la clave
+    ("cuenta_cobro", usuario_id): se suelta solo al terminar la transaccion,
+    con el commit de la ruta o con el rollback.
+
+    Por que hace falta: el indice unico parcial ya impide que queden dos
+    principales, pero con dos pedidos a la vez (un doble clic en "Agregar",
+    o "Hacer principal" en dos pestanias) el segundo chocaria contra el
+    indice y responderia 500. Con el candado, el segundo espera, ve lo que
+    dejo el primero y decide bien: entra como alternativa, o le avisa que la
+    cuenta esta repetida. No bloquea ninguna fila de otro modulo, y a otros
+    profesores no los frena.
+    """
+    db.execute(select(func.pg_advisory_xact_lock(func.hashtext("cuenta_cobro"), usuario_id)))
+
+
+def _datos_de_banco(datos) -> dict:
+    """Valida una cuenta bancaria y devuelve las columnas como se guardan.
+
+    El numero se acepta como lo escribe la gente ("001 234567-00") y se
+    guarda solo con los digitos. isascii() porque isdigit() solo tambien
+    acepta cosas como "²", igual que con las tarjetas.
+    """
+    banco = (datos.banco or "").strip().lower()
+    numero = datos.identificador.replace(" ", "").replace("-", "")
+    # El titular, sin espacios de mas: "  Lucia   Fernandez " -> "Lucia Fernandez".
+    titular = " ".join((datos.titular or "").split())
+    if not banco:
+        raise ErrorAPI(400, "cuenta_invalida")
+    if banco not in BANCOS:
+        raise ErrorAPI(400, "banco_no_existe")
+    numero_valido = numero.isascii() and numero.isdigit() and DIGITOS_MIN <= len(numero) <= DIGITOS_MAX
+    if not (numero_valido and datos.moneda and titular):
+        raise ErrorAPI(400, "cuenta_invalida")
+    return {"banco": banco, "identificador": numero, "moneda": datos.moneda, "titular": titular}
+
+
+def _datos_de_mercado_pago(datos) -> dict:
+    """Valida una cuenta de Mercado Pago (solo el correo) y devuelve las columnas.
+
+    banco, moneda y titular se ignoran aunque vengan: el CHECK de la tabla
+    (datos_segun_tipo) los exige en NULL para este tipo. El correo se guarda
+    en minusculas, como lo compara la base en usuario.correo (citext): asi
+    "Lucia@..." y "lucia@..." son la misma cuenta repetida.
+    """
+    try:
+        correo = _CORREO.validate_python(datos.identificador.strip())
+    except ValidationError:
+        raise ErrorAPI(400, "correo_invalido") from None
+    return {"banco": None, "identificador": correo.lower(), "moneda": None, "titular": None}
+
+
+def _cuenta_visible(cuenta: CuentaCobro) -> dict:
+    """La forma de CuentaCobroOut: NUNCA el numero de cuenta completo.
+
+    Del banco, los ultimos cuatro digitos ("•••• 3391"): con eso y el nombre
+    del banco el profesor la reconoce. El correo de Mercado Pago va entero,
+    como en el mockup.
+    """
+    es_banco = cuenta.tipo == "banco"
+    return {
+        "id": cuenta.id,
+        "tipo": cuenta.tipo,
+        "banco": cuenta.banco,
+        # Si algun dia se saca un banco de la lista, sus cuentas viejas se
+        # siguen viendo, con el codigo en vez del nombre.
+        "banco_nombre": BANCOS.get(cuenta.banco, cuenta.banco) if es_banco else None,
+        "visible": f"{PUNTOS} {cuenta.identificador[-4:]}" if es_banco else cuenta.identificador,
+        "titular": cuenta.titular,
+        "moneda": cuenta.moneda,
+        "es_principal": cuenta.es_principal,
     }
 
 

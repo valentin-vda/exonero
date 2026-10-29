@@ -6,6 +6,7 @@ import {
   ControlZoomRueda,
   useZoomConEnter,
 } from '../mapas/ZoomConEnter.jsx'
+import SenalBatman from '../mapas/SenalBatman.jsx'
 
 export default function MapaUbicacionProfesor({ latitud, longitud, nombre }) {
   const { zoomRuedaActivo, manejarTeclaZoom } = useZoomConEnter()
@@ -37,6 +38,7 @@ export default function MapaUbicacionProfesor({ latitud, longitud, nombre }) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <Marker position={centro} icon={icono} />
+        <SenalBatman />
         <ZoomControl position="bottomright" />
       </MapContainer>
       <AvisoZoomRueda activo={zoomRuedaActivo} compacto />

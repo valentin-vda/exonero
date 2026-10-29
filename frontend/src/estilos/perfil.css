@@ -268,6 +268,14 @@
 }
 .foto-vacia:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
 
+/* --- Cuentas de cobro de 1j (SeccionCuentasCobro.jsx) --------------------- */
+
+/* Las filas usan las mismas clases que "Medios de pago" de 1e (pagos.css).
+   Lo unico propio: "BROU •••• 3391" no se parte en dos lineas en el celular.
+   Un correo largo de Mercado Pago no lleva esto: se corta antes de la arroba
+   (un <wbr> en el JSX). */
+.cuenta-dato { white-space: nowrap; }
+
 /* --- Celular y tablet ------------------------------------------------------ */
 
 /* Debajo de 900 px no entran dos columnas: el menu va arriba y todo se apila. */

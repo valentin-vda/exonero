@@ -690,7 +690,9 @@ _, ultimos = pedir("GET", f"/mensajes/hilos/{largo}/mensajes?limite=4", token=to
 _, anteriores = pedir("GET", f"/mensajes/hilos/{largo}/mensajes?limite=4&antes={ultimos[0]['id']}", token=token_largo)
 ok("limite=4: los 4 mas nuevos, en orden", len(ultimos) == 4
    and [m["enviado_el"] for m in ultimos] == sorted(m["enviado_el"] for m in ultimos), ultimos)
-ok("antes=: el resto, sin repetir ninguno", len(anteriores) == total_largo - 4
+# Con los seeds grandes el hilo puede tener mas de 8: la segunda pagina trae
+# otros 4, o los que queden si son menos.
+ok("antes=: los anteriores, sin repetir ninguno", len(anteriores) == min(4, total_largo - 4)
    and not {m["id"] for m in anteriores} & {m["id"] for m in ultimos}
    and anteriores[-1]["enviado_el"] <= ultimos[0]["enviado_el"], anteriores)
 estado, _ = pedir("GET", f"/mensajes/hilos/{largo}/mensajes?limite=101", token=token_largo)

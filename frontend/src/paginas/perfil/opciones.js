@@ -104,3 +104,30 @@ export const ESTADOS_FICHA = {
   publicada: 'Publicada',
   pausada: 'Pausada',
 }
+
+// ---------------------------------------------------------------------------
+// Cuentas de cobro de 1j (SeccionCuentasCobro, de P4)
+// ---------------------------------------------------------------------------
+
+/**
+ * Los bancos que se pueden elegir. Es la MISMA lista que BANCOS en
+ * backend/app/modulos/pagos/logica.py: el valor es el codigo que guarda el
+ * backend, y el texto el nombre que se ve (el backend tambien lo devuelve,
+ * como banco_nombre). Si se suma un banco alla, hay que sumarlo aca.
+ */
+export const BANCOS = [
+  { valor: 'brou', texto: 'BROU' },
+  { valor: 'santander', texto: 'Santander' },
+  { valor: 'itau', texto: 'Itaú' },
+  { valor: 'bbva', texto: 'BBVA' },
+  { valor: 'scotiabank', texto: 'Scotiabank' },
+  { valor: 'hsbc', texto: 'HSBC' },
+  { valor: 'heritage', texto: 'Heritage' },
+  { valor: 'bandes', texto: 'Bandes' },
+]
+
+/** La moneda de una cuenta bancaria (Mercado Pago no tiene). */
+export const MONEDAS = [
+  { valor: 'UYU', texto: 'Pesos uruguayos' },
+  { valor: 'USD', texto: 'Dólares' },
+]

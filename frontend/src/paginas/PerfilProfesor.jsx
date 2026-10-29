@@ -17,7 +17,9 @@
  *         EditorFranjas          la disponibilidad semanal (el mismo de 1i, P3)
  *         SeccionBio             titular, biografia, como es una clase
  *         SeccionFotos           fotos del lugar
- *         SeccionClave           cambiar la contrasena, darse de baja
+ *         SeccionClave           cambiar la contrasena y darse de baja, y entre
+ *           SeccionCuentasCobro  las dos las cuentas de cobro (P4), como en el
+ *                                mockup: "Contrasena y cobros"
  *
  * La ficha (GET /api/perfiles/profesor/yo) la guarda ESTA pantalla y se la
  * pasa a cada seccion. Cuando una seccion guarda, llama a alGuardar(), que
@@ -37,6 +39,7 @@ import MenuLateral from './perfil/MenuLateral.jsx'
 import { AVISO_SIN_CATALOGOS, ESTADOS_FICHA } from './perfil/opciones.js'
 import SeccionBio from './perfil/SeccionBio.jsx'
 import SeccionClave from './perfil/SeccionClave.jsx'
+import SeccionCuentasCobro from './perfil/SeccionCuentasCobro.jsx'
 import SeccionDatosProfesor from './perfil/SeccionDatosProfesor.jsx'
 import SeccionEnsena from './perfil/SeccionEnsena.jsx'
 import SeccionFotos from './perfil/SeccionFotos.jsx'
@@ -47,7 +50,8 @@ const PESTANIAS = [
   { id: 'disponibilidad', texto: 'Disponibilidad' },
   { id: 'bio', texto: 'Biografia' },
   { id: 'fotos', texto: 'Fotos del lugar' },
-  { id: 'seguridad', texto: 'Contrasena' },
+  // El nombre del mockup: la contrasena y, debajo, las cuentas de cobro.
+  { id: 'seguridad', texto: 'Contraseña y cobros' },
 ]
 
 /**
@@ -200,7 +204,14 @@ export default function PerfilProfesor() {
           )}
           {pestania === 'bio' && <SeccionBio {...props} />}
           {pestania === 'fotos' && <SeccionFotos {...props} />}
-          {pestania === 'seguridad' && <SeccionClave />}
+          {/* La tarjeta "Cobros" va adentro de SeccionClave, entre la
+              contrasena y la baja (ver SeccionClave.jsx). Carga y guarda sus
+              cuentas sola, no usa la ficha. */}
+          {pestania === 'seguridad' && (
+            <SeccionClave>
+              <SeccionCuentasCobro />
+            </SeccionClave>
+          )}
         </div>
       </div>
     </>

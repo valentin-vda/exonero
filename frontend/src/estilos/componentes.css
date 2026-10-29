@@ -487,3 +487,24 @@ label:has(.oculto-visual:focus-visible) {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+
+/* Easter egg de los mapas (componentes/mapas/SenalBatman.jsx): en modo
+   oscuro, un pin del tamanio de un profe con el simbolo de Batman sobre
+   Estados Unidos. El fondo es el azul de la marca y tiene un brillo dorado,
+   como la senal proyectada en el cielo de Ciudad Gotica. */
+.senal-batman {
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  background: var(--color-marca);
+  box-shadow: var(--shadow-md), 0 0 12px var(--color-accent-2-400);
+}
+/* Con la especificidad de la regla de Leaflet que le pone width: auto a las
+   imagenes de los marcadores; si no, el dibujo sale en su tamanio original. */
+.leaflet-container .leaflet-marker-pane .senal-batman img {
+  display: block;
+  width: 30px;
+  height: auto;
+  pointer-events: none;
+}

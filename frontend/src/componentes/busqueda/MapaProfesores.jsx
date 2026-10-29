@@ -16,6 +16,7 @@ import {
   ControlZoomRueda,
   useZoomConEnter,
 } from '../mapas/ZoomConEnter.jsx'
+import SenalBatman from '../mapas/SenalBatman.jsx'
 
 const MONTEVIDEO = {
   latitud: -34.9011,
@@ -48,10 +49,11 @@ function QuitarZoomAutomatico() {
 function iconoProfesor(pin) {
   const primeraLetra = pin.nombre?.trim().charAt(0).toUpperCase()
   const inicial = /^\p{L}$/u.test(primeraLetra) ? primeraLetra : 'P'
-  const secundaria = pin.id % 3 === 0 ? ' mapa-pin-secundario' : ''
 
+  // Todos azules: el pin dorado es solo para los mejor rankeados, y eso se
+  // marca en el mapa del inicio, no en el de la busqueda.
   return divIcon({
-    className: `mapa-pin${secundaria}`,
+    className: 'mapa-pin',
     html: inicial,
     iconSize: [38, 38],
     iconAnchor: [19, 19],
@@ -133,6 +135,7 @@ export default function MapaProfesores({ ubicacion, pines = [], cargando = false
           </Marker>
         ))}
 
+        <SenalBatman />
         <ZoomControl position="bottomright" />
       </MapContainer>
 

@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { obtenerDisponibilidad } from '../api/agenda.js'
+import { obtenerMejorPuntuados } from '../api/busqueda.js'
 import { cotizar } from '../api/clases.js'
 import { mensajeDeError } from '../api/mensajes.js'
-import { obtenerFichaPublica } from '../api/perfiles.js'
+import { obtenerFichaPublica, obtenerPerfilEstudiante } from '../api/perfiles.js'
 import { obtenerResenas } from '../api/resenas.js'
 import Avatar from '../componentes/Avatar.jsx'
 import BotonMensaje from '../componentes/BotonMensaje.jsx'
@@ -92,6 +93,7 @@ export default function PerfilPublicoProfesor() {
   const [cotizacion, setCotizacion] = useState(null)
   const [resenas, setResenas] = useState([])
   const [ordenResenas, setOrdenResenas] = useState('recientes')
+  const [puestoRanking, setPuestoRanking] = useState(null) // 1, 2 o 3 si esta en el podio
 
   const fechas = useMemo(() => semana(semanaNumero), [semanaNumero])
 
@@ -111,6 +113,25 @@ export default function PerfilPublicoProfesor() {
         if (vigente) setError(mensajeDeError(errorRecibido.codigo))
       })
       .finally(() => vigente && setCargando(false))
+    return () => { vigente = false }
+  }, [id])
+
+  // Si el profe esta en el podio de "los mejor rankeados del momento", la
+  // ficha sale con detalles dorados. Es el MISMO podio de la pantalla de
+  // inicio (la etapa del alumno, los tres primeros), asi lo que el alumno ve
+  // alla coincide con lo que ve aca. Si algo falla, la ficha sale normal.
+  useEffect(() => {
+    let vigente = true
+    setPuestoRanking(null)
+    obtenerPerfilEstudiante()
+      .catch(() => null)
+      .then((perfil) => obtenerMejorPuntuados({ etapa: perfil?.etapa_id || undefined, limite: 3 }))
+      .then((podio) => {
+        if (!vigente) return
+        const indice = podio.findIndex((profesor) => profesor.id === Number(id))
+        setPuestoRanking(indice >= 0 ? indice + 1 : null)
+      })
+      .catch(() => {})
     return () => { vigente = false }
   }, [id])
 
@@ -201,9 +222,15 @@ export default function PerfilPublicoProfesor() {
     <div className="perfil-publico">
       <Link to="/buscar" className="publico-volver">‹ Volver a la búsqueda</Link>
 
-      <header className="publico-cabecera">
+      <header className={`publico-cabecera${puestoRanking ? ' publico-cabecera-dorada' : ''}`}>
         <div className="publico-avatar"><Avatar persona={ficha} tamanio="grande" /></div>
         <div className="publico-identidad">
+          {puestoRanking && (
+            <span className="publico-medalla">
+              <span className="publico-medalla-puesto">{puestoRanking}</span>
+              Mejor rankeado del momento
+            </span>
+          )}
           <h1>{ficha.nombre} {ficha.apellido}</h1>
           <p>{unir([ficha.materias.map((item) => item.nombre).join(', '), ficha.barrio && `${ficha.barrio}, Montevideo`])}</p>
           <div className="publico-etiquetas">

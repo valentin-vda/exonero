@@ -319,6 +319,32 @@ CREATE TABLE cobro (
     actualizado_el  timestamptz
 );
 
+-- Donde se le liquida al profesor lo que cobra (1j, la tarjeta "Cobros").
+-- Una cuenta bancaria (banco de la lista fija de pagos/logica.py, numero
+-- solo con digitos, moneda y titular) o una de Mercado Pago (solo el
+-- correo). La API nunca devuelve el numero entero. tipo y moneda son text
+-- con un CHECK y no un ENUM: asi el downgrade no necesita un DROP TYPE.
+CREATE TABLE cuenta_cobro (
+    id              bigserial PRIMARY KEY,
+    usuario_id      bigint NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+    tipo            text NOT NULL,      -- banco | mercado_pago
+    banco           text,               -- el codigo: brou, itau, ... (solo banco)
+    identificador   text NOT NULL,      -- el numero de cuenta, o el correo
+    titular         text,               -- solo banco
+    moneda          text,               -- UYU | USD, solo banco
+    es_principal    boolean NOT NULL DEFAULT false,
+    activa          boolean NOT NULL DEFAULT true,   -- baja logica, como tarjeta
+    creado_el       timestamptz NOT NULL DEFAULT now(),
+    actualizado_el  timestamptz,
+
+    CONSTRAINT tipo_cuenta_valido CHECK (tipo IN ('banco', 'mercado_pago')),
+    CONSTRAINT moneda_valida      CHECK (moneda IN ('UYU', 'USD')),
+    CONSTRAINT datos_segun_tipo   CHECK (
+        (tipo = 'banco' AND banco IS NOT NULL AND moneda IS NOT NULL AND titular IS NOT NULL)
+        OR (tipo = 'mercado_pago' AND banco IS NULL AND moneda IS NULL AND titular IS NULL)
+    )
+);
+
 CREATE TABLE hilo (
     id                  bigserial PRIMARY KEY,
     estudiante_id       bigint NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
@@ -377,3 +403,7 @@ CREATE INDEX ix_mensaje_sin_leer         ON mensaje (hilo_id) WHERE leido_el IS 
 
 CREATE INDEX ix_resena_destinatario      ON resena (destinatario_id);
 CREATE INDEX ix_cobro_estado             ON cobro (estado);
+
+-- Una sola cuenta de cobro principal activa por profesor. Parcial: las
+-- alternativas y las dadas de baja no cuentan.
+CREATE UNIQUE INDEX ux_cuenta_cobro_principal ON cuenta_cobro (usuario_id) WHERE es_principal AND activa;

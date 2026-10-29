@@ -8,6 +8,10 @@
  *   2. Dar de baja la cuenta: DELETE /api/usuarios/yo, en dos pasos (primero
  *      se pide confirmar) porque no se puede deshacer desde la app.
  *
+ * Lo que la pantalla le pase como children va entre las dos: en 1j, la
+ * tarjeta "Cobros" (SeccionCuentasCobro), donde la pone el mockup. 1e no le
+ * pasa nada. La baja queda siempre al final: es lo unico que no se deshace.
+ *
  * El mockup tiene un boton "Enviarme un enlace por correo": no hay correo
  * saliente en este proyecto, asi que en su lugar se explica como usar
  * "Olvide mi contrasena" del login, que es lo que existe.
@@ -25,7 +29,7 @@ import { validarClave, validarFormulario, validarRepetirClave } from '../../util
 // Los valores de un formulario vacio. Se usa al empezar y despues de guardar.
 const VACIO = { actual: '', nueva: '', repetir: '' }
 
-export default function SeccionClave() {
+export default function SeccionClave({ children }) {
   const { usuario, salir } = useAuth()
 
   // --- Estado del formulario de la clave ---
@@ -124,6 +128,10 @@ export default function SeccionClave() {
           </div>
         </form>
       </section>
+
+      {/* Lo que pase la pantalla, entre la contrasena y la baja. Si no pasa
+          nada, no se dibuja nada (igual que en MenuLateral). */}
+      {children}
 
       {/* --- Dar de baja --- */}
       <section className="panel panel-angosto">

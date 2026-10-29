@@ -1,0 +1,5 @@
+<!-- Easter egg: el simbolo del murcielago sobre Estados Unidos, en los mapas (ver SenalBatman.jsx). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" width="200" height="120">
+  <ellipse cx="100" cy="60" rx="95" ry="55" fill="#f6c915" stroke="#111111" stroke-width="7"/>
+  <path fill="#111111" d="M100 44 L104 40 L108 27 L112 42 Q126 40 136 36 Q160 30 186 52 Q170 52 162 66 Q150 58 140 70 Q128 64 118 80 Q108 78 100 95 Q92 78 82 80 Q72 64 60 70 Q50 58 38 66 Q30 52 14 52 Q40 30 64 36 Q74 40 88 42 L92 27 L96 40 Z"/>
+</svg>

@@ -19,7 +19,7 @@
   margin-top: 14px;
   padding: 26px;
   border-radius: 36px;
-  background: var(--color-accent-2-100);
+  background: var(--color-surface);
 }
 
 .publico-avatar .avatar-grande {
@@ -27,8 +27,47 @@
   height: 168px;
   border-radius: 36px;
   font-size: 52px;
+  background: var(--color-accent-200);
+  color: var(--color-accent-800);
+}
+
+/* Un profe del podio de "los mejor rankeados del momento" (el mismo de la
+   pantalla de inicio): la ficha sale con detalles dorados. Por eso la
+   cabecera comun no usa el dorado: si no, no se distinguirian. */
+.publico-cabecera-dorada {
+  background: linear-gradient(135deg, var(--color-accent-2-100), var(--color-surface) 65%);
+  box-shadow:
+    inset 0 0 0 2px var(--color-accent-2-400),
+    0 10px 30px color-mix(in srgb, var(--color-accent-2-500) 28%, transparent);
+}
+.publico-cabecera-dorada .publico-avatar .avatar-grande {
   background: var(--color-accent-2-300);
   color: var(--color-accent-2-900);
+  box-shadow: 0 0 0 4px var(--color-surface), 0 0 0 8px var(--color-accent-2-500);
+}
+.publico-cabecera-dorada .publico-estrellas { color: var(--color-accent-2-600); }
+.publico-medalla {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 5px 14px 5px 5px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--color-accent-2-300), var(--color-accent-2-500));
+  color: var(--color-accent-2-900);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.publico-medalla-puesto {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--color-accent-2-700);
+  color: var(--color-accent-2-100);
+  font-family: var(--font-heading);
+  font-size: 13px;
 }
 
 .publico-avatar { grid-area: avatar; }

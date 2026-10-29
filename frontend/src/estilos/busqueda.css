@@ -316,7 +316,6 @@
   font-size: 14px;
 }
 
-.mapa-pin-secundario { background: var(--color-accent-2); }
 
 .mapa-profesores .leaflet-popup-content {
   display: flex;

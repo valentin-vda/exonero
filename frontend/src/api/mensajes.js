@@ -102,6 +102,14 @@ const MENSAJES = {
   tarjeta_invalida: 'El numero de tarjeta no es valido.',
   tarjeta_no_existe: 'Esa tarjeta ya no esta guardada. Recarga la pagina.',
 
+  // --- Cuentas de cobro del profesor (1j) ---
+  cuenta_invalida:
+    'Revisá los datos de la cuenta: el número va solo con dígitos (entre 6 y 20), y hacen falta la moneda y el titular.',
+  banco_no_existe: 'Ese banco no está en la lista. Elegí uno de los que aparecen.',
+  correo_invalido: 'Ese correo de Mercado Pago no parece válido.',
+  cuenta_no_existe: 'Esa cuenta de cobro ya no está guardada. Recargá la página.',
+  cuenta_repetida: 'Ya tenés esa cuenta guardada.',
+
   // --- Generales ---
   datos_invalidos: 'Revisa los datos: hay algo que no esta bien.',
   error_servidor:

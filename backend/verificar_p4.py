@@ -14,7 +14,8 @@ Al final baja y sube la migracion y vuelve a cargar los seeds, asi que deja
 la base como recien sembrada.
 
 OJO: ensucia la base (crea, aprueba, cancela y rechaza clases, agrega
-tarjetas, cambia el precio de profe4) y despues la vuelve a sembrar. Por eso
+tarjetas, cambia el precio de profe4, agrega y quita cuentas de cobro de
+profe7 y profe8) y despues la vuelve a sembrar. Por eso
 se niega a correr si el .env apunta a la base "exonero" (la de todos los
 dias), salvo con --forzar. Usar una aparte: exonero_p4, por ejemplo.
 
@@ -30,10 +31,12 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from app import fechas
 from app.config import ajustes
@@ -764,6 +767,176 @@ ok("no_asistida: el cobro queda cobrado", cobro(online["id"]) == "cobrado")
 
 
 # ===========================================================================
+# BLOQUE D - las cuentas de cobro del profesor (1j)
+# ===========================================================================
+
+CUENTA_OUT = {"id", "tipo", "banco", "banco_nombre", "visible", "titular", "moneda", "es_principal"}
+PUNTOS = "••••"  # los cuatro puntitos que tapan el numero
+
+
+def cuentas_de(token: str) -> list:
+    estado, lista = pedir("GET", "/pagos/cuentas", token=token)
+    assert estado == 200, (estado, lista)
+    return lista
+
+
+def principales(usuario_id: int) -> int:
+    """Cuantas principales ACTIVAS tiene en la base: tiene que ser 0 o 1."""
+    return sql("SELECT count(*) FROM cuenta_cobro WHERE usuario_id = :u AND es_principal AND activa", u=usuario_id)
+
+
+def la_base_rechaza(consulta: str, **parametros) -> bool:
+    """True si la base rechaza el INSERT por un CHECK o un indice unico."""
+    try:
+        sql(consulta, **parametros)
+    except IntegrityError:
+        return True
+    return False
+
+
+seccion("Cuentas de cobro: lo que dejaron los seeds")
+estado, de_lucia = pedir("GET", "/pagos/cuentas", token=profe1)
+ok("GET cuentas 200: las dos de profe1", estado == 200 and isinstance(de_lucia, list) and len(de_lucia) == 2, de_lucia)
+ok("GET cuentas: forma de CuentaCobroOut", all(set(c) == CUENTA_OUT for c in de_lucia), de_lucia)
+ok("GET cuentas: primero la principal, BROU terminada en 3391, en pesos",
+   de_lucia[0]["es_principal"] is True and de_lucia[0]["tipo"] == "banco" and de_lucia[0]["banco"] == "brou"
+   and de_lucia[0]["banco_nombre"] == "BROU" and de_lucia[0]["visible"] == f"{PUNTOS} 3391"
+   and de_lucia[0]["moneda"] == "UYU" and de_lucia[0]["titular"] == "Lucia Fernandez", de_lucia)
+ok("GET cuentas: despues Mercado Pago, alternativa, con el correo entero",
+   de_lucia[1]["es_principal"] is False and de_lucia[1]["tipo"] == "mercado_pago" and de_lucia[1]["banco"] is None
+   and de_lucia[1]["visible"] == "lucia.fernandez@example.com", de_lucia)
+NUMERO_BROU = sql("SELECT identificador FROM cuenta_cobro WHERE id = :i", i=de_lucia[0]["id"])
+ok("GET cuentas: NUNCA el numero de cuenta completo en el JSON",
+   len(NUMERO_BROU) > 4 and NUMERO_BROU not in json.dumps(de_lucia), NUMERO_BROU)
+ok("GET cuentas de profe7 (borrador): ninguna", pedir("GET", "/pagos/cuentas", token=profe7) == (200, []))
+error("GET cuentas como alumno", pedir("GET", "/pagos/cuentas", token=alumno1), 403, "no_es_tuyo")
+error("GET cuentas sin token", pedir("GET", "/pagos/cuentas"), 401, "sin_token")
+
+
+seccion("Cuentas de cobro: alta y validaciones")
+BANCO_NUEVO = {"tipo": "banco", "banco": "itau", "identificador": " 12 345-678 ", "moneda": "UYU",
+               "titular": "  Camila   Martinez "}
+estado, itau = pedir("POST", "/pagos/cuentas", BANCO_NUEVO, token=profe7)
+ok("POST cuenta bancaria 201, con la forma de GET", estado == 201 and set(itau) == CUENTA_OUT, itau)
+ok("POST: la primera queda como principal", itau["es_principal"] is True, itau)
+ok("POST: Itau con su nombre visible (con tilde) y el numero tapado",
+   itau["banco_nombre"] == "Itaú" and itau["visible"] == f"{PUNTOS} 5678", itau)
+ok("POST: se guarda solo con los digitos, y el titular sin espacios de mas",
+   sql("SELECT identificador || '|' || titular FROM cuenta_cobro WHERE id = :i", i=itau["id"]) == "12345678|Camila Martinez")
+estado, mp = pedir("POST", "/pagos/cuentas", {"tipo": "mercado_pago", "identificador": " Camila.Martinez@Example.com ",
+                                              "banco": "brou", "moneda": "USD", "titular": "X"}, token=profe7)
+ok("POST Mercado Pago 201: la segunda entra como alternativa",
+   estado == 201 and mp["tipo"] == "mercado_pago" and mp["es_principal"] is False, mp)
+ok("POST Mercado Pago: el correo en minusculas; banco, moneda y titular se ignoran",
+   mp["visible"] == "camila.martinez@example.com" and mp["banco"] is None and mp["moneda"] is None
+   and mp["titular"] is None, mp)
+error("POST la misma cuenta bancaria otra vez",
+      pedir("POST", "/pagos/cuentas", {**BANCO_NUEVO, "identificador": "12345678"}, token=profe7), 409, "cuenta_repetida")
+error("POST el mismo correo con otras mayusculas",
+      pedir("POST", "/pagos/cuentas", {"tipo": "mercado_pago", "identificador": "CAMILA.martinez@example.com"}, token=profe7),
+      409, "cuenta_repetida")
+for nombre, cambio in (("con letras", {"identificador": "12345abc"}),
+                       ("de 5 digitos", {"identificador": "123-45"}),
+                       ("de 21 digitos", {"identificador": "1" * 21}),
+                       ("con digitos que no son ASCII", {"identificador": "１２３４５６７"}),
+                       ("sin banco", {"banco": None}),
+                       ("sin moneda", {"moneda": None}),
+                       ("sin titular", {"titular": "   "})):
+    error(f"POST cuenta bancaria {nombre}", pedir("POST", "/pagos/cuentas", {**BANCO_NUEVO, **cambio}, token=profe7),
+          400, "cuenta_invalida")
+error("POST un banco que no es de la lista",
+      pedir("POST", "/pagos/cuentas", {**BANCO_NUEVO, "banco": "banco_de_la_esquina"}, token=profe7), 400, "banco_no_existe")
+error("POST Mercado Pago con un correo invalido",
+      pedir("POST", "/pagos/cuentas", {"tipo": "mercado_pago", "identificador": "camila@"}, token=profe7), 400, "correo_invalido")
+ok("POST un tipo que no existe -> 422", pedir("POST", "/pagos/cuentas", {**BANCO_NUEVO, "tipo": "paypal"}, token=profe7)[0] == 422)
+ok("POST una moneda que no existe -> 422", pedir("POST", "/pagos/cuentas", {**BANCO_NUEVO, "moneda": "EUR"}, token=profe7)[0] == 422)
+error("POST cuenta como alumno", pedir("POST", "/pagos/cuentas", BANCO_NUEVO, token=alumno1), 403, "no_es_tuyo")
+ok("los POST que fallaron no dejaron cuentas de mas",
+   sql("SELECT count(*) FROM cuenta_cobro WHERE usuario_id = :u", u=ID["profe7"]) == 2)
+
+
+seccion("Cuentas de cobro: cambiar la principal")
+estado, lista = pedir("PUT", f"/pagos/cuentas/{mp['id']}/principal", token=profe7)
+ok("PUT principal 200: devuelve todas, con la nueva principal primero",
+   estado == 200 and [c["id"] for c in lista] == [mp["id"], itau["id"]]
+   and lista[0]["es_principal"] is True and lista[1]["es_principal"] is False, lista)
+ok("PUT principal: en la base queda una sola principal", principales(ID["profe7"]) == 1)
+ok("PUT principal: GET devuelve lo mismo", cuentas_de(profe7) == lista)
+ok("PUT principal sobre la que ya lo es: 200 y no cambia nada",
+   pedir("PUT", f"/pagos/cuentas/{mp['id']}/principal", token=profe7) == (200, lista))
+error("PUT principal de una cuenta de otro profesor",
+      pedir("PUT", f"/pagos/cuentas/{de_lucia[1]['id']}/principal", token=profe7), 403, "no_es_tuyo")
+ok("...y las de profe1 siguen como estaban", cuentas_de(profe1) == de_lucia)
+error("PUT principal de una que no existe", pedir("PUT", "/pagos/cuentas/99999/principal", token=profe7), 404, "cuenta_no_existe")
+error("PUT principal como alumno", pedir("PUT", f"/pagos/cuentas/{mp['id']}/principal", token=alumno1), 403, "no_es_tuyo")
+
+
+seccion("Cuentas de cobro: quitar")
+# Una tercera, la mas nueva: al quitar la principal tiene que pasar la MAS
+# VIEJA de las que quedan (Itau), no esta.
+estado, santander = pedir("POST", "/pagos/cuentas", {**BANCO_NUEVO, "banco": "santander", "identificador": "0012345678",
+                                                     "moneda": "USD"}, token=profe7)
+ok("POST una tercera, en dolares", estado == 201 and santander["moneda"] == "USD" and santander["es_principal"] is False, santander)
+ok("GET: la principal y despues de la mas vieja a la mas nueva",
+   [c["id"] for c in cuentas_de(profe7)] == [mp["id"], itau["id"], santander["id"]])
+error("DELETE una cuenta de otro profesor", pedir("DELETE", f"/pagos/cuentas/{de_lucia[0]['id']}", token=profe7), 403, "no_es_tuyo")
+error("DELETE una que no existe", pedir("DELETE", "/pagos/cuentas/99999", token=profe7), 404, "cuenta_no_existe")
+error("DELETE como alumno", pedir("DELETE", f"/pagos/cuentas/{mp['id']}", token=alumno1), 403, "no_es_tuyo")
+ok("los DELETE que fallaron no tocaron las de profe1", cuentas_de(profe1) == de_lucia)
+estado, cuerpo = pedir("DELETE", f"/pagos/cuentas/{mp['id']}", token=profe7)
+ok("DELETE la principal: 204 sin cuerpo", estado == 204 and cuerpo is None, (estado, cuerpo))
+ok("DELETE es baja logica: la fila sigue, inactiva y ya no principal",
+   sql("SELECT activa::text || '|' || es_principal FROM cuenta_cobro WHERE id = :i", i=mp["id"]) == "false|false")
+lista = cuentas_de(profe7)
+ok("quitar la principal: pasa a principal la mas vieja que queda (Itau, no Santander)",
+   [c["id"] for c in lista] == [itau["id"], santander["id"]] and lista[0]["es_principal"] is True
+   and lista[1]["es_principal"] is False, lista)
+ok("quitar la principal: sigue habiendo una sola", principales(ID["profe7"]) == 1)
+error("DELETE una ya dada de baja", pedir("DELETE", f"/pagos/cuentas/{mp['id']}", token=profe7), 404, "cuenta_no_existe")
+error("PUT principal de una dada de baja", pedir("PUT", f"/pagos/cuentas/{mp['id']}/principal", token=profe7), 404, "cuenta_no_existe")
+ok("una cuenta dada de baja se puede volver a cargar",
+   pedir("POST", "/pagos/cuentas", {"tipo": "mercado_pago", "identificador": "camila.martinez@example.com"}, token=profe7)[0] == 201)
+ok("quitar una alternativa: 204 y la principal no cambia",
+   pedir("DELETE", f"/pagos/cuentas/{santander['id']}", token=profe7)[0] == 204 and cuentas_de(profe7)[0]["id"] == itau["id"])
+for cuenta in cuentas_de(profe7):
+    pedir("DELETE", f"/pagos/cuentas/{cuenta['id']}", token=profe7)
+ok("quitar todas: queda sin cuentas y sin principal", cuentas_de(profe7) == [] and principales(ID["profe7"]) == 0)
+estado, de_nuevo = pedir("POST", "/pagos/cuentas", {**BANCO_NUEVO, "banco": "brou"}, token=profe7)
+ok("sin cuentas, la que se agrega vuelve a ser la principal", estado == 201 and de_nuevo["es_principal"] is True, de_nuevo)
+
+
+seccion("Cuentas de cobro: pedidos a la vez y la base")
+# profe8 (pausada) no tiene cuentas. Seis altas distintas al mismo tiempo: sin
+# el candado de _turno, varias querrian ser "la primera" y chocarian contra
+# el indice unico con un 500.
+profe8 = login("profe8@example.com")
+with ThreadPoolExecutor(max_workers=6) as pool:
+    a_la_vez = list(pool.map(
+        lambda n: pedir("POST", "/pagos/cuentas", {**BANCO_NUEVO, "identificador": f"55500000{n}"}, token=profe8), range(6)))
+ok("seis altas a la vez sin cuentas previas: todas 201", all(e == 201 for e, _ in a_la_vez), a_la_vez)
+ok("...y una sola quedo como principal",
+   sum(c["es_principal"] for e, c in a_la_vez if e == 201) == 1 and principales(ID["profe8"]) == 1, a_la_vez)
+with ThreadPoolExecutor(max_workers=4) as pool:
+    doble_clic = list(pool.map(
+        lambda _: pedir("POST", "/pagos/cuentas", {"tipo": "mercado_pago", "identificador": "doble.clic@example.com"},
+                        token=profe8), range(4)))
+ok("la misma cuenta cuatro veces a la vez (doble clic): una 201 y tres 409 cuenta_repetida",
+   sorted(e for e, _ in doble_clic) == [201, 409, 409, 409]
+   and all(c == {"detail": "cuenta_repetida"} for e, c in doble_clic if e == 409), doble_clic)
+INSERTAR = ("INSERT INTO cuenta_cobro (usuario_id, tipo, banco, identificador, titular, moneda, es_principal, activa) "
+            "VALUES (:u, :t, :b, :i, :ti, :m, :p, :a) RETURNING id")
+FILA = {"u": ID["profe8"], "t": "mercado_pago", "b": None, "i": "otra@example.com", "ti": None, "m": None,
+        "p": False, "a": True}
+ok("la base no deja una segunda principal activa (indice unico parcial)", la_base_rechaza(INSERTAR, **{**FILA, "p": True}))
+ok("...pero si una principal dada de baja (el indice es parcial)", sql(INSERTAR, **{**FILA, "p": True, "a": False}) is not None)
+ok("la base no deja una cuenta bancaria sin banco (CHECK datos_segun_tipo)",
+   la_base_rechaza(INSERTAR, **{**FILA, "t": "banco", "i": "12345678", "ti": "X", "m": "UYU"}))
+ok("la base no deja un tipo que no existe (CHECK tipo_cuenta_valido)", la_base_rechaza(INSERTAR, **{**FILA, "t": "paypal"}))
+ok("la base no deja una moneda que no existe (CHECK moneda_valida)",
+   la_base_rechaza(INSERTAR, **{**FILA, "t": "banco", "b": "brou", "i": "12345678", "ti": "X", "m": "EUR"}))
+
+
+# ===========================================================================
 # SISTEMA - la app importa, la migracion va y vuelve, los seeds cuadran
 # ===========================================================================
 
@@ -777,8 +950,13 @@ r = correr("-c", "from app.main import app; print(len(app.routes))")
 ok("python -c 'from app.main import app'", r.returncode == 0, r.stderr[-400:])
 r = correr("-m", "alembic", "check")
 ok("alembic check: sin diferencias", r.returncode == 0 and "No new upgrade operations" in r.stdout + r.stderr, r.stderr[-400:])
+# Las dos revisiones de P4, de a una: primero la de las cuentas de cobro (la
+# ultima), despues la de cobro.
 r = correr("-m", "alembic", "downgrade", "-1")
-ok("alembic downgrade -1 (con cobros de clases rechazadas en la base)", r.returncode == 0, r.stderr[-400:])
+ok("alembic downgrade -1 (cuentas de cobro, con cuentas cargadas)", r.returncode == 0, r.stderr[-400:])
+ok("downgrade: la tabla cuenta_cobro ya no esta", sql("SELECT to_regclass('cuenta_cobro') IS NULL") is True)
+r = correr("-m", "alembic", "downgrade", "-1")
+ok("alembic downgrade -1 otra vez (con cobros de clases rechazadas en la base)", r.returncode == 0, r.stderr[-400:])
 ok("downgrade: clase_id vuelve a NOT NULL con CASCADE", sql(
    "SELECT is_nullable FROM information_schema.columns WHERE table_name = 'cobro' AND column_name = 'clase_id'") == "NO")
 r = correr("-m", "alembic", "upgrade", "head")
@@ -787,6 +965,10 @@ ok("upgrade: clase_id nullable", sql(
    "SELECT is_nullable FROM information_schema.columns WHERE table_name = 'cobro' AND column_name = 'clase_id'") == "YES")
 ok("upgrade: la clave foranea es ON DELETE SET NULL", sql(
    "SELECT confdeltype FROM pg_constraint WHERE conname = 'cobro_clase_id_fkey'") == "n")
+ok("upgrade: cuenta_cobro vuelve, con su indice unico parcial", sql(
+   "SELECT indexdef FROM pg_indexes WHERE indexname = 'ux_cuenta_cobro_principal'")
+   == "CREATE UNIQUE INDEX ux_cuenta_cobro_principal ON public.cuenta_cobro USING btree (usuario_id) "
+      "WHERE (es_principal AND activa)")
 r = correr("-m", "alembic", "check")
 ok("alembic check despues de ir y volver", r.returncode == 0, r.stderr[-400:])
 
@@ -798,14 +980,15 @@ def contar(tablas: tuple) -> dict:
 # que cuelga de ellas) dependen un poco de cuando se corre: un horario que
 # justo empezo entre una corrida y la otra se descarta. Por eso alcanza con
 # que no se dupliquen.
-FIJAS = ("usuario", "tarjeta", "franja_disponibilidad", "materia", "barrio", "centro_educativo")
+FIJAS = ("usuario", "tarjeta", "cuenta_cobro", "franja_disponibilidad", "materia", "barrio", "centro_educativo")
 CON_HORA = ("clase", "cobro", "resena", "mensaje")
 primera = correr("-m", "app.seeds")
 fijas_1, con_hora_1 = contar(FIJAS), contar(CON_HORA)
 segunda = correr("-m", "app.seeds")
 fijas_2, con_hora_2 = contar(FIJAS), contar(CON_HORA)
 ok("seeds dos veces seguidas", primera.returncode == 0 and segunda.returncode == 0, (primera.stderr + segunda.stderr)[-400:])
-ok("seeds: la segunda vez deja lo mismo (usuarios, tarjetas, franjas, catalogos)", fijas_1 == fijas_2, (fijas_1, fijas_2))
+ok("seeds: la segunda vez deja lo mismo (usuarios, tarjetas, cuentas de cobro, franjas, catalogos)",
+   fijas_1 == fijas_2, (fijas_1, fijas_2))
 ok("seeds: sin duplicar clases, cobros, resenas ni mensajes",
    all(abs(con_hora_2[t] - con_hora_1[t]) <= con_hora_1[t] * 0.02 for t in CON_HORA), (con_hora_1, con_hora_2))
 ok("seeds: los veinte de siempre conservan su id (profe1..8 = 1..8, alumno1..12 = 9..20)",
@@ -822,6 +1005,20 @@ ok(f"seeds: las {len(clases_seeds)} clases cuadran con desglosar() (el mismo cal
    all((d["subtotal"], d["impuesto"], d["total"]) == (c.subtotal, c.impuesto, c.total) for d, c in zip(cuadran, clases_seeds)))
 ok("seeds: cada cobro es el total de su clase",
    sql("SELECT count(*) FROM cobro co JOIN clase c ON c.id = co.clase_id WHERE co.importe <> c.total") == 0)
+ok("seeds: profe1 con las cuentas del mockup (BROU 3391 principal, Mercado Pago alternativa)", sql(
+   "SELECT string_agg(CASE WHEN tipo = 'banco' THEN banco || ' ' || right(identificador, 4) ELSE identificador END "
+   "|| ' ' || es_principal, ', ' ORDER BY id) FROM cuenta_cobro WHERE usuario_id = :u AND activa", u=ID["profe1"])
+   == "brou 3391 true, lucia.fernandez@example.com false")
+ok("seeds: cada profesor publicado tiene una o dos cuentas de cobro, y una sola principal", sql(
+   "SELECT count(*) FROM (SELECT p.usuario_id FROM perfil_profesor p "
+   "LEFT JOIN cuenta_cobro c ON c.usuario_id = p.usuario_id AND c.activa WHERE p.estado_ficha = 'publicada' "
+   "GROUP BY p.usuario_id HAVING count(c.id) NOT BETWEEN 1 AND 2 OR count(c.id) FILTER (WHERE c.es_principal) <> 1) x") == 0)
+ok("seeds: borradores y pausadas sin cuentas de cobro", sql(
+   "SELECT count(*) FROM cuenta_cobro c JOIN perfil_profesor p ON p.usuario_id = c.usuario_id "
+   "WHERE p.estado_ficha <> 'publicada'") == 0)
+ok("seeds: todas las cuentas cumplen las reglas de la API (digitos, banco de la lista, correo de example.com)", sql(
+   "SELECT count(*) FROM cuenta_cobro WHERE NOT ((tipo = 'banco' AND identificador ~ '^[0-9]{6,20}$' AND banco = ANY(:b)) "
+   "OR (tipo = 'mercado_pago' AND identificador LIKE '%@example.com'))", b=list(pagos_logica.BANCOS)) == 0)
 
 
 # ===========================================================================

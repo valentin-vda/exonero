@@ -17,6 +17,7 @@ import {
   ControlZoomRueda,
   useZoomConEnter,
 } from '../mapas/ZoomConEnter.jsx'
+import SenalBatman from '../mapas/SenalBatman.jsx'
 
 const MONTEVIDEO = [-34.9011, -56.1645]
 
@@ -109,6 +110,7 @@ export default function MapaInicio({ pines = [], rankingIds = [], ubicacion }) {
           </Marker>
         ))}
 
+        <SenalBatman />
         <ZoomControl position="bottomright" />
       </MapContainer>
 

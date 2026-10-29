@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -29,6 +30,49 @@ class TarjetaOut(BaseModel):
     ultimos4: str
     titular: str
     vence: str        # MM/AA
+
+
+class CuentaCobroIn(BaseModel):
+    """POST /pagos/cuentas - 1j, la tarjeta "Cobros".
+
+    Lo que se manda depende del tipo:
+      banco         banco (el codigo: "brou", "itau"...), identificador (el
+                    numero; se aceptan espacios y guiones), moneda y titular
+      mercado_pago  identificador (el correo). banco, moneda y titular se
+                    ignoran: Mercado Pago no los usa.
+
+    Literal en tipo y moneda: un valor que no esta en la lista es un 422 de
+    FastAPI, como TemaIn. El resto (que el numero sean digitos, que el banco
+    exista, que el correo sea valido) lo valida pagos/logica.py con sus
+    codigos propios, para que el frontend pueda decir que esta mal.
+    """
+
+    tipo: Literal["banco", "mercado_pago"]
+    banco: str | None = None
+    # Los topes son solo de seguridad (que no manden un texto enorme): los
+    # limites reales del numero, entre 6 y 20 digitos, los mira la logica.
+    identificador: str = Field(min_length=1, max_length=254)
+    titular: str | None = Field(default=None, max_length=120)
+    moneda: Literal["UYU", "USD"] | None = None
+
+
+class CuentaCobroOut(BaseModel):
+    """Lo que se devuelve de una cuenta de cobro.
+
+    NUNCA el numero de cuenta completo, aunque este guardado: `visible` es
+    "•••• 3391" para un banco. El correo de Mercado Pago si va entero (como en
+    el mockup): es el dato con el que el profesor reconoce la cuenta, y no
+    sirve para sacar plata.
+    """
+
+    id: int
+    tipo: str                 # banco | mercado_pago
+    banco: str | None = None  # el codigo: "itau"
+    banco_nombre: str | None = None  # el nombre que se muestra: "Itaú"
+    visible: str              # "•••• 3391" o "lucia.fernandez@example.com"
+    titular: str | None = None
+    moneda: str | None = None  # UYU | USD, solo en banco
+    es_principal: bool
 
 
 class MovimientoOut(BaseModel):

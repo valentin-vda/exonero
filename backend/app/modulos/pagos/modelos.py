@@ -1,11 +1,12 @@
 """Tablas del modulo pagos - dueno P4.
 
-Dos tablas: tarjeta y cobro.
+Tres tablas: tarjeta y cobro (el lado del alumno y la plata) y cuenta_cobro
+(el lado del profesor: a donde se le liquida).
 
-cobro es LA UNICA TABLA DE PLATA de todo el sistema. No hay liquidaciones ni
-cuenta bancaria del profesor: el historial del alumno son las filas de cobro,
-y los ingresos del profesor son sum(importe) sobre sus cobros en estado
-cobrado.
+cobro es LA UNICA TABLA DE PLATA de todo el sistema. No hay liquidaciones: el
+historial del alumno son las filas de cobro, y los ingresos del profesor son
+sum(importe) sobre sus cobros en estado cobrado. cuenta_cobro no cambia eso:
+dice A DONDE iria esa plata, no cuanta es.
 
 Por que el estado del pago no puede vivir en clase: porque la clase RECHAZADA
 se borra, y el cobro liberado tiene que quedar registrado igual.
@@ -14,7 +15,7 @@ se borra, y el cobro liberado tiene que quedar registrado igual.
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Index, Numeric, Text, func
+from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Index, Numeric, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base, Marcas
@@ -93,3 +94,62 @@ class Cobro(Base, Marcas):
     cobrado_el: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     liberado_el: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reembolsado_el: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class CuentaCobro(Base, Marcas):
+    """Las cuentas de cobro del profesor: donde se le liquida lo que cobra. 1j.
+
+    Dos tipos:
+      banco         una cuenta bancaria: banco (de la lista fija de
+                    pagos/logica.py), numero, moneda y titular
+      mercado_pago  una cuenta de Mercado Pago: solo el correo
+
+    `identificador` es el numero de cuenta (solo digitos) o el correo. Como con
+    las tarjetas, el numero se guarda entero pero la API NUNCA lo devuelve
+    entero: solo "•••• 3391" (ver pagos/logica.py, _cuenta_visible).
+
+    Una de las activas es la PRINCIPAL: la que se usa para liquidar. Las demas
+    son alternativas. El indice unico parcial de abajo es el que garantiza que
+    haya una sola, aunque dos pedidos lleguen a la vez.
+
+    tipo y moneda son Text con un CHECK, y no un ENUM nuevo: un ENUM obliga a
+    acordarse del DROP TYPE en el downgrade (la trampa de la seccion 4 de la
+    documentacion), y sumar un valor despues es mas engorroso que cambiar un
+    CHECK.
+    """
+
+    __tablename__ = "cuenta_cobro"
+    __table_args__ = (
+        CheckConstraint("tipo IN ('banco', 'mercado_pago')", name="tipo_cuenta_valido"),
+        CheckConstraint("moneda IN ('UYU', 'USD')", name="moneda_valida"),
+        # Lo que pide cada tipo, tambien en la base: una cuenta bancaria sin
+        # banco, moneda o titular no sirve para liquidar, y una de Mercado
+        # Pago no tiene ninguna de las tres.
+        CheckConstraint(
+            "(tipo = 'banco' AND banco IS NOT NULL AND moneda IS NOT NULL AND titular IS NOT NULL)"
+            " OR (tipo = 'mercado_pago' AND banco IS NULL AND moneda IS NULL AND titular IS NULL)",
+            name="datos_segun_tipo",
+        ),
+        # Una sola principal ACTIVA por profesor. Parcial: las alternativas y
+        # las dadas de baja no cuentan, asi que puede haber muchas de esas.
+        # text() en minuscula: ver la trampa del postgresql_where en la
+        # seccion 4 de la documentacion.
+        Index(
+            "ux_cuenta_cobro_principal", "usuario_id",
+            unique=True, postgresql_where=text("es_principal AND activa"),
+        ),
+    )
+
+    usuario_id: Mapped[int] = mapped_column(
+        ForeignKey("usuario.id", ondelete="CASCADE"), nullable=False
+    )
+    tipo: Mapped[str] = mapped_column(Text, nullable=False)
+    # El codigo del banco ("brou", "itau"...), no el nombre que se muestra.
+    banco: Mapped[str | None] = mapped_column(Text)
+    identificador: Mapped[str] = mapped_column(Text, nullable=False)
+    titular: Mapped[str | None] = mapped_column(Text)
+    moneda: Mapped[str | None] = mapped_column(Text)
+    es_principal: Mapped[bool] = mapped_column(nullable=False, default=False)
+    # Baja logica, como las tarjetas: la fila queda para saber a donde se
+    # liquido antes, aunque el profesor ya no la use.
+    activa: Mapped[bool] = mapped_column(nullable=False, default=True)

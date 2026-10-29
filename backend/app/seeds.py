@@ -12,7 +12,7 @@ que en todas las maquinas quedan los mismos datos. Lo unico que cambia son las
 fechas, que se calculan desde HOY: siempre hay clases pasadas y proximas sin
 importar cuando se corra.
 
-QUE CARGA (las 24 tablas):
+QUE CARGA (las 25 tablas):
   - catalogos: 26 barrios de Montevideo con su centroide, 16 materias, las
     cinco etapas, 22 centros educativos, 5 idiomas, y la comision y el IVA con
     su historia
@@ -21,6 +21,8 @@ QUE CARGA (las 24 tablas):
     clase con ellos y algunas fotos del lugar
   - 60 alumnos con su perfil y entre una y tres tarjetas de prueba (algunas
     vencidas o dadas de baja)
+  - una o dos cuentas de cobro (banco o Mercado Pago) para cada profesor con
+    la ficha publicada; la primera es la principal
   - la agenda: las franjas semanales de todos y bloqueos puntuales de algunos
   - mas de mil clases: cinco meses de historia (dictadas, canceladas, no
     asistidas) y las proximas dos semanas (aprobadas, pendientes, alguna
@@ -41,7 +43,11 @@ los mismos datos y los mismos ids que antes de que los seeds crecieran: se
 crean primero, y los nuevos van despues. Cuentan con eso los botones de
 "Usuarios de prueba" del login y backend/verificar_p4.py (por ejemplo, que
 alumno1 tenga una sola tarjeta, que profe7 este en borrador y profe8 pausada).
-Lo que si cambio son sus clases: ahora tienen historia.
+Lo que si cambio son sus clases: ahora tienen historia, y profe1 tiene
+siempre una aprobada con alumno1 en tres dias habiles a las 16 (la usa
+verificar_p3.py; el resto de sus clases sale al azar). Y los publicados
+(profe1 a profe6) tienen cuentas de cobro: profe1, las del mockup de 1j; profe7
+y profe8 no tienen ninguna (verificar_p4.py cuenta con eso).
 
 Por que example.com: es un dominio reservado para ejemplos (RFC 2606), no es
 de nadie. Un dominio .test seria lo mas natural, pero el validador de correos
@@ -51,6 +57,7 @@ usuarios no se podria hacer login.
 
 import base64
 import random
+import unicodedata
 from collections import Counter, defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
@@ -91,7 +98,8 @@ from app.modulos.clases.logica import desglosar, importes_congelados
 from app.modulos.clases.modelos import Clase
 from app.modulos.cuentas.modelos import Usuario
 from app.modulos.mensajeria.modelos import Hilo, Mensaje
-from app.modulos.pagos.modelos import Cobro, Tarjeta
+from app.modulos.pagos.logica import BANCOS
+from app.modulos.pagos.modelos import Cobro, CuentaCobro, Tarjeta
 from app.modulos.perfiles.modelos import (
     FotoLugar,
     PerfilEstudiante,
@@ -520,6 +528,11 @@ TARJETAS_DE_PRUEBA = [
     "6011111111111117",
 ]
 
+# Las de profe1 son las del mockup de 1j: BROU terminada en 3391 como
+# principal y Mercado Pago como alternativa (con example.com, nunca un
+# dominio real).
+CUENTA_BROU_PROFE1 = "00152800013391"
+
 # ---------------------------------------------------------------------------
 # Lo que dicen las clases, las resenas y los mensajes.
 # ---------------------------------------------------------------------------
@@ -858,6 +871,21 @@ def sembrar_clases(db, usuarios: dict, catalogos: dict) -> dict:
     # y despues la historia, del dia mas reciente al mas viejo. Asi, cuando un
     # alumno o un profesor llega a su tope, lo que se pierde es la historia
     # mas vieja y no lo que viene.
+    # Antes que nada, la aprobada fija de profe1 con alumno1: en tres dias
+    # habiles, a las 16 (adentro de su franja de 14 a 20) y nunca el dia del
+    # "Turno medico", que cae a ocho. verificar_p3.py la necesita: si todas
+    # salieran al azar, segun la fecha podrian caer un sabado o el dia del
+    # bloqueo, y sus chequeos de "otra hora del dia de la aprobada" darian
+    # otro motivo.
+    for agenda in agendas:
+        profe = agenda["profe"]
+        if profe["numero"] == 1:
+            inicio = datetime.combine(_dia_habil(hoy, 3), time(16), ZONA)
+            duracion = 60 if 60 in profe["duraciones"] else profe["duraciones"][0]
+            alumno = agenda["grupo"][0]  # alumno1 (ver _grupo_del_profesor)
+            fija = _reservar(alumno, inicio, duracion, agenda["ocupado"], ocupado_alumno, clases_por_alumno)
+            agenda["plan"].append({**fija, "estado": EstadoClase.aprobada, "fija": True})
+
     proximos = [hoy + timedelta(days=d) for d in range(DIAS_POR_DELANTE + 1)]
     pasados = [hoy - timedelta(days=d) for d in range(1, SEMANAS_DE_HISTORIA * 7 + 1)]
     for dias in (proximos, pasados):
@@ -884,8 +912,10 @@ def sembrar_clases(db, usuarios: dict, catalogos: dict) -> dict:
 
         # --- 2. El estado de cada una -------------------------------------
         plan.sort(key=lambda p: p["inicio"])
-        dias_con_aprobada = set()
+        dias_con_aprobada = {p["inicio"].date() for p in plan if p.get("fija")}
         for p in plan:
+            if p.get("fija"):
+                continue  # la de profe1 ya viene aprobada
             if p["fin"] <= ahora:
                 r = azar.random()
                 p["estado"] = (EstadoClase.dictada if r < 0.84
@@ -1058,6 +1088,54 @@ def sembrar_mensajes(db, pares: dict, usuarios: dict, catalogos: dict) -> None:
                 creado_el=cuando,
             ))
     db.flush()
+
+
+def sembrar_cuentas_cobro(db, usuarios: dict) -> None:
+    """Una o dos cuentas de cobro para cada profesor con la ficha publicada.
+
+    Es lo que muestra la tarjeta "Cobros" de 1j. La primera de cada uno es la
+    principal (como en la API: la primera que se carga lo es); la segunda, si
+    tiene, es una alternativa. Tres de cada cuatro cobran en el banco y el
+    resto en Mercado Pago. Los borradores y las pausadas no tienen: todavia
+    no cobran nada.
+
+    Va con su propia semilla y despues de todo lo demas: asi sumar esta tabla
+    no movio ni un dato de las otras (cada azar.random() de mas cambiaria lo
+    que sale despues en las funciones que comparten generador).
+    """
+    azar = random.Random(SEMILLA + 7)
+
+    for profe in usuarios["profesores"]:
+        if profe["perfil"].estado_ficha != EstadoFicha.publicada:
+            continue
+        usuario = profe["usuario"]
+        if profe["numero"] == 1:
+            cuentas = [
+                _cuenta_banco(usuario, "brou", CUENTA_BROU_PROFE1),
+                _cuenta_mercado_pago(usuario),
+            ]
+        else:
+            if azar.random() < 0.75:
+                principal = _cuenta_banco(usuario, azar.choice(list(BANCOS)), _numero_de_cuenta(azar))
+            else:
+                principal = _cuenta_mercado_pago(usuario)
+            cuentas = [principal]
+            if azar.random() < 0.5:
+                if principal.tipo == "mercado_pago":
+                    cuentas.append(_cuenta_banco(usuario, azar.choice(list(BANCOS)), _numero_de_cuenta(azar)))
+                elif azar.random() < 0.6:
+                    cuentas.append(_cuenta_mercado_pago(usuario))
+                else:
+                    # Una segunda cuenta bancaria, en dolares: hay quien cobra
+                    # en las dos monedas.
+                    cuentas.append(_cuenta_banco(usuario, azar.choice(list(BANCOS)), _numero_de_cuenta(azar),
+                                                 moneda="USD"))
+        cuentas[0].es_principal = True
+        # Una por una y en orden: todas tienen el mismo creado_el (now() de esta
+        # transaccion), y el id es lo que dice cual es la mas vieja.
+        for cuenta in cuentas:
+            db.add(cuenta)
+            db.flush()
 
 
 # ===========================================================================
@@ -1284,6 +1362,23 @@ def _tarjetas_nuevas(usuario_id: int, titular: str, hoy: date, azar: random.Rand
 # Auxiliares: las clases y la plata
 # ===========================================================================
 
+def _cuenta_banco(usuario: Usuario, banco: str, numero: str, moneda: str = "UYU") -> CuentaCobro:
+    """Una cuenta bancaria a nombre del profesor, como la guarda la API: solo digitos."""
+    return CuentaCobro(usuario_id=usuario.id, tipo="banco", banco=banco, identificador=numero,
+                       titular=f"{usuario.nombre} {usuario.apellido}", moneda=moneda)
+
+
+def _cuenta_mercado_pago(usuario: Usuario) -> CuentaCobro:
+    """La cuenta de Mercado Pago del profesor: solo el correo (ver _correo_mercado_pago)."""
+    return CuentaCobro(usuario_id=usuario.id, tipo="mercado_pago",
+                       identificador=_correo_mercado_pago(usuario.nombre, usuario.apellido))
+
+
+def _numero_de_cuenta(azar: random.Random) -> str:
+    """Un numero de cuenta inventado, de 7 a 14 digitos: el largo que usan los bancos de plaza."""
+    return "".join(str(azar.randint(0, 9)) for _ in range(azar.randint(7, 14)))
+
+
 def _grupo_del_profesor(profe: dict, estudiantes: list, azar: random.Random) -> tuple[list, list]:
     """Los alumnos que toman clase con este profesor, y que tan seguido.
 
@@ -1342,13 +1437,20 @@ def _ubicar_clase(profe: dict, dia: date, tramos: list, grupo: list, pesos: list
         uid = alumno["usuario"].id
         if clases_por_alumno[uid] >= MAX_CLASES_ALUMNO or _se_pisa(inicio, fin, ocupado_alumno[uid]):
             continue
-
-        ocupado["profe"].append((inicio, fin))
-        ocupado["por_dia"][dia] += 1
-        ocupado_alumno[uid].append((inicio, fin))
-        clases_por_alumno[uid] += 1
-        return {"alumno": alumno, "inicio": inicio, "fin": fin, "duracion": duracion}
+        return _reservar(alumno, inicio, duracion, ocupado, ocupado_alumno, clases_por_alumno)
     return None
+
+
+def _reservar(alumno: dict, inicio: datetime, duracion: int, ocupado: dict, ocupado_alumno: dict,
+              clases_por_alumno: Counter) -> dict:
+    """Marca el rato como ocupado para el profesor y el alumno, y arma la clase del plan."""
+    fin = inicio + timedelta(minutes=duracion)
+    uid = alumno["usuario"].id
+    ocupado["profe"].append((inicio, fin))
+    ocupado["por_dia"][inicio.date()] += 1
+    ocupado_alumno[uid].append((inicio, fin))
+    clases_por_alumno[uid] += 1
+    return {"alumno": alumno, "inicio": inicio, "fin": fin, "duracion": duracion}
 
 
 def _asegurar_aprobada_y_pendiente(plan: list, ahora: datetime) -> None:
@@ -1360,8 +1462,9 @@ def _asegurar_aprobada_y_pendiente(plan: list, ahora: datetime) -> None:
     futuras = [p for p in plan if p["fin"] > ahora]
     aprobadas = [p for p in futuras if p["estado"] == EstadoClase.aprobada]
     pendientes = [p for p in futuras if p["estado"] == EstadoClase.pendiente]
-    if not pendientes and len(aprobadas) >= 2:
-        aprobadas[-1]["estado"] = EstadoClase.pendiente
+    movibles = [p for p in aprobadas if not p.get("fija")]  # la fija de profe1 queda aprobada
+    if not pendientes and len(aprobadas) >= 2 and movibles:
+        movibles[-1]["estado"] = EstadoClase.pendiente
     elif not aprobadas and pendientes:
         pendientes[0]["estado"] = EstadoClase.aprobada
 
@@ -1659,6 +1762,19 @@ def _documento(n: int) -> str:
     return f"{numero}-{n % 10}"
 
 
+def _correo_mercado_pago(nombre: str, apellido: str) -> str:
+    """"Juan Pablo", "Núñez" -> "juanpablo.nunez@example.com".
+
+    Sin tildes ni espacios: NFKD separa la "u" de su tilde y la tilde se
+    descarta. example.com y no un dominio real (ver el docstring del modulo).
+    """
+    def limpio(texto: str) -> str:
+        sin_tildes = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode("ascii")
+        return sin_tildes.replace(" ", "").lower()
+
+    return f"{limpio(nombre)}.{limpio(apellido)}@example.com"
+
+
 def _telefono(n: int) -> str:
     return f"09{n % 9 + 1} {n * 37 % 1000:03d} {n * 53 % 1000:03d}"
 
@@ -1680,6 +1796,9 @@ def _resumen(db) -> None:
         ),
         "cobros (con los rechazados)": "SELECT count(*) FROM cobro",
         "tarjetas": "SELECT count(*) FROM tarjeta",
+        "cuentas de cobro / principales": (
+            "SELECT count(*) || ' / ' || count(*) FILTER (WHERE es_principal) FROM cuenta_cobro"
+        ),
         "resenas": "SELECT count(*) FROM resena",
         "hilos": "SELECT count(*) FROM hilo",
         "mensajes / sin leer": (
@@ -1704,6 +1823,7 @@ def main() -> None:
         pares = sembrar_clases(db, usuarios, catalogos)
         sembrar_resenas(db, pares)
         sembrar_mensajes(db, pares, usuarios, catalogos)
+        sembrar_cuentas_cobro(db, usuarios)
         db.commit()
         print("Datos de prueba cargados.")
         _resumen(db)
