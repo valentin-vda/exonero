@@ -366,10 +366,12 @@ def filtrar_con_hueco(db: Session, ids_profesor: list[int], dia: int | None, fra
     for agenda in _cargar(db, ids_profesor, *_ventana(dias[0], dias[-1])):
         for d in dias:
             desde, hasta = ventana_horaria(d)
-            tramos = _tramos_libres(agenda, d, ahora)
-            # Lo que queda adentro de la franja pedida.
-            recortados = [(max(a, desde), min(b, hasta)) for a, b in tramos if a < hasta and b > desde]
-            if _cortar(recortados, agenda.duracion_base):
+            # Los mismos huecos que ofrece el calendario de 1f, y de esos los
+            # que caen enteros adentro de la franja pedida. No se recortan los
+            # tramos antes de cortarlos: con un tramo de 11:30 a 13:00 saldria
+            # un hueco a las 12 que el calendario nunca ofrece (ofrece 11:30).
+            huecos = _cortar(_tramos_libres(agenda, d, ahora), agenda.duracion_base)
+            if any(desde <= ini and fin <= hasta for ini, fin in huecos):
                 con_hueco.append(agenda.usuario_id)
                 break
     return con_hueco

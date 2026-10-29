@@ -79,7 +79,14 @@ def recalcular(db: Session, usuario_id: int) -> None:
     Se llama despues de cada alta o edicion (y desde los seeds). Es la unica
     forma en que puntaje_promedio y cantidad_resenas cambian de valor.
     perfiles se fija solo si el perfil es de estudiante o de profesor.
+
+    Antes de contar toma un candado de PostgreSQL con la clave ("resena",
+    usuario_id), que se suelta solo con el commit o el rollback. Sin el, dos
+    resenas al mismo destinatario a la vez calculan cada una el promedio sin
+    ver la del otro, y el ultimo commit deja escrito un promedio que no
+    coincide con la tabla. Con el candado, el segundo espera y cuenta las dos.
     """
+    db.execute(select(func.pg_advisory_xact_lock(func.hashtext("resena"), usuario_id)))
     promedio, cantidad = db.execute(
         select(func.avg(Resena.puntaje), func.count()).where(Resena.destinatario_id == usuario_id)
     ).one()
