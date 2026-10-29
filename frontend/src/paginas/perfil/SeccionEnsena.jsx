@@ -33,6 +33,7 @@ import Campo from '../../componentes/Campo.jsx'
 import CampoSelect from '../../componentes/CampoSelect.jsx'
 import ListaEtiquetas from '../../componentes/ListaEtiquetas.jsx'
 import { aNumero, aTexto } from '../../utiles/formato.js'
+import { validarFormulario } from '../../utiles/validaciones.js'
 import {
   AVISOS,
   DESCANSOS,
@@ -88,6 +89,7 @@ function alternar(lista, valor) {
 
 export default function SeccionEnsena({ ficha, catalogos, alGuardar }) {
   const [campos, setCampos] = useState(() => valoresIniciales(ficha))
+  const [errores, setErrores] = useState({})
   const [mensaje, setMensaje] = useState(null)
   const [guardando, setGuardando] = useState(false)
 
@@ -120,8 +122,22 @@ export default function SeccionEnsena({ ficha, catalogos, alGuardar }) {
     evento.preventDefault()
     setMensaje(null)
 
-    // Lo unico que vale la pena chequear antes de llamar: el resto lo valida
-    // el backend y el error vuelve con su codigo.
+    // Lo que vale la pena chequear antes de llamar: el resto lo valida el
+    // backend y el error vuelve con su codigo. Los precios van antes que
+    // nada: si fallaran en PUT .../precios, la oferta y la modalidad ya
+    // habrian quedado guardadas.
+    const negativo = (valor) => (valor !== '' && Number(valor) < 0 ? 'No puede ser negativo.' : null)
+    const { errores: nuevos, hayErrores } = validarFormulario({
+      precioPresencial: () => (daPresencial ? negativo(campos.precioPresencial) : null),
+      precioOnline: () => (daOnline ? negativo(campos.precioOnline) : null),
+    })
+    setErrores(nuevos)
+    if (hayErrores) {
+      // El campo puede haber quedado lejos del boton: se lleva el foco ahi.
+      document.getElementById(Object.keys(nuevos)[0])?.focus()
+      return
+    }
+
     if (maximo < minimo) {
       setMensaje({ tipo: 'error', texto: mensajeDeError('duraciones_incoherentes') })
       return
@@ -274,11 +290,13 @@ export default function SeccionEnsena({ ficha, catalogos, alGuardar }) {
         <div className="grilla-2">
           {daPresencial && (
             <Campo id="precioPresencial" etiqueta="Precio por hora presencial" tipo="number" min="0"
-                   valor={campos.precioPresencial} alCambiar={cambiar('precioPresencial')} />
+                   valor={campos.precioPresencial} alCambiar={cambiar('precioPresencial')}
+                   error={errores.precioPresencial} />
           )}
           {daOnline && (
             <Campo id="precioOnline" etiqueta="Precio por hora online" tipo="number" min="0"
-                   valor={campos.precioOnline} alCambiar={cambiar('precioOnline')} />
+                   valor={campos.precioOnline} alCambiar={cambiar('precioOnline')}
+                   error={errores.precioOnline} />
           )}
         </div>
 
@@ -357,7 +375,7 @@ export default function SeccionEnsena({ ficha, catalogos, alGuardar }) {
             {guardando ? 'Guardando...' : 'Guardar cambios'}
           </button>
           <button type="button" className="btn btn-ghost" disabled={guardando}
-                  onClick={() => { setCampos(valoresIniciales(ficha)); setMensaje(null) }}>
+                  onClick={() => { setCampos(valoresIniciales(ficha)); setErrores({}); setMensaje(null) }}>
             Cancelar
           </button>
         </div>

@@ -272,6 +272,7 @@ export default function BuscarProfesores() {
               cargando={buscando}
               error={errorBusqueda}
               hayFiltros={hayFiltros}
+              hayUbicacion={ubicacionMapa?.latitud != null}
               alLimpiar={limpiarFiltros}
               alCambiarPagina={setPaginaNumero}
             />

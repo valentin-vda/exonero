@@ -39,6 +39,8 @@ const MAX_TEXTO = 500
 // Lo que dice al lado de las estrellas.
 const SIGNIFICADO = { 1: 'Mala', 2: 'Regular', 3: 'Buena', 4: 'Muy buena', 5: 'Excelente' }
 
+const FALTA_PUNTAJE = 'Elegi de 1 a 5 estrellas.'
+
 export default function RedactarResena() {
   const { destinatarioId } = useParams()
   const { state } = useLocation()
@@ -74,10 +76,16 @@ export default function RedactarResena() {
       .catch((err) => setError(mensajeDeError(err.codigo)))
   }, [])
 
+  // Al elegir estrellas se va el aviso de que faltaban (los otros errores quedan).
+  function elegirPuntaje(n) {
+    setPuntaje(n)
+    if (error === FALTA_PUNTAJE) setError(null)
+  }
+
   async function guardar(evento) {
     evento.preventDefault()
     if (!puntaje) {
-      setError('Elegi de 1 a 5 estrellas.')
+      setError(FALTA_PUNTAJE)
       return
     }
     setError(null)
@@ -87,6 +95,9 @@ export default function RedactarResena() {
       await (miResena ? editarResena(datos) : dejarResena(datos))
       navigate(volver)
     } catch (err) {
+      // Ya la habia dejado (por ejemplo, desde otra pestania): se pasa a
+      // editarla, y el proximo guardar es un PUT con lo que esta escrito.
+      if (err.codigo === 'ya_resenado') setMiResena(datos)
       setError(mensajeDeError(err.codigo))
       setGuardando(false)
     }
@@ -128,7 +139,7 @@ export default function RedactarResena() {
           <div className="resena-estrellas-fila">
             {[1, 2, 3, 4, 5].map((n) => (
               <label key={n} className={`resena-estrella${n <= puntaje ? ' resena-estrella-llena' : ''}`}>
-                <input type="radio" name="puntaje" value={n} checked={puntaje === n} onChange={() => setPuntaje(n)} />
+                <input type="radio" name="puntaje" value={n} checked={puntaje === n} onChange={() => elegirPuntaje(n)} />
                 <span aria-hidden="true">{ESTRELLA}</span>
                 <span className="oculto-visual">{n === 1 ? '1 estrella' : `${n} estrellas`}</span>
               </label>

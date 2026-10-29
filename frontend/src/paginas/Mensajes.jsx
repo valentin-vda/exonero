@@ -73,6 +73,10 @@ export default function Mensajes() {
   const hiloElegido = hilos?.find((h) => h.id === elegido) || (vistoRef.current?.id === elegido ? vistoRef.current : null)
   if (hiloElegido) vistoRef.current = hiloElegido
 
+  // La conversacion abierta ya esta leida (abrir es leer): su fila va sin el
+  // numerito aunque la bandeja se haya pedido antes de abrirla.
+  const filas = hilos?.map((h) => (h.id === elegido && h.no_leidos ? { ...h, no_leidos: 0 } : h))
+
   return (
     <div className="mensajes-pantalla">
       <div className="perfil-titulo">
@@ -80,7 +84,7 @@ export default function Mensajes() {
       </div>
       <div className={`mensajes${elegido ? ' mensajes-con-hilo' : ''}`}>
         <Bandeja
-          hilos={hilos}
+          hilos={filas}
           error={error}
           elegido={elegido}
           alElegir={elegir}
@@ -95,6 +99,13 @@ export default function Mensajes() {
             <p className="tablero-vacio">
               {elegido && hilos ? 'Esa conversacion no existe o no es tuya.' : 'Elegi una conversacion de la lista.'}
             </p>
+            {/* En el celular la bandeja esta escondida mientras hay un hilo
+                elegido: sin este boton no habria por donde volver. */}
+            {elegido && (
+              <button type="button" className="btn btn-secondary conversacion-nada-volver" onClick={() => elegir(null)}>
+                Volver a la bandeja
+              </button>
+            )}
           </section>
         )}
       </div>

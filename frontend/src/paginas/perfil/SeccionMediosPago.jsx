@@ -131,6 +131,10 @@ export default function SeccionMediosPago() {
       setMensaje({ tipo: 'ok', texto: `Listo, se guardo la ${nombreTarjeta(tarjeta)}.` })
     } catch (error) {
       setMensaje({ tipo: 'error', texto: mensajeDeError(error.codigo) })
+      // El mensaje sale arriba de la lista: en el celular queda fuera de la
+      // pantalla, y el foco se perdio con el boton deshabilitado. El titulo
+      // esta justo arriba: enfocarlo trae los dos a la vista.
+      volverAlTitulo()
     } finally {
       setOcupado(false)
     }

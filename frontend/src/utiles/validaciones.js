@@ -38,7 +38,11 @@ export function validarRepetirClave(clave, repetida) {
 
 export function validarTexto(valor, etiqueta, minimo = 1) {
   if (!valor.trim()) return `Completa ${etiqueta}.`
-  if (valor.trim().length < minimo) return `${etiqueta} es muy corto.`
+  // La etiqueta viene en minuscula ("tu apellido") para ir en el medio de la
+  // frase de arriba; aca abre la oracion, asi que va con mayuscula.
+  if (valor.trim().length < minimo) {
+    return `${etiqueta.charAt(0).toUpperCase()}${etiqueta.slice(1)} es muy corto.`
+  }
   return null
 }
 
@@ -62,7 +66,9 @@ export function esMenorDeEdad(fechaNacimiento) {
   const fecha = new Date(fechaNacimiento)
   if (Number.isNaN(fecha.getTime())) return false
   const anios = (Date.now() - fecha.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
-  return anios < 18
+  // Una fecha futura da edad negativa: no es un menor, es un error de la
+  // fecha, y ya lo avisa validarFechaNacimiento().
+  return anios >= 0 && anios < 18
 }
 
 /**

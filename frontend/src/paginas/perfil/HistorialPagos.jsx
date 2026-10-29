@@ -10,11 +10,13 @@
  * El estado del cobro sale del flujo del dinero (seccion 9 de la doc):
  *   retenido     se reservo y el profe todavia no respondio
  *   cobrado      el profe aprobo: se debito
- *   liberado     el profe rechazo: no se cobro nada
+ *   liberado     el profe rechazo, o se cancelo estando pendiente: no se
+ *                cobro nada
  *   reembolsado  se cancelo despues de aprobada: se devolvio
  *
  * Ojo con los liberados: al rechazar, la clase se BORRA y el cobro queda
- * solo, asi que materia, contraparte y clase_id pueden venir en null.
+ * solo, asi que materia, contraparte y clase_id pueden venir en null. Al
+ * cancelar, la clase sigue (cancelada): clase_id viene, y asi se distinguen.
  *
  * Se arma cada vez que se abre (al cerrarlo desaparece), asi que siempre
  * muestra lo ultimo sin un boton de recargar.
@@ -39,6 +41,15 @@ const ESTADOS = {
   cobrado: { texto: 'Pagado', clase: 'tag-accent-2' },
   liberado: { texto: 'Solicitud rechazada · no se cobro', clase: 'tag-outline' },
   reembolsado: { texto: 'Reembolsado', clase: 'tag-accent' },
+}
+
+// Un liberado cuya clase todavia existe: se cancelo antes de que el profe respondiera.
+const LIBERADO_CANCELADA = { texto: 'Solicitud cancelada · no se cobro', clase: 'tag-outline' }
+
+/** La etiqueta de un movimiento. Ver arriba como se distinguen los liberados. */
+function estadoDe(movimiento) {
+  if (movimiento.estado === 'liberado' && movimiento.clase_id) return LIBERADO_CANCELADA
+  return ESTADOS[movimiento.estado] || { texto: movimiento.estado, clase: 'tag-neutral' }
 }
 
 /** "Matematica con Lucia Fernandez", con lo que haya. */
@@ -91,7 +102,7 @@ export default function HistorialPagos() {
       {movimientos.length > 0 && (
         <ul className="movimientos">
           {movimientos.map((movimiento) => {
-            const estado = ESTADOS[movimiento.estado] || { texto: movimiento.estado, clase: 'tag-neutral' }
+            const estado = estadoDe(movimiento)
             return (
               <li key={movimiento.id} className="movimiento">
                 <div className="medio-datos">

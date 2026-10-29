@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { obtenerDisponibilidad } from '../api/agenda.js'
@@ -13,6 +13,8 @@ import MapaUbicacionProfesor from '../componentes/perfil-publico/MapaUbicacionPr
 import { ESTRELLA, pesos, puntaje, unir } from '../utiles/formato.js'
 
 const DIAS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom']
+// De a cuantas resenas manda el backend (POR_PAGINA en resenas/logica.py).
+const RESENAS_POR_PAGINA = 10
 
 function isoLocal(fecha) {
   const anio = fecha.getFullYear()
@@ -90,12 +92,25 @@ export default function PerfilPublicoProfesor() {
   const [diasDisponibles, setDiasDisponibles] = useState([])
   const [agendaNoDisponible, setAgendaNoDisponible] = useState(false)
   const [horario, setHorario] = useState(null)
+  const [conTraslado, setConTraslado] = useState(false) // solo cuenta si el profe es "ambos"
   const [cotizacion, setCotizacion] = useState(null)
+  const [errorCotizacion, setErrorCotizacion] = useState('')
   const [resenas, setResenas] = useState([])
+  const [totalResenas, setTotalResenas] = useState(0)
+  const [paginaResenas, setPaginaResenas] = useState(1)
+  const [cargandoResenas, setCargandoResenas] = useState(false)
+  const pedidoResenas = useRef(0)
   const [ordenResenas, setOrdenResenas] = useState('recientes')
   const [puestoRanking, setPuestoRanking] = useState(null) // 1, 2 o 3 si esta en el podio
 
   const fechas = useMemo(() => semana(semanaNumero), [semanaNumero])
+
+  // La clase es en la casa del alumno (y se cobra el traslado) si es
+  // presencial y el profe solo va a domicilio, o si da en los dos lugares y
+  // el alumno marco que venga. Lo mismo va a cotizar y al checkout.
+  const aDomicilio = modalidad === 'presencial' && (
+    ficha?.lugar_clase === 'a_domicilio' || (ficha?.lugar_clase === 'ambos' && conTraslado)
+  )
 
   useEffect(() => {
     let vigente = true
@@ -108,6 +123,7 @@ export default function PerfilPublicoProfesor() {
         setMateriaId(datos.materias[0]?.id ?? null)
         setModalidad(modalidades(datos)[0])
         setDuracion(datos.duraciones[0] || 60)
+        setConTraslado(false)
       })
       .catch((errorRecibido) => {
         if (vigente) setError(mensajeDeError(errorRecibido.codigo))
@@ -161,24 +177,45 @@ export default function PerfilPublicoProfesor() {
     if (!ficha || !modalidad) return undefined
     let vigente = true
     setCotizacion(null)
+    setErrorCotizacion('')
     cotizar({
       profesor_id: ficha.id,
       duracion_min: duracion,
       modalidad,
-      con_traslado: false,
+      con_traslado: aDomicilio,
     })
       .then((datos) => vigente && setCotizacion(datos))
-      .catch(() => vigente && setCotizacion(null))
+      .catch((errorRecibido) => {
+        if (!vigente) return
+        setCotizacion(null)
+        setErrorCotizacion(mensajeDeError(errorRecibido.codigo))
+      })
     return () => { vigente = false }
-  }, [ficha, duracion, modalidad])
+  }, [ficha, duracion, modalidad, aDomicilio])
+
+  // Las resenas llegan de a RESENAS_POR_PAGINA, con "Ver mas" (como en
+  // ResumenResenas). Cada pedido nuevo descarta la respuesta de los
+  // anteriores: asi una pagina del orden viejo no se mezcla con el nuevo.
+  function cargarResenas(numero) {
+    const pedido = ++pedidoResenas.current
+    setCargandoResenas(true)
+    obtenerResenas(ficha.id, ordenResenas, numero)
+      .then((datos) => {
+        if (pedido !== pedidoResenas.current) return
+        setResenas((antes) => (numero === 1 ? datos.resenas || [] : [...antes, ...(datos.resenas || [])]))
+        setTotalResenas(datos.total || 0)
+        setPaginaResenas(numero)
+      })
+      .catch(() => {
+        if (pedido === pedidoResenas.current && numero === 1) setResenas([])
+      })
+      .finally(() => {
+        if (pedido === pedidoResenas.current) setCargandoResenas(false)
+      })
+  }
 
   useEffect(() => {
-    if (!ficha) return undefined
-    let vigente = true
-    obtenerResenas(ficha.id, ordenResenas)
-      .then((datos) => vigente && setResenas(datos.resenas || []))
-      .catch(() => vigente && setResenas([]))
-    return () => { vigente = false }
+    if (ficha) cargarResenas(1)
   }, [ficha, ordenResenas])
 
   useEffect(() => {
@@ -215,6 +252,7 @@ export default function PerfilPublicoProfesor() {
       duracion,
       modalidad,
     })
+    if (aDomicilio) parametros.set('traslado', '1')
     navegar(`/checkout?${parametros}`)
   }
 
@@ -365,6 +403,13 @@ export default function PerfilPublicoProfesor() {
                 </div>
               )}
             </div>
+            {resenas.length < totalResenas && resenas.length === paginaResenas * RESENAS_POR_PAGINA && (
+              <div className="botonera publico-resenas-mas">
+                <button type="button" className="btn btn-secondary" disabled={cargandoResenas} onClick={() => cargarResenas(paginaResenas + 1)}>
+                  {cargandoResenas ? 'Cargando…' : 'Ver más'}
+                </button>
+              </div>
+            )}
           </section>
         </div>
 
@@ -378,9 +423,19 @@ export default function PerfilPublicoProfesor() {
               <fieldset><legend>Materia</legend><div className="publico-segmentado">{ficha.materias.map((item) => <button type="button" className={selectorClase('', item.id === materiaId)} key={item.id} onClick={() => setMateriaId(item.id)}>{item.nombre}</button>)}</div></fieldset>
               <fieldset><legend>Modalidad</legend><div className="publico-segmentado">{modos.map((item) => <button type="button" className={selectorClase('', item === modalidad)} key={item} onClick={() => setModalidad(item)}>{modalidadVisible(item)}</button>)}</div></fieldset>
               <fieldset><legend>Duración</legend><div className="publico-segmentado">{(ficha.duraciones.length ? ficha.duraciones : [60]).map((item) => <button type="button" className={selectorClase('', item === duracion)} key={item} onClick={() => setDuracion(item)}>{duracionVisible(item)}</button>)}</div></fieldset>
+              {modalidad === 'presencial' && ficha.lugar_clase === 'ambos' && (
+                <label className="publico-traslado">
+                  <input type="checkbox" checked={conTraslado} onChange={(evento) => setConTraslado(evento.target.checked)} />
+                  Que venga a mi casa{Number(ficha.costo_traslado) > 0 && ` (+ ${pesos(ficha.costo_traslado)} de traslado)`}
+                </label>
+              )}
+              {modalidad === 'presencial' && ficha.lugar_clase === 'a_domicilio' && (
+                <p className="publico-traslado">Viene a tu casa{Number(ficha.costo_traslado) > 0 && `: incluye ${pesos(ficha.costo_traslado)} de traslado`}.</p>
+              )}
             </div>
 
             <div className="publico-total"><span>Total estimado</span><strong>{cotizacion ? pesos(cotizacion.total) : '—'}</strong></div>
+            {errorCotizacion && <p className="publico-total-aviso" role="status">No pudimos calcular el total. {errorCotizacion}</p>}
             <button type="button" className="publico-reservar ancho" disabled={!horario} onClick={reservar}>Reservar</button>
             <BotonMensaje personaId={ficha.id} className="btn btn-secondary btn-block">Enviar mensaje</BotonMensaje>
           </section>

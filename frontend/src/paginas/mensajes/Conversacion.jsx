@@ -58,11 +58,15 @@ export default function Conversacion({ hilo, alVolver, alCambiar }) {
   const [hayAnteriores, setHayAnteriores] = useState(false)
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [cargandoAnteriores, setCargandoAnteriores] = useState(false)
   const [error, setError] = useState(null)
   const finRef = useRef(null)
   // Si el ultimo cambio fue sumar mensajes al final (y no cargar anteriores),
   // se baja hasta el ultimo.
   const bajar = useRef(true)
+  // El texto de un Enter que llego mientras salia otro mensaje: se manda al
+  // terminar ese envio, en vez de perderse.
+  const enCola = useRef(null)
 
   const otra = hilo.contraparte
   const nombre = [otra.nombre, otra.apellido].filter(Boolean).join(' ')
@@ -101,34 +105,56 @@ export default function Conversacion({ hilo, alVolver, alCambiar }) {
   }, [mensajes])
 
   async function cargarAnteriores() {
-    const anteriores = await mensajesDelHilo(hilo.id, mensajes[0].id, POR_PAGINA)
-    bajar.current = false
-    setMensajes((actuales) => juntar(anteriores, actuales))
-    setHayAnteriores(anteriores.length === POR_PAGINA)
+    if (cargandoAnteriores) return
+    setCargandoAnteriores(true)
+    setError(null)
+    try {
+      const anteriores = await mensajesDelHilo(hilo.id, mensajes[0].id, POR_PAGINA)
+      bajar.current = false
+      setMensajes((actuales) => juntar(anteriores, actuales))
+      setHayAnteriores(anteriores.length === POR_PAGINA)
+    } catch (err) {
+      setError(mensajeDeError(err.codigo))
+    } finally {
+      setCargandoAnteriores(false)
+    }
   }
 
-  async function enviar(contenido) {
+  // `delCuadro` es true si lo enviado sale del cuadro de texto (no de una
+  // respuesta rapida, que no toca lo que se esta escribiendo).
+  async function enviar(contenido, delCuadro = false) {
     const limpio = contenido.trim()
-    if (!limpio || enviando) return
+    if (!limpio) return
+    if (enviando) {
+      if (delCuadro) enCola.current = contenido
+      return
+    }
     setEnviando(true)
     setError(null)
+    let siguiente = null
     try {
       const nuevo = await enviarMensaje(hilo.id, limpio)
       bajar.current = true
       setMensajes((actuales) => juntar(actuales || [], [nuevo]))
-      setTexto('')
+      // Se limpia solo si sigue diciendo lo mismo: lo que se escribio mientras
+      // se enviaba no se borra.
+      if (delCuadro) setTexto((actual) => (actual === contenido ? '' : actual))
+      // Un Enter repetido sobre el mismo texto no lo manda dos veces.
+      if (enCola.current !== contenido) siguiente = enCola.current
       alCambiar()
     } catch (err) {
       setError(mensajeDeError(err.codigo))
     } finally {
+      enCola.current = null
       setEnviando(false)
     }
+    if (siguiente) enviar(siguiente, true)
   }
 
   function alTeclear(evento) {
     if (evento.key === 'Enter' && !evento.shiftKey) {
       evento.preventDefault()
-      enviar(texto)
+      enviar(texto, true)
     }
   }
 
@@ -160,8 +186,8 @@ export default function Conversacion({ hilo, alVolver, alCambiar }) {
 
       <div className="conversacion-mensajes" aria-live="polite">
         {hayAnteriores && (
-          <button type="button" className="btn btn-ghost conversacion-anteriores" onClick={cargarAnteriores}>
-            Cargar anteriores
+          <button type="button" className="btn btn-ghost conversacion-anteriores" onClick={cargarAnteriores} disabled={cargandoAnteriores}>
+            {cargandoAnteriores ? 'Cargando...' : 'Cargar anteriores'}
           </button>
         )}
         {!mensajes && !error && <p className="tablero-vacio">Cargando...</p>}
@@ -188,7 +214,7 @@ export default function Conversacion({ hilo, alVolver, alCambiar }) {
           </button>
         ))}
       </div>
-      <form className="conversacion-escribir" onSubmit={(e) => { e.preventDefault(); enviar(texto) }}>
+      <form className="conversacion-escribir" onSubmit={(e) => { e.preventDefault(); enviar(texto, true) }}>
         <textarea
           className="input"
           rows={2}

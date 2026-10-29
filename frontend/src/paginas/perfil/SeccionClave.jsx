@@ -41,6 +41,7 @@ export default function SeccionClave({ children }) {
   // --- Estado de la baja ---
   const [confirmandoBaja, setConfirmandoBaja] = useState(false)
   const [errorBaja, setErrorBaja] = useState(null)
+  const [dandoDeBaja, setDandoDeBaja] = useState(false) // evita el doble clic
 
   // Devuelve la funcion que actualiza UN campo. cambiar('nueva') es una
   // funcion que recibe el texto y lo guarda en campos.nueva.
@@ -74,6 +75,7 @@ export default function SeccionClave({ children }) {
 
   async function confirmarBaja() {
     setErrorBaja(null)
+    setDandoDeBaja(true)
     try {
       await darmeDeBaja()
       // La cuenta ya no existe para el backend: el token no sirve mas.
@@ -81,6 +83,7 @@ export default function SeccionClave({ children }) {
       salir()
     } catch (error) {
       setErrorBaja(mensajeDeError(error.codigo))
+      setDandoDeBaja(false)
     }
   }
 
@@ -151,10 +154,15 @@ export default function SeccionClave({ children }) {
           </button>
         ) : (
           <div className="botonera">
-            <button type="button" className="btn btn-primary" onClick={confirmarBaja}>
-              Si, dar de baja
+            <button type="button" className="btn btn-primary" onClick={confirmarBaja} disabled={dandoDeBaja}>
+              {dandoDeBaja ? 'Dando de baja...' : 'Si, dar de baja'}
             </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setConfirmandoBaja(false)}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setConfirmandoBaja(false)}
+              disabled={dandoDeBaja}
+            >
               Cancelar
             </button>
           </div>

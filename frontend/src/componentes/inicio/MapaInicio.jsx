@@ -21,12 +21,14 @@ import SenalBatman from '../mapas/SenalBatman.jsx'
 
 const MONTEVIDEO = [-34.9011, -56.1645]
 
-function Recentrar({ centro }) {
+function Recentrar({ latitud, longitud }) {
   const mapa = useMap()
 
+  // Depende de los numeros y no del array: un array nuevo en cada render
+  // recentraba el mapa y le borraba al alumno el zoom y el arrastre.
   useEffect(() => {
-    mapa.flyTo(centro, 12, { duration: 0.7 })
-  }, [centro, mapa])
+    mapa.flyTo([latitud, longitud], 12, { duration: 0.7 })
+  }, [latitud, longitud, mapa])
 
   return null
 }
@@ -81,7 +83,7 @@ export default function MapaInicio({ pines = [], rankingIds = [], ubicacion }) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <Recentrar centro={centro} />
+        <Recentrar latitud={centro[0]} longitud={centro[1]} />
 
         {tieneUbicacion && (
           <CircleMarker
