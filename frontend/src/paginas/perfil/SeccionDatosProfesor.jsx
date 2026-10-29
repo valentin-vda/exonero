@@ -112,7 +112,7 @@ export default function SeccionDatosProfesor({ ficha, catalogos, alGuardar }) {
 
   return (
     <section className="panel">
-      <h4>Informacion personal</h4>
+      <h4>Información personal</h4>
 
       <Alerta tipo={mensaje?.tipo}>{mensaje?.texto}</Alerta>
 
@@ -123,23 +123,23 @@ export default function SeccionDatosProfesor({ ficha, catalogos, alGuardar }) {
           <Campo id="apellido" etiqueta="Apellido" valor={campos.apellido} alCambiar={cambiar('apellido')}
                  error={errores.apellido} requerido autoComplete="family-name" />
 
-          <Campo id="documento" etiqueta="Cedula de identidad" valor={campos.documento}
+          <Campo id="documento" etiqueta="Cédula de identidad" valor={campos.documento}
                  alCambiar={cambiar('documento')} placeholder="1.234.567-8" />
-          <Campo id="correo" etiqueta="Correo electronico" tipo="email" valor={usuario.correo}
+          <Campo id="correo" etiqueta="Correo electrónico" tipo="email" valor={usuario.correo}
                  alCambiar={() => {}} disabled ayuda="Es tu usuario: no se puede cambiar." />
 
-          <Campo id="telefono" etiqueta="Telefono" tipo="tel" valor={campos.telefono}
+          <Campo id="telefono" etiqueta="Teléfono" tipo="tel" valor={campos.telefono}
                  alCambiar={cambiar('telefono')} autoComplete="tel" placeholder="099 123 456" />
           <Campo id="fechaNacimiento" etiqueta="Fecha de nacimiento" tipo="date" valor={campos.fechaNacimiento}
                  alCambiar={cambiar('fechaNacimiento')} error={errores.fechaNacimiento} />
 
           <CampoSelect id="barrio" etiqueta="Barrio base" valor={campos.barrioId} alCambiar={cambiar('barrioId')}
                        opciones={opcionesBarrio} disabled={!catalogos}
-                       ayuda="Es donde te ubica el mapa de la busqueda." />
-          <Campo id="titulo" etiqueta="Titulo habilitante" valor={campos.titulo} alCambiar={cambiar('titulo')}
-                 placeholder="Profesorado de Matematica, IPA" />
+                       ayuda="Es donde te ubica el mapa de la búsqueda." />
+          <Campo id="titulo" etiqueta="Título habilitante" valor={campos.titulo} alCambiar={cambiar('titulo')}
+                 placeholder="Profesorado de Matemática, IPA" />
 
-          <Campo id="anios" etiqueta="Anios de experiencia" tipo="number" min="0" valor={campos.anios}
+          <Campo id="anios" etiqueta="Años de experiencia" tipo="number" min="0" valor={campos.anios}
                  alCambiar={cambiar('anios')} error={errores.anios} />
         </div>
 

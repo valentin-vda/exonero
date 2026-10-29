@@ -93,7 +93,7 @@ export default function Mensajes() {
         ) : (
           <section className="conversacion conversacion-nada">
             <p className="tablero-vacio">
-              {elegido && hilos ? 'Esa conversacion no existe o no es tuya.' : 'Elegi una conversacion de la lista.'}
+              {elegido && hilos ? 'Esa conversación no existe o no es tuya.' : 'Elegí una conversación de la lista.'}
             </p>
           </section>
         )}

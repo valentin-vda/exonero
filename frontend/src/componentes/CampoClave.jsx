@@ -33,7 +33,7 @@ export default function CampoClave({ id, etiqueta, valor, alCambiar, error, ayud
           // El boton no es parte del formulario, es una ayuda visual: se saca
           // del recorrido del Tab para no estorbar al completar los campos.
           tabIndex={-1}
-          aria-label={visible ? 'Ocultar contrasena' : 'Mostrar contrasena'}
+          aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
         >
           {visible ? 'Ocultar' : 'Mostrar'}
         </button>

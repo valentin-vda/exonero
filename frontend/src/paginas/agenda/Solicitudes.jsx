@@ -72,7 +72,7 @@ function Solicitud({ solicitud, alCambiar }) {
               No
             </button>
             <button type="button" className="btn btn-secondary" disabled={ocupado} onClick={() => hacer(rechazarClase)}>
-              Si, rechazar
+              Sí, rechazar
             </button>
           </>
         ) : (
@@ -107,7 +107,7 @@ export default function Solicitudes({ bloque, alCambiar }) {
 
       {cargando && !datos && <p className="tablero-vacio">Cargando las solicitudes...</p>}
       {error && <Alerta tipo="error">No pudimos traer las solicitudes. {error}</Alerta>}
-      {datos && datos.length === 0 && <p className="tablero-vacio">No tenes solicitudes nuevas.</p>}
+      {datos && datos.length === 0 && <p className="tablero-vacio">No tenés solicitudes nuevas.</p>}
       {datos && datos.length > 0 && (
         <ul className={`solicitudes${cargando ? ' tablero-recargando' : ''}`}>
           {datos.map((s) => <Solicitud key={s.id} solicitud={s} alCambiar={alCambiar} />)}

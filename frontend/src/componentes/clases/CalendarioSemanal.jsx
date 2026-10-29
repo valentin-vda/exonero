@@ -170,7 +170,7 @@ export default function CalendarioSemanal({
         {alCambiarVerHuecos && (
           <label className="cal-ver-huecos">
             <input type="checkbox" checked={verHuecos} onChange={(e) => alCambiarVerHuecos(e.target.checked)} />
-            Ver como lo ve el alumno
+            Ver cómo lo ve el alumno
           </label>
         )}
       </div>
@@ -242,7 +242,7 @@ export default function CalendarioSemanal({
             {franjas && <li><i className="cal-franja" /> Tu disponibilidad</li>}
             <li><i className="cal-aprobada" /> Confirmada</li>
             <li><i className="cal-pendiente" /> A confirmar</li>
-            <li><i className="cal-cerrada" /> Dictada o no asistio</li>
+            <li><i className="cal-cerrada" /> Dictada o no asistió</li>
             {franjas && <li><i className="cal-bloqueo" /> Bloqueo</li>}
             {verHuecos && <li><i className="cal-hueco" /> Libre para el alumno (1 h)</li>}
           </ul>

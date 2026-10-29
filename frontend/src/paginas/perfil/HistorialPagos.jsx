@@ -35,9 +35,9 @@ const POR_PAGINA = 50 // el mismo tamanio de pagina que el backend (pagos/logica
 
 // El texto y el color de la etiqueta de cada estado del cobro.
 const ESTADOS = {
-  retenido: { texto: 'Pendiente de aprobacion', clase: 'tag-neutral' },
+  retenido: { texto: 'Pendiente de aprobación', clase: 'tag-neutral' },
   cobrado: { texto: 'Pagado', clase: 'tag-accent-2' },
-  liberado: { texto: 'Solicitud rechazada · no se cobro', clase: 'tag-outline' },
+  liberado: { texto: 'Solicitud rechazada · no se cobró', clase: 'tag-outline' },
   reembolsado: { texto: 'Reembolsado', clase: 'tag-accent' },
 }
 
@@ -84,7 +84,7 @@ export default function HistorialPagos() {
 
       {!cargando && !error && movimientos.length === 0 && (
         <p className="vacio">
-          Todavia no hiciste ningun pago. Cuando reserves una clase, el cobro aparece aca.
+          Todavía no hiciste ningún pago. Cuando reserves una clase, el cobro aparece acá.
         </p>
       )}
 
@@ -120,7 +120,7 @@ export default function HistorialPagos() {
             onClick={() => !cargando && cargar(pagina + 1)}
             aria-disabled={cargando ? 'true' : undefined}
           >
-            {cargando ? 'Cargando...' : 'Ver mas pagos'}
+            {cargando ? 'Cargando...' : 'Ver más pagos'}
           </button>
         </div>
       )}

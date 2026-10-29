@@ -115,8 +115,8 @@ export default function Registro() {
 
       <SelectorRol valor={rol} alCambiar={setRol} />
       <p className="field-hint" style={{ marginTop: '-8px', marginBottom: '18px' }}>
-        El tipo de cuenta no se puede cambiar despues. Si queres ser las dos
-        cosas, crea una cuenta con cada correo.
+        El tipo de cuenta no se puede cambiar después. Si querés ser las dos
+        cosas, creá una cuenta con cada correo.
       </p>
 
       <form onSubmit={alEnviar} noValidate>
@@ -148,7 +148,7 @@ export default function Registro() {
           valor={campos.correo}
           alCambiar={cambiar('correo')}
           error={errores.correo}
-          ayuda="Va a ser tu usuario. No se puede cambiar despues."
+          ayuda="Va a ser tu usuario. No se puede cambiar después."
           requerido
           autoComplete="email"
           placeholder="tunombre@correo.com"
@@ -157,16 +157,16 @@ export default function Registro() {
         <div className="auth-fila">
           <CampoClave
             id="clave"
-            etiqueta="Contrasena"
+            etiqueta="Contraseña"
             valor={campos.clave}
             alCambiar={cambiar('clave')}
             error={errores.clave}
-            ayuda={errores.clave ? null : 'Minimo 8 caracteres.'}
+            ayuda={errores.clave ? null : 'Mínimo 8 caracteres.'}
             autoComplete="new-password"
           />
           <CampoClave
             id="repetirClave"
-            etiqueta="Repetir contrasena"
+            etiqueta="Repetir contraseña"
             valor={campos.repetirClave}
             alCambiar={cambiar('repetirClave')}
             error={errores.repetirClave}
@@ -187,7 +187,7 @@ export default function Registro() {
           />
           <Campo
             id="telefono"
-            etiqueta="Telefono"
+            etiqueta="Teléfono"
             tipo="tel"
             valor={campos.telefono}
             alCambiar={cambiar('telefono')}
@@ -207,7 +207,7 @@ export default function Registro() {
           error={errores.fechaNacimiento}
           ayuda={
             menor && rol === 'estudiante'
-              ? 'Sos menor de edad: despues te vamos a pedir los datos de un adulto responsable.'
+              ? 'Sos menor de edad: después te vamos a pedir los datos de un adulto responsable.'
               : 'Opcional'
           }
           autoComplete="bday"
@@ -219,7 +219,7 @@ export default function Registro() {
       </form>
 
       <p className="auth-pie">
-        Ya tenes cuenta? <Link to="/login">Entrar</Link>
+        ¿Ya tenés cuenta? <Link to="/login">Entrar</Link>
       </p>
     </MarcoAuth>
   )

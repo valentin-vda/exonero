@@ -14,12 +14,12 @@ const OPCIONES = [
   {
     valor: 'estudiante',
     titulo: 'Quiero aprender',
-    nota: 'Busca profes, reserva clases y llevas tu historial.',
+    nota: 'Buscá profes, reservá clases y llevás tu historial.',
   },
   {
     valor: 'profesor',
-    titulo: 'Quiero ensenar',
-    nota: 'Publica tu ficha, tu agenda y tus precios. Vos aprobas cada clase.',
+    titulo: 'Quiero enseñar',
+    nota: 'Publicá tu ficha, tu agenda y tus precios. Vos aprobás cada clase.',
   },
 ]
 

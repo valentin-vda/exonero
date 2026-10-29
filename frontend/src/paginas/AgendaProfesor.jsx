@@ -104,7 +104,7 @@ export default function AgendaProfesor() {
     <div className="tablero">
       <div className="perfil-titulo">
         <h2>Agenda</h2>
-        <p className="text-muted">Tus solicitudes, tu semana y cuando pueden reservarte</p>
+        <p className="text-muted">Tus solicitudes, tu semana y cuándo pueden reservarte</p>
       </div>
 
       <Solicitudes bloque={solicitudes} alCambiar={recargar} />
@@ -127,7 +127,7 @@ export default function AgendaProfesor() {
       {elegida && <DetalleClase key={elegida.id} clase={elegida} alCerrar={() => setElegida(null)} alCambiar={recargar} />}
 
       <section className="tablero-bloque" id="agenda-pestanias">
-        <div className="agenda-pestanias" role="tablist" aria-label="Configuracion de la agenda">
+        <div className="agenda-pestanias" role="tablist" aria-label="Configuración de la agenda">
           {PESTANIAS.map((p) => (
             <button
               key={p.id}

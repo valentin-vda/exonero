@@ -32,7 +32,7 @@ export default function MarcoAuth({ children, ancho = false }) {
         <div className="auth-lema">
           <h1>Clases particulares con profes de tu barrio</h1>
           <p>
-            Busca por materia y zona, elegi un horario y paga cuando el profe
+            Buscá por materia y zona, elegí un horario y pagá cuando el profe
             apruebe la clase.
           </p>
         </div>

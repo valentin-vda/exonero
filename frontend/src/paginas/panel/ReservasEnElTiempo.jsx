@@ -52,7 +52,7 @@ function frase(lista, agrupar) {
 
   const reservas = (n) => (n === 1 ? '1 reserva' : `${n} reservas`)
   const ahora = `${reservas(actual)} ${ESTE_PERIODO[agrupar]}`
-  if (total(pico) === actual) return `${ahora}, el pico del periodo`
+  if (total(pico) === actual) return `${ahora}, el pico del período`
   // "la semana del 12 de octubre", "octubre de 2026", "2025"
   const cuando = agrupar === 'semana' ? `la ${pico.larga}` : pico.larga
   return `${ahora}; el pico fue ${cuando}, con ${total(pico)}`
@@ -73,7 +73,7 @@ export default function ReservasEnElTiempo({ bloque, agrupar, alCambiarAgrupar }
         <h3 id="reservas-titulo">Reservas en el tiempo</h3>
         <Selector
           nombre="reservas-agrupar"
-          etiqueta="Ventana del grafico de reservas"
+          etiqueta="Ventana del gráfico de reservas"
           opciones={AGRUPAR_RESERVAS}
           valor={agrupar}
           alCambiar={alCambiarAgrupar}
@@ -92,7 +92,7 @@ export default function ReservasEnElTiempo({ bloque, agrupar, alCambiarAgrupar }
             columnas={lista}
             formato={(n) => n.toLocaleString('es-UY')}
             enteros
-            textoVacio="Todavia no hay reservas en este periodo."
+            textoVacio="Todavía no hay reservas en este período."
           />
         </div>
       )}

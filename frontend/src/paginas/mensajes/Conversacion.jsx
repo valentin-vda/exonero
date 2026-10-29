@@ -143,7 +143,7 @@ export default function Conversacion({ hilo, alVolver, alCambiar }) {
   }
 
   return (
-    <section className="conversacion" aria-label={`Conversacion con ${nombre}`}>
+    <section className="conversacion" aria-label={`Conversación con ${nombre}`}>
       <header className="conversacion-cabecera">
         <button type="button" className="btn btn-ghost conversacion-volver" onClick={alVolver} aria-label="Volver a la bandeja">
           {'‹'}
@@ -166,7 +166,7 @@ export default function Conversacion({ hilo, alVolver, alCambiar }) {
         )}
         {!mensajes && !error && <p className="tablero-vacio">Cargando...</p>}
         {mensajes && mensajes.length === 0 && (
-          <p className="tablero-vacio conversacion-vacia">Todavia no se escribieron. Arranca vos.</p>
+          <p className="tablero-vacio conversacion-vacia">Todavía no se escribieron. Arrancá vos.</p>
         )}
         {renglones.map((r) => (r.tipo === 'dia' ? (
           <div key={`d${r.dia}`} className="conversacion-dia">{separadorDeDia(r.dia)}</div>
@@ -181,7 +181,7 @@ export default function Conversacion({ hilo, alVolver, alCambiar }) {
 
       {error && <Alerta tipo="error">{error}</Alerta>}
 
-      <div className="conversacion-rapidas" aria-label="Respuestas rapidas">
+      <div className="conversacion-rapidas" aria-label="Respuestas rápidas">
         {(RAPIDAS[usuario.rol] || []).map((r) => (
           <button key={r} type="button" className="tag tag-outline tag-boton" disabled={enviando} onClick={() => enviar(r)}>
             {r}
@@ -193,7 +193,7 @@ export default function Conversacion({ hilo, alVolver, alCambiar }) {
           className="input"
           rows={2}
           maxLength={2000}
-          placeholder="Escribi un mensaje..."
+          placeholder="Escribí un mensaje..."
           aria-label="Mensaje"
           value={texto}
           onChange={(e) => setTexto(e.target.value)}

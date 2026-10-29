@@ -88,7 +88,7 @@ export function duracion(minutos) {
 export function cuandoEs(inicioIso) {
   const dias = diasEntre(hoy(), diaEnMontevideo(inicioIso))
   if (dias === 0) return 'Hoy'
-  if (dias === 1) return 'Manana'
+  if (dias === 1) return 'Mañana'
   const texto = diaLargo(diaEnMontevideo(inicioIso))
   return texto[0].toUpperCase() + texto.slice(1)
 }
@@ -104,7 +104,7 @@ export function cuantoFalta(minutosRestantes, inicioIso) {
   if (minutosRestantes <= 0) return 'ahora'
   const dias = diasEntre(hoy(), diaEnMontevideo(inicioIso))
   if (dias <= 0) return `en ${duracion(minutosRestantes)}`
-  if (dias === 1) return 'manana'
+  if (dias === 1) return 'mañana'
   return `el ${diaLargo(diaEnMontevideo(inicioIso))}`
 }
 

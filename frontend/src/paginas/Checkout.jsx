@@ -135,12 +135,12 @@ function leerReserva(parametros) {
   if (!completa) {
     return {
       problema:
-        'Al enlace de esta reserva le faltan datos o tiene alguno que no es valido. Busca al profe y ' +
-        'elegi el horario de nuevo desde su perfil.',
+        'Al enlace de esta reserva le faltan datos o tiene alguno que no es válido. Buscá al profe y ' +
+        'elegí el horario de nuevo desde su perfil.',
     }
   }
   if (Date.parse(inicio) <= Date.now()) {
-    return { problema: 'Ese horario ya paso. Elegi otro desde el perfil del profe.', profesorId: reserva.profesorId }
+    return { problema: 'Ese horario ya pasó. Elegí otro desde el perfil del profe.', profesorId: reserva.profesorId }
   }
   return { reserva }
 }
@@ -162,12 +162,12 @@ function duracionTexto(minutos) {
 function textoMotivo(motivo, ficha) {
   const textos = {
     ocupado: `${ficha.nombre} ya tiene una clase aprobada en ese horario.`,
-    bloqueado: `${ficha.nombre} bloqueo ese dia u horario en su agenda.`,
+    bloqueado: `${ficha.nombre} bloqueó ese día u horario en su agenda.`,
     fuera_de_franja: `${ficha.nombre} no da clases en ese horario.`,
-    aviso_minimo: `${ficha.nombre} pide reservar con al menos ${ficha.aviso_minimo_horas} horas de anticipacion.`,
-    tope_diario: `${ficha.nombre} ya llego a su maximo de clases para ese dia.`,
+    aviso_minimo: `${ficha.nombre} pide reservar con al menos ${ficha.aviso_minimo_horas} horas de anticipación.`,
+    tope_diario: `${ficha.nombre} ya llegó a su máximo de clases para ese día.`,
   }
-  return `${textos[motivo] || 'Ese horario ya no esta disponible.'} Elegi otro horario.`
+  return `${textos[motivo] || 'Ese horario ya no está disponible.'} Elegí otro horario.`
 }
 
 /**
@@ -284,7 +284,7 @@ export default function Checkout() {
   if (!materia) {
     return (
       <SinReserva
-        texto={`${ficha.nombre} no da esa materia. Volve a su perfil y elegi una de las que ofrece.`}
+        texto={`${ficha.nombre} no da esa materia. Volvé a su perfil y elegí una de las que ofrece.`}
         profesorId={ficha.id}
       />
     )
@@ -382,9 +382,9 @@ export default function Checkout() {
 
         <header className="checkout-titulo">
           <span className="tag tag-neutral">Paso 2 de 2{SEPARADOR}Pago</span>
-          <h2>Confirma y paga tu clase</h2>
+          <h2>Confirmá y pagá tu clase</h2>
           <p>
-            La reserva queda pendiente de aprobacion del profesor. El pago se debita solo cuando {ficha.nombre} la
+            La reserva queda pendiente de aprobación del profesor. El pago se debita solo cuando {ficha.nombre} la
             aprueba.
           </p>
         </header>

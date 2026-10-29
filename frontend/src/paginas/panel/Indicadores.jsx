@@ -83,10 +83,10 @@ export default function Indicadores({ periodo, alCambiarPeriodo, metricas, cobra
   return (
     <section aria-labelledby="indicadores-titulo">
       <div className="tablero-encabezado">
-        <h3 id="indicadores-titulo">Tus numeros</h3>
+        <h3 id="indicadores-titulo">Tus números</h3>
         <Selector
           nombre="periodo"
-          etiqueta="Periodo de los indicadores"
+          etiqueta="Período de los indicadores"
           opciones={PERIODOS}
           valor={periodo}
           alCambiar={alCambiarPeriodo}
@@ -120,7 +120,7 @@ export default function Indicadores({ periodo, alCambiarPeriodo, metricas, cobra
           ]}
         />
         <Indicador
-          titulo="Tasa de cancelacion"
+          titulo="Tasa de cancelación"
           valor={m ? `${numero(m.tasa_cancelacion)} %` : null}
           notas={[m && variacion(cambio.tasa_cancelacion, delPeriodo, true)]}
         />

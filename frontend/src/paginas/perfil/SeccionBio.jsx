@@ -62,7 +62,7 @@ export default function SeccionBio({ ficha, alGuardar }) {
         puntos_metodo: puntos.map((p) => p.texto.trim()).filter(Boolean),
       })
       await alGuardar()
-      setMensaje({ tipo: 'ok', texto: 'Listo, se guardo tu biografia.' })
+      setMensaje({ tipo: 'ok', texto: 'Listo, se guardó tu biografía.' })
     } catch (error) {
       setMensaje({ tipo: 'error', texto: mensajeDeError(error.codigo) })
     } finally {
@@ -72,21 +72,21 @@ export default function SeccionBio({ ficha, alGuardar }) {
 
   return (
     <section className="panel">
-      <h4 style={{ marginBottom: '4px' }}>Biografia</h4>
+      <h4 style={{ marginBottom: '4px' }}>Biografía</h4>
       <p className="panel-ayuda" style={{ marginTop: 0 }}>
-        Conta como trabajas. Es lo primero que leen los alumnos y sus familias.
+        Contá cómo trabajás. Es lo primero que leen los alumnos y sus familias.
       </p>
 
       <Alerta tipo={mensaje?.tipo}>{mensaje?.texto}</Alerta>
 
       <form onSubmit={guardar} noValidate>
         <Campo id="titular" etiqueta="Titular corto" valor={titular} alCambiar={setTitular} maxLength={160}
-               placeholder="Matematica y Fisica para liceo y UTU, con plan de ejercicios semanal" />
+               placeholder="Matemática y Física para liceo y UTU, con plan de ejercicios semanal" />
 
         {/* Campo.jsx es solo para <input>; el textarea va armado a mano, con
             las mismas clases para que se vea igual. */}
         <div className="field">
-          <label htmlFor="biografia">Sobre mi</label>
+          <label htmlFor="biografia">Sobre mí</label>
           <textarea
             id="biografia"
             className="input textarea-bio"
@@ -100,7 +100,7 @@ export default function SeccionBio({ ficha, alGuardar }) {
         </div>
 
         <div className="field">
-          <label>Como es una clase conmigo</label>
+          <label>Cómo es una clase conmigo</label>
           {puntos.map((punto, posicion) => (
             <div key={punto.id} className="renglon">
               <input

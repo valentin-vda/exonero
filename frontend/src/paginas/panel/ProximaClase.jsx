@@ -54,7 +54,7 @@ export default function ProximaClase({ bloque }) {
   if (cargando) {
     return (
       <section className="tablero-proxima" aria-busy="true">
-        <p className="tablero-vacio">Cargando tu proxima clase...</p>
+        <p className="tablero-vacio">Cargando tu próxima clase...</p>
       </section>
     )
   }
@@ -62,7 +62,7 @@ export default function ProximaClase({ bloque }) {
   if (error) {
     return (
       <section className="tablero-proxima">
-        <Alerta tipo="error">No pudimos traer tu proxima clase. {error}</Alerta>
+        <Alerta tipo="error">No pudimos traer tu próxima clase. {error}</Alerta>
       </section>
     )
   }
@@ -71,10 +71,10 @@ export default function ProximaClase({ bloque }) {
     return (
       <section className="tablero-proxima" aria-labelledby="proxima-titulo">
         <div className="tablero-proxima-datos">
-          <h3 id="proxima-titulo" className="tablero-proxima-titulo">Proxima clase</h3>
-          <div className="tablero-proxima-quien">No tenes clases confirmadas por delante</div>
+          <h3 id="proxima-titulo" className="tablero-proxima-titulo">Próxima clase</h3>
+          <div className="tablero-proxima-quien">No tenés clases confirmadas por delante</div>
           <div className="tablero-proxima-detalle">
-            Cuando apruebes una solicitud en la agenda, la vas a ver aca.
+            Cuando apruebes una solicitud en la agenda, la vas a ver acá.
           </div>
         </div>
         <div className="tablero-botones">
@@ -101,7 +101,7 @@ export default function ProximaClase({ bloque }) {
 
       <div className="tablero-proxima-datos">
         <h3 id="proxima-titulo" className="tablero-proxima-titulo">
-          Proxima clase{SEPARADOR}
+          Próxima clase{SEPARADOR}
           {cuantoFalta(clase.minutos_restantes, clase.inicio)}
         </h3>
         <div className="tablero-proxima-quien">

@@ -84,7 +84,7 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
       const profesorId = esProfesor ? usuario.id : otra.id
       const respuesta = await verificarHorario({ profesor_id: profesorId, inicio, duracion_min: clase.duracion_min })
       if (!respuesta.libre && respuesta.motivo !== 'ocupado') {
-        setError(motivos[respuesta.motivo] || 'Ese horario no esta disponible.')
+        setError(motivos[respuesta.motivo] || 'Ese horario no está disponible.')
         return
       }
       await reprogramarClase(clase.id, { inicio })
@@ -140,7 +140,7 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
               <button type="button" className="btn btn-primary" disabled={ocupado}
                       onClick={() => hacer(() => completarClase(clase.id, 'dictada'))}>Marcar dictada</button>
               <button type="button" className="btn btn-secondary" disabled={ocupado}
-                      onClick={() => hacer(() => completarClase(clase.id, 'no_asistida'))}>No asistio</button>
+                      onClick={() => hacer(() => completarClase(clase.id, 'no_asistida'))}>No asistió</button>
             </>
           ) : (
             <>
@@ -157,7 +157,7 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
         <div className="detalle-formulario">
           <p className="texto-chico">La solicitud se borra y al alumno se le libera el pago retenido.</p>
           <button type="button" className="btn btn-secondary" disabled={ocupado}
-                  onClick={() => hacer(() => rechazarClase(clase.id))}>Si, rechazar</button>
+                  onClick={() => hacer(() => rechazarClase(clase.id))}>Sí, rechazar</button>
         </div>
       )}
 
@@ -167,13 +167,13 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
             <label htmlFor="motivo-cancelar">Motivo (lo ve {esProfesor ? 'el alumno' : 'el profe'})</label>
             <input id="motivo-cancelar" className="input" value={motivo} maxLength={300}
                    onChange={(e) => setMotivo(e.target.value)}
-                   placeholder={esProfesor ? 'Me surgio una mesa de examen' : 'Me surgio un parcial ese dia'} />
+                   placeholder={esProfesor ? 'Me surgió una mesa de examen' : 'Me surgió un parcial ese día'} />
           </div>
           <p className="texto-chico">
             La clase queda cancelada en el historial y {esProfesor ? 'al alumno se le devuelve' : 'se te devuelve'} el total.
           </p>
           <button type="submit" className="btn btn-primary" disabled={ocupado}>
-            {ocupado ? 'Cancelando...' : 'Confirmar cancelacion'}
+            {ocupado ? 'Cancelando...' : 'Confirmar cancelación'}
           </button>
         </form>
       )}
@@ -182,7 +182,7 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
         <form className="detalle-formulario" onSubmit={reprogramar}>
           <div className="detalle-fila">
             <div className="field">
-              <label htmlFor="dia-nuevo">Dia</label>
+              <label htmlFor="dia-nuevo">Día</label>
               <input id="dia-nuevo" type="date" className="input" value={dia} onChange={(e) => setDia(e.target.value)} required />
             </div>
             <div className="field">
@@ -192,7 +192,7 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
             </div>
           </div>
           <p className="texto-chico">
-            Misma duracion ({duracion(clase.duracion_min)}) y mismo importe. La clase vuelve a quedar a confirmar
+            Misma duración ({duracion(clase.duracion_min)}) y mismo importe. La clase vuelve a quedar a confirmar
             {esProfesor ? '.' : ': el profe tiene que aprobar el horario nuevo.'}
           </p>
           <button type="submit" className="btn btn-primary" disabled={ocupado || !dia || !horaNueva}>

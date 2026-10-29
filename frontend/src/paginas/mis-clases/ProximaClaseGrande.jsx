@@ -22,15 +22,15 @@ import { MODALIDAD_CLASE } from '../panel/opciones.js'
 export default function ProximaClaseGrande({ bloque, alVerDetalle }) {
   const { datos: clase, error, cargando } = bloque
 
-  if (cargando && !clase) return <section className="tablero-bloque"><p className="tablero-vacio">Cargando tu proxima clase...</p></section>
-  if (error) return <Alerta tipo="error">No pudimos traer tu proxima clase. {error}</Alerta>
+  if (cargando && !clase) return <section className="tablero-bloque"><p className="tablero-vacio">Cargando tu próxima clase...</p></section>
+  if (error) return <Alerta tipo="error">No pudimos traer tu próxima clase. {error}</Alerta>
 
   if (!clase) {
     return (
       <section className="tablero-bloque mis-clases-proxima-vacia">
         <div>
-          <h3>No tenes clases confirmadas por delante</h3>
-          <p className="tablero-vacio">Cuando un profe apruebe tu solicitud, la vas a ver aca.</p>
+          <h3>No tenés clases confirmadas por delante</h3>
+          <p className="tablero-vacio">Cuando un profe apruebe tu solicitud, la vas a ver acá.</p>
         </div>
         <Link to="/buscar" className="btn btn-primary">Buscar profe</Link>
       </section>
@@ -41,7 +41,7 @@ export default function ProximaClaseGrande({ bloque, alVerDetalle }) {
   const nombre = [profe.nombre, profe.apellido].filter(Boolean).join(' ')
   // "en 40 min" o "manana" suman algo; "el lunes 26 de octubre" ya esta en el renglon de abajo.
   const falta = cuantoFalta(clase.minutos_restantes, clase.inicio)
-  const kicker = falta.startsWith('el ') ? 'Proxima clase' : `Proxima clase · ${falta}`
+  const kicker = falta.startsWith('el ') ? 'Próxima clase' : `Próxima clase · ${falta}`
 
   return (
     <section className="mis-clases-proxima" aria-labelledby="proxima-titulo">

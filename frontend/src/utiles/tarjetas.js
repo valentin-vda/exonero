@@ -107,21 +107,21 @@ export function validarTarjeta(campos) {
 
   return validarFormulario({
     numero: () => {
-      if (!numero) return 'Escribi el numero de la tarjeta.'
+      if (!numero) return 'Escribí el número de la tarjeta.'
       // 13 a 19: los mismos limites que TarjetaIn. Mas de 19 no se puede
       // escribir: formatearNumero() corta ahi.
-      if (numero.length < 13) return 'Le faltan numeros: son entre 13 y 19.'
+      if (numero.length < 13) return 'Le faltan números: son entre 13 y 19.'
       return null
     },
-    titular: () => (campos.titular.trim() ? null : 'Escribi el nombre como figura en la tarjeta.'),
+    titular: () => (campos.titular.trim() ? null : 'Escribí el nombre como figura en la tarjeta.'),
     vence: () => {
-      if (!campos.vence) return 'Escribi el vencimiento.'
+      if (!campos.vence) return 'Escribí el vencimiento.'
       if (!vence) return 'Usa el formato MM/AA, por ejemplo 09/29.'
       if (vence.mes < 1 || vence.mes > 12) return 'El mes va del 01 al 12.'
-      if (estaVencida(vence)) return 'Esta tarjeta ya vencio.'
+      if (estaVencida(vence)) return 'Esta tarjeta ya venció.'
       return null
     },
-    ccv: () => (/^\d{3,4}$/.test(campos.ccv) ? null : 'Son los 3 o 4 numeros del dorso.'),
+    ccv: () => (/^\d{3,4}$/.test(campos.ccv) ? null : 'Son los 3 o 4 números del dorso.'),
   })
 }
 

@@ -185,7 +185,7 @@ export default function GraficoBarras({ titulo, series, columnas, formato, enter
           <caption>{titulo}</caption>
           <thead>
             <tr>
-              <th scope="col">Periodo</th>
+              <th scope="col">Período</th>
               {series.map((serie) => (
                 <th key={serie.id} scope="col">{serie.texto}</th>
               ))}

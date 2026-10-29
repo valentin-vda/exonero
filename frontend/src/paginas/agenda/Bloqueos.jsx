@@ -51,7 +51,7 @@ export default function Bloqueos({ alCambiar }) {
     evento.preventDefault()
     setMensaje(null)
     if (!todoElDia && hasta <= desde) {
-      setMensaje({ tipo: 'error', texto: 'El bloqueo tiene que terminar despues de empezar.' })
+      setMensaje({ tipo: 'error', texto: 'El bloqueo tiene que terminar después de empezar.' })
       return
     }
     setOcupado(true)
@@ -95,7 +95,7 @@ export default function Bloqueos({ alCambiar }) {
     <div className="bloqueos">
       <form className="bloqueos-form" onSubmit={bloquear} noValidate>
         <div className="field">
-          <label htmlFor="bloqueo-dia">Dia</label>
+          <label htmlFor="bloqueo-dia">Día</label>
           <input id="bloqueo-dia" type="date" className="input" min={hoy()} value={dia} onChange={(e) => setDia(e.target.value)} />
         </div>
         <div className="field">
@@ -110,12 +110,12 @@ export default function Bloqueos({ alCambiar }) {
         </div>
         <label className="bloqueos-todo-el-dia">
           <input type="checkbox" checked={todoElDia} onChange={(e) => setTodoElDia(e.target.checked)} />
-          Todo el dia
+          Todo el día
         </label>
         <div className="field bloqueos-motivo">
           <label htmlFor="bloqueo-motivo">Motivo (solo lo ves vos)</label>
           <input id="bloqueo-motivo" className="input" maxLength={200} value={motivo}
-                 onChange={(e) => setMotivo(e.target.value)} placeholder="Turno medico" />
+                 onChange={(e) => setMotivo(e.target.value)} placeholder="Turno médico" />
         </div>
         <button type="submit" className="btn btn-primary" disabled={ocupado || !dia}>
           {ocupado ? 'Bloqueando...' : 'Bloquear'}
@@ -124,10 +124,10 @@ export default function Bloqueos({ alCambiar }) {
 
       <Alerta tipo={mensaje?.tipo}>{mensaje?.texto}</Alerta>
 
-      <h4>Proximos bloqueos</h4>
+      <h4>Próximos bloqueos</h4>
       {errorCarga && <Alerta tipo="error">{errorCarga}</Alerta>}
       {!lista && !errorCarga && <p className="tablero-vacio">Cargando...</p>}
-      {lista && lista.length === 0 && <p className="tablero-vacio">No tenes bloqueos por delante.</p>}
+      {lista && lista.length === 0 && <p className="tablero-vacio">No tenés bloqueos por delante.</p>}
       {lista && lista.length > 0 && (
         <ul className="bloqueos-lista">
           {lista.map((b) => (

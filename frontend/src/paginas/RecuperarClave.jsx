@@ -62,7 +62,7 @@ export default function RecuperarClave() {
   async function enviarPaso2(evento) {
     evento.preventDefault()
     const { errores: nuevos, hayErrores } = validarFormulario({
-      codigo: () => (codigo.trim() ? null : 'Escribi el codigo.'),
+      codigo: () => (codigo.trim() ? null : 'Escribí el código.'),
       clave: () => validarClave(clave),
       repetir: () => validarRepetirClave(clave, repetir),
     })
@@ -83,12 +83,12 @@ export default function RecuperarClave() {
 
   return (
     <MarcoAuth>
-      <h2 className="auth-titulo">Recuperar contrasena</h2>
+      <h2 className="auth-titulo">Recuperar contraseña</h2>
 
       {paso === 1 ? (
         <>
           <p className="auth-bajada">
-            Escribi tu correo y te mandamos un codigo para volver a entrar.
+            Escribí tu correo y te mandamos un código para volver a entrar.
           </p>
           <Alerta tipo="error">{errorGeneral}</Alerta>
           <form onSubmit={enviarPaso1} noValidate>
@@ -103,21 +103,21 @@ export default function RecuperarClave() {
               autoComplete="email"
             />
             <button type="submit" className="btn btn-primary btn-block" disabled={enviando}>
-              {enviando ? 'Enviando...' : 'Pedir codigo'}
+              {enviando ? 'Enviando...' : 'Pedir código'}
             </button>
           </form>
         </>
       ) : (
         <>
           <p className="auth-bajada">
-            Mientras no haya envio de correos, el codigo se imprime en la
-            consola del backend. Copialo de ahi.
+            Mientras no haya envío de correos, el código se imprime en la
+            consola del backend. Copialo de ahí.
           </p>
           <Alerta tipo="error">{errorGeneral}</Alerta>
           <form onSubmit={enviarPaso2} noValidate>
             <Campo
               id="codigo"
-              etiqueta="Codigo"
+              etiqueta="Código"
               valor={codigo}
               alCambiar={setCodigo}
               error={errores.codigo}
@@ -127,7 +127,7 @@ export default function RecuperarClave() {
             />
             <CampoClave
               id="clave"
-              etiqueta="Contrasena nueva"
+              etiqueta="Contraseña nueva"
               valor={clave}
               alCambiar={setClave}
               error={errores.clave}
@@ -135,14 +135,14 @@ export default function RecuperarClave() {
             />
             <CampoClave
               id="repetir"
-              etiqueta="Repetir contrasena"
+              etiqueta="Repetir contraseña"
               valor={repetir}
               alCambiar={setRepetir}
               error={errores.repetir}
               autoComplete="new-password"
             />
             <button type="submit" className="btn btn-primary btn-block" disabled={enviando}>
-              {enviando ? 'Guardando...' : 'Cambiar contrasena'}
+              {enviando ? 'Guardando...' : 'Cambiar contraseña'}
             </button>
           </form>
         </>

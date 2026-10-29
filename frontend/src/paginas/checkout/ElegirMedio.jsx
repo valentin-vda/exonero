@@ -39,7 +39,7 @@ export default function ElegirMedio({
     <section className="panel" aria-labelledby="medio-titulo">
       <h4 id="medio-titulo" style={{ marginBottom: '4px' }}>Medio de pago</h4>
       <p className="panel-ayuda" style={{ marginTop: 0 }}>
-        Elegi una de tus tarjetas guardadas o agrega una nueva. No se debita nada hasta que la
+        Elegí una de tus tarjetas guardadas o agregá una nueva. No se debita nada hasta que la
         reserva sea aprobada.
       </p>
 
@@ -47,7 +47,7 @@ export default function ElegirMedio({
           pregunta antes de las opciones. La legend esta escondida porque el
           titulo de arriba ya lo dice a la vista. */}
       <fieldset className="medios">
-        <legend className="oculto-visual">Con que tarjeta vas a pagar</legend>
+        <legend className="oculto-visual">Con qué tarjeta vas a pagar</legend>
 
         {tarjetas.map((tarjeta) => {
           const vencida = tarjetaVencida(tarjeta)
@@ -75,7 +75,7 @@ export default function ElegirMedio({
           <span className="marca-tarjeta marca-tarjeta-mas" aria-hidden="true">+</span>
           <span className="medio-datos">
             <span className="medio-nombre">Agregar tarjeta nueva</span>
-            <span className="medio-meta">Se puede guardar para las proximas reservas</span>
+            <span className="medio-meta">Se puede guardar para las próximas reservas</span>
           </span>
         </label>
       </fieldset>

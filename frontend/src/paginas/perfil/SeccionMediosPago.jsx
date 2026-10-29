@@ -82,7 +82,7 @@ export default function SeccionMediosPago() {
       await borrarTarjeta(tarjeta.id)
       // Se saca de la lista sin volver a pedirla: el backend ya dijo que si.
       setTarjetas((previas) => previas.filter((t) => t.id !== tarjeta.id))
-      setMensaje({ tipo: 'ok', texto: `Listo, se quito la ${nombreTarjeta(tarjeta)}.` })
+      setMensaje({ tipo: 'ok', texto: `Listo, se quitó la ${nombreTarjeta(tarjeta)}.` })
     } catch (error) {
       setMensaje({ tipo: 'error', texto: mensajeDeError(error.codigo) })
     } finally {
@@ -128,7 +128,7 @@ export default function SeccionMediosPago() {
       const tarjeta = await agregarTarjeta(tarjetaParaBackend(nueva))
       setTarjetas((previas) => [...previas, tarjeta])
       cerrarFormulario()
-      setMensaje({ tipo: 'ok', texto: `Listo, se guardo la ${nombreTarjeta(tarjeta)}.` })
+      setMensaje({ tipo: 'ok', texto: `Listo, se guardó la ${nombreTarjeta(tarjeta)}.` })
     } catch (error) {
       setMensaje({ tipo: 'error', texto: mensajeDeError(error.codigo) })
     } finally {
@@ -144,7 +144,7 @@ export default function SeccionMediosPago() {
           Medios de pago
         </h4>
         <p className="panel-ayuda" style={{ marginTop: 0 }}>
-          Se usan para pagar las reservas dentro de Exonero. En cada reserva elegis con cual pagar, y no se
+          Se usan para pagar las reservas dentro de Exonero. En cada reserva elegís con cuál pagar, y no se
           debita nada hasta que el profe la aprueba.
         </p>
 
@@ -154,8 +154,8 @@ export default function SeccionMediosPago() {
 
         {!cargando && !cargaFallida && tarjetas.length === 0 && (
           <p className="vacio">
-            Todavia no tenes tarjetas guardadas. Podes agregar una aca, o guardarla cuando reserves tu
-            proxima clase.
+            Todavía no tenés tarjetas guardadas. Podés agregar una acá, o guardarla cuando reserves tu
+            próxima clase.
           </p>
         )}
 
@@ -186,7 +186,7 @@ export default function SeccionMediosPago() {
                         disabled={ocupado}
                         aria-describedby={`quitar-${tarjeta.id}`}
                       >
-                        {ocupado ? 'Quitando...' : 'Si, quitar'}
+                        {ocupado ? 'Quitando...' : 'Sí, quitar'}
                       </button>
                       {/* El foco va a "Cancelar", la opcion que no rompe nada. */}
                       <button
