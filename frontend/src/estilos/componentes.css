@@ -514,16 +514,6 @@ label:has(.oculto-visual:focus-visible) {
   height: auto;
   pointer-events: none;
 }
-.demo-global {
-  background: #5b2100;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .08em;
-  padding: 6px 16px;
-  text-align: center;
-}
-
 .privacidad-check {
   align-items: flex-start;
   display: flex;

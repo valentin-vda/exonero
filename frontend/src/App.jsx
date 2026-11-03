@@ -33,9 +33,7 @@ import ConsentimientoParental from './paginas/ConsentimientoParental.jsx'
 
 export default function App() {
   return (
-    <>
-      <div className="demo-global" role="status">PROTOTIPO ACADEMICO · usa solo datos ficticios</div>
-      <Routes>
+    <Routes>
       {/* ---------------------------------------------------------------
           Publicas. Son las unicas tres pantallas sin sesion.
           --------------------------------------------------------------- */}
@@ -94,7 +92,6 @@ export default function App() {
 
       {/* Cualquier URL que no exista tambien va a la raiz. */}
       <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </>
+    </Routes>
   )
 }

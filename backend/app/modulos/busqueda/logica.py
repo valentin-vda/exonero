@@ -186,18 +186,36 @@ def pines_mapa(db: Session, filtros=None, ids: list[int] | None = None) -> list[
         if ficha is None:
             continue
         nombre = f"{ficha['nombre']} {ficha['apellido']}".strip()
+        latitud_publica, longitud_publica = _punto_publico(
+            fila["latitud"], fila["longitud"], fila["usuario_id"]
+        )
         pines.append({
             "id": fila["usuario_id"],
             "nombre": nombre,
-            # El mapa publico muestra una zona aproximada, no la puerta del
-            # espacio donde trabaja el profesor.
-            "latitud": round(fila["latitud"], 2),
-            "longitud": round(fila["longitud"], 2),
+            "latitud": latitud_publica,
+            "longitud": longitud_publica,
             "precio_hora": _precio_fila(fila, modalidad_pedida),
             "puntaje_promedio": fila["puntaje_promedio"],
             "modalidad": fila["modalidad"],
         })
     return pines
+
+
+def _punto_publico(latitud, longitud, usuario_id: int) -> tuple[float, float]:
+    """Zona aproximada estable, con separacion visual entre profesores.
+
+    Redondear todos los puntos a dos decimales protegia la direccion, pero
+    hacia que varios marcadores quedaran exactamente uno arriba de otro. El
+    desplazamiento determinista conserva la aproximacion y permite verlos.
+    """
+    base_latitud = round(float(latitud), 2)
+    base_longitud = round(float(longitud), 2)
+    angulo = radians((usuario_id * 137.508) % 360)
+    radio = 0.0015 + (usuario_id % 5) * 0.00045
+    return (
+        round(base_latitud + sin(angulo) * radio, 5),
+        round(base_longitud + cos(angulo) * radio, 5),
+    )
 
 
 def cercanos(
