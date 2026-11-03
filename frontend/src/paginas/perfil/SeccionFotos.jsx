@@ -80,14 +80,14 @@ export default function SeccionFotos({ ficha, alGuardar }) {
         }
       }
       setEpigrafes({})
-    }, 'Listo, se guardaron los epigrafes.')
+    }, 'Listo, se guardaron los epígrafes.')
   }
 
   return (
     <section className="panel">
       <h4 style={{ marginBottom: '4px' }}>Fotos del lugar donde doy clase</h4>
       <p className="panel-ayuda" style={{ marginTop: 0 }}>
-        Se muestran en tu ficha publica, en el detalle que ve el alumno antes de reservar.
+        Se muestran en tu ficha pública, en el detalle que ve el alumno antes de reservar.
       </p>
 
       <Alerta tipo={mensaje?.tipo}>{mensaje?.texto}</Alerta>
@@ -104,8 +104,8 @@ export default function SeccionFotos({ ficha, alGuardar }) {
               className="input"
               value={textoEpigrafe(foto)}
               onChange={(e) => setEpigrafes((previos) => ({ ...previos, [foto.id]: e.target.value }))}
-              placeholder="Epigrafe (opcional)"
-              aria-label={`Epigrafe de la foto ${posicion + 1}`}
+              placeholder="Epígrafe (opcional)"
+              aria-label={`Epígrafe de la foto ${posicion + 1}`}
               maxLength={120}
             />
             <div className="foto-acciones">
@@ -145,7 +145,7 @@ export default function SeccionFotos({ ficha, alGuardar }) {
         {fotos.length > 0 && (
           <button type="button" className="btn btn-primary" style={{ marginLeft: 'auto' }}
                   onClick={guardarEpigrafes} disabled={ocupado || Object.keys(epigrafes).length === 0}>
-            Guardar epigrafes
+            Guardar epígrafes
           </button>
         )}
       </div>

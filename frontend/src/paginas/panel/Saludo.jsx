@@ -46,7 +46,7 @@ export default function Saludo({ ficha }) {
         {subtitulo && <p className="tablero-subtitulo">{subtitulo}</p>}
         {ficha.datos && !subtitulo && (
           <p className="tablero-subtitulo">
-            Todavia no cargaste tus materias. <Link to="/perfil-profesor">Completa tu perfil</Link> para que
+            Todavía no cargaste tus materias. <Link to="/perfil-profesor">Completá tu perfil</Link> para que
             los alumnos te encuentren.
           </p>
         )}

@@ -62,7 +62,7 @@ export default function Historial() {
       </div>
       {error && <Alerta tipo="error">No pudimos traer tu historial. {error}</Alerta>}
       {!clases && !error && <p className="tablero-vacio">Cargando tu historial...</p>}
-      {clases && clases.length === 0 && <p className="tablero-vacio">Todavia no tuviste clases dictadas.</p>}
+      {clases && clases.length === 0 && <p className="tablero-vacio">Todavía no tuviste clases dictadas.</p>}
       {ordenadas.length > 0 && (
         <ul className="mis-clases-historial">
           {ordenadas.map((c) => (
@@ -77,7 +77,7 @@ export default function Historial() {
       {hayMas && (
         <div className="botonera">
           <button type="button" className="btn btn-secondary" disabled={cargando} onClick={() => cargar(pagina + 1)}>
-            {cargando ? 'Cargando...' : 'Ver mas'}
+            {cargando ? 'Cargando...' : 'Ver más'}
           </button>
         </div>
       )}

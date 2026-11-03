@@ -105,9 +105,9 @@ export default function SeccionPersonalEstudiante({ perfil, catalogos, alGuardar
       apellido: () => validarTexto(campos.apellido, 'tu apellido', 2),
       fechaNacimiento: () => validarFechaNacimiento(campos.fechaNacimiento),
       adultoNombre: () =>
-        menor && !campos.adultoNombre.trim() ? 'Como sos menor, completa el nombre de un adulto.' : null,
+        menor && !campos.adultoNombre.trim() ? 'Como sos menor, completá el nombre de un adulto.' : null,
       adultoTelefono: () =>
-        menor && !campos.adultoTelefono.trim() ? 'Y su telefono.' : null,
+        menor && !campos.adultoTelefono.trim() ? 'Y su teléfono.' : null,
     })
     setErrores(nuevos)
     setMensaje(null)
@@ -162,8 +162,8 @@ export default function SeccionPersonalEstudiante({ perfil, catalogos, alGuardar
   return (
     <section className="panel">
       <div className="panel-encabezado">
-        <h4>Informacion personal</h4>
-        <span className="texto-chico">Edita lo que necesites y guarda al final</span>
+        <h4>Información personal</h4>
+        <span className="texto-chico">Editá lo que necesites y guardá al final</span>
       </div>
 
       <Alerta tipo={mensaje?.tipo}>{mensaje?.texto}</Alerta>
@@ -175,21 +175,21 @@ export default function SeccionPersonalEstudiante({ perfil, catalogos, alGuardar
           <Campo id="apellido" etiqueta="Apellido" valor={campos.apellido} alCambiar={cambiar('apellido')}
                  error={errores.apellido} requerido autoComplete="family-name" />
 
-          <Campo id="documento" etiqueta="Cedula de identidad" valor={campos.documento}
+          <Campo id="documento" etiqueta="Cédula de identidad" valor={campos.documento}
                  alCambiar={cambiar('documento')} placeholder="1.234.567-8" />
           {/* El correo se muestra pero no se edita: es el usuario de la cuenta.
               disabled llega al <input> porque Campo pasa las props de mas. */}
-          <Campo id="correo" etiqueta="Correo electronico" tipo="email" valor={usuario.correo}
+          <Campo id="correo" etiqueta="Correo electrónico" tipo="email" valor={usuario.correo}
                  alCambiar={() => {}} disabled ayuda="Es tu usuario: no se puede cambiar." />
 
-          <Campo id="telefono" etiqueta="Telefono" tipo="tel" valor={campos.telefono}
+          <Campo id="telefono" etiqueta="Teléfono" tipo="tel" valor={campos.telefono}
                  alCambiar={cambiar('telefono')} autoComplete="tel" placeholder="099 123 456" />
           <Campo id="fechaNacimiento" etiqueta="Fecha de nacimiento" tipo="date" valor={campos.fechaNacimiento}
                  alCambiar={cambiar('fechaNacimiento')} error={errores.fechaNacimiento} />
 
           <CampoSelect id="etapa" etiqueta="Etapa educativa" valor={campos.etapaId} alCambiar={cambiarEtapa}
                        opciones={opcionesEtapa} disabled={!catalogos} />
-          <CampoSelect id="nivel" etiqueta="Anio" valor={campos.nivel} alCambiar={cambiar('nivel')}
+          <CampoSelect id="nivel" etiqueta="Año" valor={campos.nivel} alCambiar={cambiar('nivel')}
                        opciones={opcionesNivel} disabled={!catalogos || opcionesNivel.length === 0} />
 
           <CampoSelect id="centro" etiqueta="Centro educativo" valor={campos.centroId} alCambiar={cambiar('centroId')}
@@ -198,14 +198,14 @@ export default function SeccionPersonalEstudiante({ perfil, catalogos, alGuardar
                        opciones={opcionesBarrio} disabled={!catalogos} />
         </div>
 
-        <Campo id="direccion" etiqueta="Direccion (para clases presenciales)" valor={campos.direccion}
+        <Campo id="direccion" etiqueta="Dirección (para clases presenciales)" valor={campos.direccion}
                alCambiar={cambiar('direccion')} autoComplete="street-address" placeholder="Soriano 1234, apto. 4" />
 
         <div className="grilla-2">
           <Campo id="adultoNombre" etiqueta="Adulto responsable" valor={campos.adultoNombre}
                  alCambiar={cambiar('adultoNombre')} error={errores.adultoNombre} requerido={menor}
                  ayuda={menor ? 'Obligatorio porque sos menor de edad.' : 'Solo si sos menor de edad.'} />
-          <Campo id="adultoTelefono" etiqueta="Telefono del adulto" tipo="tel" valor={campos.adultoTelefono}
+          <Campo id="adultoTelefono" etiqueta="Teléfono del adulto" tipo="tel" valor={campos.adultoTelefono}
                  alCambiar={cambiar('adultoTelefono')} error={errores.adultoTelefono} requerido={menor} />
         </div>
 

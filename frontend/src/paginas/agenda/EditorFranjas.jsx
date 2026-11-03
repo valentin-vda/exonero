@@ -54,7 +54,7 @@ function problemas(renglones) {
   for (const r of renglones) {
     if (!r.inicio || !r.fin || r.fin <= r.inicio) {
       malos.add(r.id)
-      texto ||= 'Cada franja tiene que terminar despues de empezar.'
+      texto ||= 'Cada franja tiene que terminar después de empezar.'
     }
   }
   // Las horas son 'HH:MM': compararlas como texto es compararlas como horas.
@@ -118,7 +118,7 @@ export default function EditorFranjas({ alGuardar }) {
         renglones.map((r) => ({ dia_semana: r.dia, hora_inicio: r.inicio, hora_fin: r.fin, modalidad: r.modalidad })),
       )
       setRenglones(guardadas.map(renglon))
-      setMensaje({ tipo: 'ok', texto: 'Listo, se guardo tu disponibilidad.' })
+      setMensaje({ tipo: 'ok', texto: 'Listo, se guardó tu disponibilidad.' })
       if (alGuardar) alGuardar()
     } catch (error) {
       setMensaje({ tipo: 'error', texto: mensajeDeError(error.codigo) })
@@ -130,8 +130,8 @@ export default function EditorFranjas({ alGuardar }) {
   return (
     <form className="franjas" onSubmit={guardar} noValidate>
       <p className="panel-ayuda" style={{ marginTop: 0 }}>
-        Marca cuando das clase cada semana. Los alumnos solo pueden reservar dentro de estas franjas, y
-        siempre respetando tu descanso, tu tope diario y tu aviso minimo.
+        Marcá cuándo das clase cada semana. Los alumnos solo pueden reservar dentro de estas franjas, y
+        siempre respetando tu descanso, tu tope diario y tu aviso mínimo.
       </p>
 
       {DIAS.map((dia) => {
@@ -140,7 +140,7 @@ export default function EditorFranjas({ alGuardar }) {
           <fieldset key={dia.valor} className="franjas-dia">
             <legend className="franjas-dia-nombre">{dia.texto}</legend>
             <div className="franjas-dia-renglones">
-              {delDia.length === 0 && <span className="franjas-vacio">No atendes este dia.</span>}
+              {delDia.length === 0 && <span className="franjas-vacio">No atendés este día.</span>}
               {delDia.map((r, posicion) => {
                 const nombre = `${dia.texto}, franja ${posicion + 1}`
                 return (

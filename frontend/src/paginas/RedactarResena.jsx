@@ -85,7 +85,7 @@ export default function RedactarResena() {
   async function guardar(evento) {
     evento.preventDefault()
     if (!puntaje) {
-      setError(FALTA_PUNTAJE)
+      setError('Elegí de 1 a 5 estrellas.')
       return
     }
     setError(null)
@@ -120,7 +120,7 @@ export default function RedactarResena() {
   return (
     <div className="resena-redactar">
       <div className="perfil-titulo">
-        <h2>{miResena ? 'Editar tu calificacion' : `Calificar a ${persona.nombre}`}</h2>
+        <h2>{miResena ? 'Editar tu calificación' : `Calificar a ${persona.nombre}`}</h2>
       </div>
 
       <form className="panel" onSubmit={guardar} noValidate>
@@ -156,20 +156,20 @@ export default function RedactarResena() {
             value={texto}
             maxLength={MAX_TEXTO}
             onChange={(e) => setTexto(e.target.value)}
-            placeholder={esProfesor ? 'Como trabaja, si viene preparado...' : 'Como explica, si te sirvio para el examen...'}
+            placeholder={esProfesor ? 'Cómo trabaja, si viene preparado...' : 'Cómo explica, si te sirvió para el examen...'}
           />
           <span className="field-hint">{texto.length} de {MAX_TEXTO} caracteres</span>
         </div>
 
         <Alerta tipo="info">
-          Tu calificacion es anonima: {persona.nombre} ve el puntaje y el comentario, nunca quien lo dejo.
+          Tu calificación es anónima: {persona.nombre} ve el puntaje y el comentario, nunca quién lo dejó.
         </Alerta>
         <Alerta tipo="error">{error}</Alerta>
 
         <div className="botonera">
           <Link to={volver} className="btn btn-secondary">Cancelar</Link>
           <button type="submit" className="btn btn-primary" disabled={guardando}>
-            {guardando ? 'Guardando...' : 'Guardar calificacion'}
+            {guardando ? 'Guardando...' : 'Guardar calificación'}
           </button>
         </div>
       </form>

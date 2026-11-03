@@ -53,7 +53,7 @@ export default function SeccionClave({ children }) {
     evento.preventDefault()
 
     const { errores: nuevos, hayErrores } = validarFormulario({
-      actual: () => (campos.actual ? null : 'Escribi tu contrasena actual.'),
+      actual: () => (campos.actual ? null : 'Escribí tu contraseña actual.'),
       nueva: () => validarClave(campos.nueva),
       repetir: () => validarRepetirClave(campos.nueva, campos.repetir),
     })
@@ -65,7 +65,7 @@ export default function SeccionClave({ children }) {
     try {
       await cambiarClave(campos.actual, campos.nueva)
       setCampos(VACIO)
-      setMensaje({ tipo: 'ok', texto: 'Listo, tu contrasena cambio.' })
+      setMensaje({ tipo: 'ok', texto: 'Listo, tu contraseña cambió.' })
     } catch (error) {
       setMensaje({ tipo: 'error', texto: mensajeDeError(error.codigo) })
     } finally {
@@ -91,10 +91,10 @@ export default function SeccionClave({ children }) {
     <>
       {/* --- Cambiar la contrasena --- */}
       <section className="panel panel-angosto">
-        <h4 style={{ marginBottom: '6px' }}>Cambiar la contrasena</h4>
+        <h4 style={{ marginBottom: '6px' }}>Cambiar la contraseña</h4>
         <p className="panel-ayuda" style={{ marginTop: 0 }}>
-          Usa al menos 8 caracteres. Si no te acordas de la actual, cerra la
-          sesion y entra con &quot;Olvide mi contrasena&quot;.
+          Usá al menos 8 caracteres. Si no te acordás de la actual, cerrá la
+          sesión y entrá con &quot;Olvidé mi contraseña&quot;.
         </p>
 
         <Alerta tipo={mensaje?.tipo}>{mensaje?.texto}</Alerta>
@@ -102,7 +102,7 @@ export default function SeccionClave({ children }) {
         <form onSubmit={guardarClave} noValidate>
           <CampoClave
             id="clave-actual"
-            etiqueta="Contrasena actual"
+            etiqueta="Contraseña actual"
             valor={campos.actual}
             alCambiar={cambiar('actual')}
             error={errores.actual}
@@ -110,7 +110,7 @@ export default function SeccionClave({ children }) {
           />
           <CampoClave
             id="clave-nueva"
-            etiqueta="Contrasena nueva"
+            etiqueta="Contraseña nueva"
             valor={campos.nueva}
             alCambiar={cambiar('nueva')}
             error={errores.nueva}
@@ -118,7 +118,7 @@ export default function SeccionClave({ children }) {
           />
           <CampoClave
             id="clave-repetir"
-            etiqueta="Repetir contrasena nueva"
+            etiqueta="Repetir contraseña nueva"
             valor={campos.repetir}
             alCambiar={cambiar('repetir')}
             error={errores.repetir}
@@ -126,7 +126,7 @@ export default function SeccionClave({ children }) {
           />
           <div className="botonera">
             <button type="submit" className="btn btn-primary" disabled={guardando}>
-              {guardando ? 'Guardando...' : 'Guardar contrasena'}
+              {guardando ? 'Guardando...' : 'Guardar contraseña'}
             </button>
           </div>
         </form>
@@ -142,7 +142,7 @@ export default function SeccionClave({ children }) {
         <p className="panel-ayuda" style={{ marginTop: 0 }}>
           Tu cuenta queda desactivada y no vas a poder volver a entrar con{' '}
           {usuario.correo}. Las clases que ya tuviste se conservan para la otra persona.
-          {usuario.rol === 'profesor' && ' Tu ficha deja de aparecer en la busqueda.'}
+          {usuario.rol === 'profesor' && ' Tu ficha deja de aparecer en la búsqueda.'}
         </p>
 
         <Alerta tipo="error">{errorBaja}</Alerta>

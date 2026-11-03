@@ -45,10 +45,10 @@ import SeccionEnsena from './perfil/SeccionEnsena.jsx'
 import SeccionFotos from './perfil/SeccionFotos.jsx'
 
 const PESTANIAS = [
-  { id: 'datos', texto: 'Informacion personal' },
+  { id: 'datos', texto: 'Información personal' },
   { id: 'ensena', texto: 'Materias y modalidad' },
   { id: 'disponibilidad', texto: 'Disponibilidad' },
-  { id: 'bio', texto: 'Biografia' },
+  { id: 'bio', texto: 'Biografía' },
   { id: 'fotos', texto: 'Fotos del lugar' },
   // El nombre del mockup: la contrasena y, debajo, las cuentas de cobro.
   { id: 'seguridad', texto: 'Contraseña y cobros' },
@@ -129,7 +129,7 @@ export default function PerfilProfesor() {
   // "Profesora de Matematica (IPA) · 6 anios de experiencia · Cordon"
   const subtitulo = unir([
     ficha.titulo_habilitante,
-    ficha.anios_experiencia !== null && `${ficha.anios_experiencia} anios de experiencia`,
+    ficha.anios_experiencia !== null && `${ficha.anios_experiencia} años de experiencia`,
     ficha.barrio,
   ])
 
@@ -140,7 +140,7 @@ export default function PerfilProfesor() {
     <>
       <div className="perfil-titulo">
         <h2>Mi perfil</h2>
-        <p className="text-muted">Todo lo que edites aca es lo que ven los alumnos en tu ficha</p>
+        <p className="text-muted">Todo lo que edites acá es lo que ven los alumnos en tu ficha</p>
       </div>
 
       <div className="perfil">
@@ -165,8 +165,8 @@ export default function PerfilProfesor() {
             </div>
             <p className="texto-chico" style={{ margin: '6px 0 0' }}>
               {publicada
-                ? 'Los alumnos te encuentran en la busqueda.'
-                : 'No apareces en la busqueda hasta que publiques.'}
+                ? 'Los alumnos te encuentran en la búsqueda.'
+                : 'No aparecés en la búsqueda hasta que publiques.'}
             </p>
             {errorEstado && (
               <p className="field-hint field-hint-error" style={{ paddingLeft: 0 }}>{errorEstado}</p>
@@ -175,13 +175,13 @@ export default function PerfilProfesor() {
         </MenuLateral>
 
         <div className="perfil-contenido">
-          <CabeceraPerfil subtitulo={subtitulo || 'Completa tus datos para que los alumnos te conozcan.'}>
+          <CabeceraPerfil subtitulo={subtitulo || 'Completá tus datos para que los alumnos te conozcan.'}>
             {ficha.cantidad_resenas > 0 ? (
               <span className="tag tag-accent-2">
-                {ESTRELLA} {puntaje(ficha.puntaje_promedio)} {'·'} {ficha.cantidad_resenas} resenas
+                {ESTRELLA} {puntaje(ficha.puntaje_promedio)} {'·'} {ficha.cantidad_resenas} reseñas
               </span>
             ) : (
-              <span className="tag tag-neutral">Todavia sin resenas</span>
+              <span className="tag tag-neutral">Todavía sin reseñas</span>
             )}
             <span className="tag tag-neutral">{ficha.clases_dictadas} clases dictadas</span>
             <span className="tag tag-neutral">Miembro desde {mesYAnio(usuario.creado_el)}</span>

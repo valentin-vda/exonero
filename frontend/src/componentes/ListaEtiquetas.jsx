@@ -92,7 +92,7 @@ export default function ListaEtiquetas({
 
         {seleccion.length === 0 && disponibles.length === 0 && (
           <span className="text-muted" style={{ fontSize: '13px' }}>
-            Nada elegido todavia.
+            Nada elegido todavía.
           </span>
         )}
       </div>

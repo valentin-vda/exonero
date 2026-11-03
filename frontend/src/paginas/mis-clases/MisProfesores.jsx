@@ -43,8 +43,8 @@ export function PorCalificar({ bloque }) {
   return (
     <section className="tablero-bloque tablero-bloque-acento" aria-labelledby="calificar-titulo">
       <div className="tablero-encabezado">
-        <h3 id="calificar-titulo">Contanos como te fue</h3>
-        <span className="tablero-resumen">Tu calificacion es anonima: el profe ve el puntaje, no quien lo dejo</span>
+        <h3 id="calificar-titulo">Contanos cómo te fue</h3>
+        <span className="tablero-resumen">Tu calificación es anónima: el profe ve el puntaje, no quién lo dejó</span>
       </div>
       <ul className="mis-clases-lista">
         {pendientes.map((fila) => (
@@ -73,7 +73,7 @@ export default function MisProfesores({ bloque }) {
       {cargando && !datos && <p className="tablero-vacio">Cargando tus profesores...</p>}
       {error && <Alerta tipo="error">No pudimos traer tus profesores. {error}</Alerta>}
       {datos && datos.length === 0 && (
-        <p className="tablero-vacio">Cuando tengas tu primera clase dictada, tu profe aparece aca para calificarlo.</p>
+        <p className="tablero-vacio">Cuando tengas tu primera clase dictada, tu profe aparece acá para calificarlo.</p>
       )}
       {datos && datos.length > 0 && (
         <ul className="mis-clases-lista">
@@ -88,18 +88,18 @@ export default function MisProfesores({ bloque }) {
                     {unir([
                       unir(persona.materias || []),
                       fila.cantidad_clases === 1 ? '1 clase' : `${fila.cantidad_clases} clases`,
-                      fila.ultima_clase && `ultima: ${diaYHora(fila.ultima_clase)}`,
+                      fila.ultima_clase && `última: ${diaYHora(fila.ultima_clase)}`,
                       persona.precio_hora && `desde ${pesos(persona.precio_hora)}/h`,
                     ])}
                   </span>
                   {resena && (
                     <span className="texto-chico">
-                      Tu calificacion: {ESTRELLA} {resena.puntaje}{resena.texto && ` · "${resena.texto}"`}
+                      Tu calificación: {ESTRELLA} {resena.puntaje}{resena.texto && ` · "${resena.texto}"`}
                     </span>
                   )}
                 </div>
                 <div className="tablero-botones">
-                  <BotonResena fila={fila} texto={resena ? 'Editar resena' : 'Calificar'}
+                  <BotonResena fila={fila} texto={resena ? 'Editar reseña' : 'Calificar'}
                                clase={resena ? 'btn-ghost' : 'btn-secondary'} />
                   <BotonMensaje personaId={persona.id} className="btn btn-ghost" />
                   <Link to={`/profesor/${persona.id}`} className="btn btn-secondary">Volver a reservar</Link>

@@ -15,37 +15,37 @@
 export const PERIODOS = [
   { valor: 'mes', texto: 'Mes' },
   { valor: 'trimestre', texto: 'Trimestre' },
-  { valor: 'anio', texto: 'Anio' },
+  { valor: 'anio', texto: 'Año' },
 ]
 
 /** Grafico de ingresos: de a cuanto se agrupa cada barra. */
 export const AGRUPAR_INGRESOS = [
   { valor: 'semana', texto: 'Semana' },
   { valor: 'mes', texto: 'Mes' },
-  { valor: 'anio', texto: 'Anio' },
+  { valor: 'anio', texto: 'Año' },
 ]
 
 /** Grafico de reservas: la ventana es de 10 semanas, 12 meses o 5 anios. */
 export const AGRUPAR_RESERVAS = [
   { valor: 'semana', texto: '10 semanas' },
   { valor: 'mes', texto: 'Mes' },
-  { valor: 'anio', texto: 'Anio' },
+  { valor: 'anio', texto: 'Año' },
 ]
 
 /** El resumen de cada grafico para el lector de pantalla: "Reservas por semana, ultimas 10 semanas". */
 export const POR_TRAMO = {
-  semana: 'por semana, ultimas 10 semanas',
-  mes: 'por mes, ultimos 12 meses',
-  anio: 'por anio, ultimos 5 anios',
+  semana: 'por semana, últimas 10 semanas',
+  mes: 'por mes, últimos 12 meses',
+  anio: 'por año, últimos 5 años',
 }
 
 /**
  * "Ingresos del mes", "cobrado este trimestre", "17 reservas esta semana",
  * "+6 % que el anio pasado".
  */
-export const DEL_PERIODO = { mes: 'del mes', trimestre: 'del trimestre', anio: 'del anio' }
-export const ESTE_PERIODO = { semana: 'esta semana', mes: 'este mes', trimestre: 'este trimestre', anio: 'este anio' }
-export const PERIODO_PASADO = { mes: 'el mes pasado', trimestre: 'el trimestre pasado', anio: 'el anio pasado' }
+export const DEL_PERIODO = { mes: 'del mes', trimestre: 'del trimestre', anio: 'del año' }
+export const ESTE_PERIODO = { semana: 'esta semana', mes: 'este mes', trimestre: 'este trimestre', anio: 'este año' }
+export const PERIODO_PASADO = { mes: 'el mes pasado', trimestre: 'el trimestre pasado', anio: 'el año pasado' }
 
 // ---------------------------------------------------------------------------
 // Las clases
@@ -61,7 +61,7 @@ export const ESTADOS_CLASE = {
   aprobada: { texto: 'Confirmada', clase: 'tag-accent-2' },
   pendiente: { texto: 'A confirmar', clase: 'tag-outline' },
   cancelada: { texto: 'Cancelada', clase: 'tag-neutral' },
-  no_asistida: { texto: 'No asistio', clase: 'tag-neutral' },
+  no_asistida: { texto: 'No asistió', clase: 'tag-neutral' },
 }
 
 /** La modalidad de UNA clase: es presencial u online, nunca "ambas". */

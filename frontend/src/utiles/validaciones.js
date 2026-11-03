@@ -16,13 +16,13 @@
 const RE_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function validarCorreo(valor) {
-  if (!valor.trim()) return 'Escribi tu correo.'
+  if (!valor.trim()) return 'Escribí tu correo.'
   if (!RE_CORREO.test(valor)) return 'Ese correo no parece valido.'
   return null
 }
 
 export function validarClave(valor) {
-  if (!valor) return 'Escribi una contrasena.'
+  if (!valor) return 'Escribí una contraseña.'
   // 8 es el minimo que pide el backend (RegistroIn).
   if (valor.length < 8) return 'Tiene que tener al menos 8 caracteres.'
   // 72 es el tope de bcrypt: mas alla de eso, los caracteres se ignoran.
@@ -31,8 +31,8 @@ export function validarClave(valor) {
 }
 
 export function validarRepetirClave(clave, repetida) {
-  if (!repetida) return 'Repeti la contrasena.'
-  if (clave !== repetida) return 'Las dos contrasenas no coinciden.'
+  if (!repetida) return 'Repetí la contraseña.'
+  if (clave !== repetida) return 'Las dos contraseñas no coinciden.'
   return null
 }
 
@@ -53,10 +53,10 @@ export function validarTexto(valor, etiqueta, minimo = 1) {
 export function validarFechaNacimiento(valor) {
   if (!valor) return null // es opcional en el registro
   const fecha = new Date(valor)
-  if (Number.isNaN(fecha.getTime())) return 'Fecha invalida.'
+  if (Number.isNaN(fecha.getTime())) return 'Fecha inválida.'
   if (fecha > new Date()) return 'La fecha no puede ser futura.'
   const anios = (Date.now() - fecha.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
-  if (anios > 120) return 'Revisa el ano.'
+  if (anios > 120) return 'Revisá el año.'
   return null
 }
 

@@ -89,7 +89,7 @@ export default function ReservaEnviada({ clase, tarjeta, profesor, materia, inic
 
         <h3 id="exito-titulo" className="exito-titulo">Reserva enviada</h3>
         <p id="exito-texto" className="exito-texto">
-          Queda pendiente de aprobacion de {profesor.nombre}. Cuando la apruebe se debitan{' '}
+          Queda pendiente de aprobación de {profesor.nombre}. Cuando la apruebe se debitan{' '}
           {pesos(clase.total)} de {nombreTarjeta(tarjeta)}.
         </p>
 

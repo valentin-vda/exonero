@@ -36,7 +36,7 @@ export default function MisAlumnos() {
   if (error) return <Alerta tipo="error">No pudimos traer tus alumnos. {error}</Alerta>
   if (!lista) return <p className="tablero-vacio">Cargando tus alumnos...</p>
   if (lista.length === 0) {
-    return <p className="tablero-vacio">Cuando marques una clase como dictada, el alumno aparece aca para calificarlo.</p>
+    return <p className="tablero-vacio">Cuando marques una clase como dictada, el alumno aparece acá para calificarlo.</p>
   }
 
   return (
@@ -49,7 +49,7 @@ export default function MisAlumnos() {
             <div className="mis-alumnos-quien">
               <strong>{nombre}</strong>
               <span className="texto-chico">
-                {unir([cantidad === 1 ? '1 clase' : `${cantidad} clases`, ultima && `ultima: ${diaYHora(ultima)}`])}
+                {unir([cantidad === 1 ? '1 clase' : `${cantidad} clases`, ultima && `última: ${diaYHora(ultima)}`])}
               </span>
               {resena && (
                 <span className="texto-chico">
@@ -61,8 +61,8 @@ export default function MisAlumnos() {
                 sin pedir nada; y a donde volver al guardar. */}
             <Link to={`/resenas/redactar/${persona.id}`} className={`btn ${resena ? 'btn-ghost' : 'btn-secondary'}`}
                   state={{ persona, miResena: resena, volver: '/agenda#alumnos' }}
-                  aria-label={`${resena ? 'Editar la resena de' : 'Calificar a'} ${nombre}`}>
-              {resena ? 'Editar resena' : 'Calificar'}
+                  aria-label={`${resena ? 'Editar la reseña de' : 'Calificar a'} ${nombre}`}>
+              {resena ? 'Editar reseña' : 'Calificar'}
             </Link>
           </li>
         )

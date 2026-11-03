@@ -68,7 +68,7 @@ export default function ReservasDeHoy({ bloque, proxima }) {
       {cargando && <p className="tablero-vacio">Cargando las clases de hoy...</p>}
       {error && <Alerta tipo="error">No pudimos traer las clases de hoy. {error}</Alerta>}
       {datos && clases.length === 0 && (
-        <p className="tablero-vacio">No tenes clases para hoy. Las solicitudes nuevas te llegan a la agenda.</p>
+        <p className="tablero-vacio">No tenés clases para hoy. Las solicitudes nuevas te llegan a la agenda.</p>
       )}
 
       {/* Los role repiten lo que ya dice cada etiqueta, a proposito: en el
@@ -85,7 +85,7 @@ export default function ReservasDeHoy({ bloque, proxima }) {
               <th scope="col" role="columnheader">Modalidad</th>
               <th scope="col" role="columnheader">Estado</th>
               <th scope="col" role="columnheader">
-                <span className="oculto-visual">Accion</span>
+                <span className="oculto-visual">Acción</span>
               </th>
             </tr>
           </thead>

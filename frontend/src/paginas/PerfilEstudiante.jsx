@@ -40,10 +40,10 @@ import SeccionPersonalEstudiante from './perfil/SeccionPersonalEstudiante.jsx'
 // Las pestanias del menu lateral, en orden. El id es lo que se guarda en el
 // estado; el texto, lo que se ve.
 const PESTANIAS = [
-  { id: 'personal', texto: 'Informacion personal' },
-  { id: 'clave', texto: 'Contrasena' },
+  { id: 'personal', texto: 'Información personal' },
+  { id: 'clave', texto: 'Contraseña' },
   { id: 'pagos', texto: 'Medios de pago' },
-  { id: 'resenas', texto: 'Mis resenas' },
+  { id: 'resenas', texto: 'Mis reseñas' },
 ]
 
 export default function PerfilEstudiante() {
@@ -87,11 +87,11 @@ export default function PerfilEstudiante() {
       <MenuLateral pestanias={PESTANIAS} activa={pestania} alElegir={setPestania} subtitulo="Cuenta de estudiante" />
 
       <div className="perfil-contenido">
-        <CabeceraPerfil subtitulo={subtitulo || 'Completa tus datos educativos para que los profes te conozcan.'}>
+        <CabeceraPerfil subtitulo={subtitulo || 'Completá tus datos educativos para que los profes te conozcan.'}>
           <span className="tag tag-neutral">Miembro desde {mesYAnio(usuario.creado_el)}</span>
           {cabecera.cantidad_resenas > 0 && (
             <span className="tag tag-accent-2">
-              {ESTRELLA} {puntaje(cabecera.puntaje_promedio)} {'·'} {cabecera.cantidad_resenas} resenas
+              {ESTRELLA} {puntaje(cabecera.puntaje_promedio)} {'·'} {cabecera.cantidad_resenas} reseñas
             </span>
           )}
         </CabeceraPerfil>
@@ -107,12 +107,12 @@ export default function PerfilEstudiante() {
         {pestania === 'pagos' && <SeccionMediosPago />}
         {pestania === 'resenas' && (
           <section className="panel">
-            <h4 style={{ marginBottom: '4px' }}>Mis resenas</h4>
+            <h4 style={{ marginBottom: '4px' }}>Mis reseñas</h4>
             <p className="panel-ayuda" style={{ marginTop: 0 }}>
-              Lo que opinaron los profesores con los que tuviste clase. Son anonimas: no se sabe quien dejo cada una.
+              Lo que opinaron los profesores con los que tuviste clase. Son anónimas: no se sabe quién dejó cada una.
             </p>
             <ResumenResenas usuarioId={usuario.id}
-                            vacio="Todavia no te calificaron. Despues de cada clase dictada, el profe te puede dejar una resena." />
+                            vacio="Todavía no te calificaron. Después de cada clase dictada, el profe te puede dejar una reseña." />
           </section>
         )}
       </div>

@@ -188,12 +188,12 @@ export default function SeccionEnsena({ ficha, catalogos, alGuardar }) {
       <section className="panel">
         <h4 style={{ marginBottom: '4px' }}>Materias y niveles</h4>
         <p className="panel-ayuda" style={{ marginTop: 0 }}>
-          Los alumnos filtran por estos dos campos, asi que conviene ser preciso.
+          Los alumnos filtran por estos dos campos, así que conviene ser preciso.
         </p>
 
         <ListaEtiquetas
           id="materias"
-          etiqueta="Materias que dictas"
+          etiqueta="Materias que dictás"
           seleccion={campos.materias}
           opciones={catalogos?.materias}
           nombres={nombresPorId(ficha.materias.map((m) => m.id), ficha.materias.map((m) => m.nombre))}
@@ -221,7 +221,7 @@ export default function SeccionEnsena({ ficha, catalogos, alGuardar }) {
         <div className="grilla-2">
           <CampoSelect
             id="programa"
-            etiqueta="Programa que seguis"
+            etiqueta="Programa que seguís"
             valor={campos.programa}
             alCambiar={cambiar('programa')}
             opciones={programas.map((p) => ({ valor: p, texto: p }))}
@@ -243,7 +243,7 @@ export default function SeccionEnsena({ ficha, catalogos, alGuardar }) {
         <h4>Modalidad</h4>
 
         <div className="field">
-          <label id="modalidad-etiqueta">Como das clase</label>
+          <label id="modalidad-etiqueta">Cómo das clase</label>
           {/* Un control segmentado: radios escondidos dentro de labels (ver
               .seg-opt en componentes.css). Se ve como tres botones pegados. */}
           <div className="seg seg-ancho" role="radiogroup" aria-labelledby="modalidad-etiqueta">
@@ -263,17 +263,17 @@ export default function SeccionEnsena({ ficha, catalogos, alGuardar }) {
 
         {daPresencial && (
           <div className="grilla-2">
-            <CampoSelect id="lugar" etiqueta="Donde das las clases presenciales" valor={campos.lugar}
+            <CampoSelect id="lugar" etiqueta="Dónde das las clases presenciales" valor={campos.lugar}
                          alCambiar={cambiar('lugar')} opciones={LUGARES} vacio={null} />
             {tieneEspacio && (
-              <Campo id="direccion" etiqueta="Direccion del espacio" valor={campos.direccion}
-                     alCambiar={cambiar('direccion')} placeholder="Biblioteca del Cordon, Soriano 1234"
-                     ayuda="Se muestra en tu ficha publica." />
+              <Campo id="direccion" etiqueta="Dirección del espacio" valor={campos.direccion}
+                     alCambiar={cambiar('direccion')} placeholder="Biblioteca del Cordón, Soriano 1234"
+                     ayuda="Se muestra en tu ficha pública." />
             )}
             {vaADomicilio && (
               <ListaEtiquetas
                 id="zonas"
-                etiqueta="Barrios donde te trasladas"
+                etiqueta="Barrios donde te trasladás"
                 seleccion={campos.zonas}
                 opciones={catalogos?.barrios}
                 nombres={nombresPorId(ficha.zona_ids, ficha.zonas_traslado)}
@@ -301,17 +301,17 @@ export default function SeccionEnsena({ ficha, catalogos, alGuardar }) {
         </div>
 
         {/* --- Duracion de las clases --- */}
-        <h4 style={{ margin: '14px 0 4px' }}>Duracion de las clases</h4>
+        <h4 style={{ margin: '14px 0 4px' }}>Duración de las clases</h4>
         <p className="panel-ayuda" style={{ marginTop: 0 }}>
           El alumno solo puede reservar dentro de estas preferencias.
         </p>
         <div className="grilla-3">
-          <CampoSelect id="duracionMin" etiqueta="Duracion minima" valor={campos.duracionMin}
+          <CampoSelect id="duracionMin" etiqueta="Duración mínima" valor={campos.duracionMin}
                        alCambiar={cambiar('duracionMin')} opciones={DURACIONES} vacio={null} />
-          <CampoSelect id="duracionMax" etiqueta="Duracion maxima" valor={campos.duracionMax}
+          <CampoSelect id="duracionMax" etiqueta="Duración máxima" valor={campos.duracionMax}
                        alCambiar={cambiar('duracionMax')} opciones={DURACIONES} vacio={null} />
           <div className="field">
-            <label>Duraciones que ofreces</label>
+            <label>Duraciones que ofrecés</label>
             <div className="etiquetas">
               {duracionesPosibles.map((d) => {
                 const elegida = campos.duraciones.includes(d.valor)
@@ -332,16 +332,16 @@ export default function SeccionEnsena({ ficha, catalogos, alGuardar }) {
           </div>
           <CampoSelect id="descanso" etiqueta="Descanso entre clases" valor={campos.descanso}
                        alCambiar={cambiar('descanso')} opciones={DESCANSOS} vacio={null} />
-          <Campo id="maxClasesDia" etiqueta="Maximo de clases por dia" tipo="number" min="1"
-                 valor={campos.maxClasesDia} alCambiar={cambiar('maxClasesDia')} ayuda="Vacio = sin tope" />
-          <CampoSelect id="aviso" etiqueta="Aviso minimo para reservar" valor={campos.aviso}
+          <Campo id="maxClasesDia" etiqueta="Máximo de clases por día" tipo="number" min="1"
+                 valor={campos.maxClasesDia} alCambiar={cambiar('maxClasesDia')} ayuda="Vacío = sin tope" />
+          <CampoSelect id="aviso" etiqueta="Aviso mínimo para reservar" valor={campos.aviso}
                        alCambiar={cambiar('aviso')} opciones={AVISOS} vacio={null} />
         </div>
 
         {/* --- Alumnos por clase --- */}
         <h4 style={{ margin: '14px 0 4px' }}>Alumnos por clase</h4>
         <p className="panel-ayuda" style={{ marginTop: 0 }}>
-          Las clases grupales todavia no se pueden reservar: por ahora esto queda guardado para mas adelante.
+          Las clases grupales todavía no se pueden reservar: por ahora esto queda guardado para más adelante.
         </p>
         <div className="field">
           <label id="formato-etiqueta">Formato</label>
@@ -361,9 +361,9 @@ export default function SeccionEnsena({ ficha, catalogos, alGuardar }) {
         </div>
         {haceGrupales && (
           <div className="grilla-2">
-            <Campo id="cupoMax" etiqueta="Maximo de alumnos por clase grupal" tipo="number" min="1"
+            <Campo id="cupoMax" etiqueta="Máximo de alumnos por clase grupal" tipo="number" min="1"
                    valor={campos.cupoMax} alCambiar={cambiar('cupoMax')} />
-            <Campo id="cupoMin" etiqueta="Minimo para que salga la grupal" tipo="number" min="1"
+            <Campo id="cupoMin" etiqueta="Mínimo para que salga la grupal" tipo="number" min="1"
                    valor={campos.cupoMin} alCambiar={cambiar('cupoMin')} />
           </div>
         )}

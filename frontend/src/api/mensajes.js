@@ -12,50 +12,50 @@ const MENSAJES = {
   sin_conexion: 'No se pudo conectar con el servidor. Revisa tu conexion e intenta de nuevo en un momento.',
 
   // --- Login y registro ---
-  credenciales_invalidas: 'El correo o la contrasena no son correctos.',
+  credenciales_invalidas: 'El correo o la contraseña no son correctos.',
   correo_ya_registrado: 'Ya hay una cuenta con ese correo.',
   documento_ya_registrado: 'Ya hay una cuenta con ese documento.',
-  codigo_invalido: 'El codigo no es valido o ya vencio.',
+  codigo_invalido: 'El código no es válido o ya venció.',
 
   // --- Sesion ---
-  sin_token: 'Tu sesion vencio. Volve a entrar.',
-  no_es_tuyo: 'No tenes permiso para hacer eso.',
+  sin_token: 'Tu sesión venció. Volvé a entrar.',
+  no_es_tuyo: 'No tenés permiso para hacer eso.',
 
   // --- Perfil: datos de la cuenta (1e y 1j) ---
-  nombre_requerido: 'El nombre no puede quedar vacio.',
-  apellido_requerido: 'El apellido no puede quedar vacio.',
+  nombre_requerido: 'El nombre no puede quedar vacío.',
+  apellido_requerido: 'El apellido no puede quedar vacío.',
   fecha_invalida: 'La fecha de nacimiento no es valida.',
-  clave_actual_incorrecta: 'La contrasena actual no es correcta.',
+  clave_actual_incorrecta: 'La contraseña actual no es correcta.',
   foto_invalida: 'Ese archivo no es una imagen que podamos usar. Proba con un JPG o PNG.',
   foto_muy_grande: 'La imagen es demasiado pesada.',
 
   // --- Perfil del estudiante (1e) ---
   adulto_responsable_requerido:
-    'Como sos menor de edad, completa el nombre y el telefono de un adulto responsable.',
+    'Como sos menor de edad, completá el nombre y el teléfono de un adulto responsable.',
 
   // --- Perfil del profesor (1j) ---
   ficha_incompleta:
-    'Para publicar tu ficha te falta al menos una materia, el precio de cada modalidad que ofreces ' +
-    'y una franja de disponibilidad (en Agenda o en la pestania Disponibilidad).',
-  duraciones_incoherentes: 'La duracion maxima no puede ser menor que la minima.',
-  duracion_fuera_de_rango: 'Las duraciones que ofreces tienen que estar entre la minima y la maxima.',
-  cupos_incoherentes: 'El minimo de alumnos no puede ser mayor que el maximo.',
-  maximo_fotos: 'Ya tenes las 4 fotos. Quita una para poder subir otra.',
-  foto_no_existe: 'Esa foto ya no existe. Recarga la pagina.',
+    'Para publicar tu ficha te falta al menos una materia, el precio de cada modalidad que ofrecés ' +
+    'y una franja de disponibilidad (en Agenda o en la pestaña Disponibilidad).',
+  duraciones_incoherentes: 'La duración máxima no puede ser menor que la mínima.',
+  duracion_fuera_de_rango: 'Las duraciones que ofrecés tienen que estar entre la mínima y la máxima.',
+  cupos_incoherentes: 'El mínimo de alumnos no puede ser mayor que el máximo.',
+  maximo_fotos: 'Ya tenés las 4 fotos. Quitá una para poder subir otra.',
+  foto_no_existe: 'Esa foto ya no existe. Recargá la página.',
 
   // --- Un id de catalogo que no existe (barrio, materia, ...) ---
-  barrio_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
-  materia_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
-  idioma_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
-  etapa_educativa_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
-  centro_educativo_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
-  etapa_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
-  centro_no_existe: 'Alguna de las opciones elegidas ya no existe. Recarga la pagina.',
+  barrio_no_existe: 'Alguna de las opciones elegidas ya no existe. Recargá la página.',
+  materia_no_existe: 'Alguna de las opciones elegidas ya no existe. Recargá la página.',
+  idioma_no_existe: 'Alguna de las opciones elegidas ya no existe. Recargá la página.',
+  etapa_educativa_no_existe: 'Alguna de las opciones elegidas ya no existe. Recargá la página.',
+  centro_educativo_no_existe: 'Alguna de las opciones elegidas ya no existe. Recargá la página.',
+  etapa_no_existe: 'Alguna de las opciones elegidas ya no existe. Recargá la página.',
+  centro_no_existe: 'Alguna de las opciones elegidas ya no existe. Recargá la página.',
   rango_precio_invalido: 'El rango de precios elegido no es válido.',
 
   // --- Reservas y clases (1g, 1b, 1i) ---
-  sin_precio: 'Este profe no da clases en esa modalidad. Elegi otra.',
-  duracion_invalida: 'Este profe no da clases de esa duracion. Elegi una de las que ofrece.',
+  sin_precio: 'Este profe no da clases en esa modalidad. Elegí otra.',
+  duracion_invalida: 'Este profe no da clases de esa duración. Elegí una de las que ofrece.',
   modalidad_invalida: 'La clase tiene que ser presencial u online.',
   horario_ocupado: 'Ese horario ya no esta libre. Volve al perfil del profe y elegi otro.',
   // No lo manda el backend: es horario_ocupado dicho para el profe que
@@ -69,18 +69,18 @@ const MENSAJES = {
   clase_no_existe: 'Esa clase ya no existe. Recarga la pagina.',
   profesor_no_existe: 'Ese profe no existe o pauso su ficha.',
   duracion_no_modificable:
-    'Al reprogramar no se puede cambiar la duracion: el importe ya quedo fijo. Cancela y reserva de nuevo.',
+    'Al reprogramar no se puede cambiar la duración: el importe ya quedó fijo. Cancelá y reservá de nuevo.',
   estado_no_permitido: 'Ese estado no corresponde para esta clase.',
 
   // --- Agenda (1i, 1j, 1f) ---
-  rango_invalido: 'El rango de fechas no es valido (como mucho, 31 dias).',
-  franja_invalida: 'Cada franja tiene que terminar despues de empezar.',
-  franjas_superpuestas: 'Hay dos franjas del mismo dia que se pisan. Unilas o achica una.',
-  bloqueo_invalido: 'El bloqueo tiene que terminar despues de empezar, y no puede estar en el pasado.',
-  bloqueo_superpuesto: 'Ya tenes un bloqueo en ese horario. Borralo o elegi otro rato.',
+  rango_invalido: 'El rango de fechas no es válido (como mucho, 31 días).',
+  franja_invalida: 'Cada franja tiene que terminar después de empezar.',
+  franjas_superpuestas: 'Hay dos franjas del mismo día que se pisan. Unilas o achicá una.',
+  bloqueo_invalido: 'El bloqueo tiene que terminar después de empezar, y no puede estar en el pasado.',
+  bloqueo_superpuesto: 'Ya tenés un bloqueo en ese horario. Borralo o elegí otro rato.',
   hay_clase_aprobada:
-    'Ese rato pisa una clase confirmada. Primero cancelala o reprogramala, y despues bloquealo.',
-  bloqueo_no_existe: 'Ese bloqueo ya no existe. Recarga la pagina.',
+    'Ese rato pisa una clase confirmada. Primero cancelala o reprogramala, y después bloquealo.',
+  bloqueo_no_existe: 'Ese bloqueo ya no existe. Recargá la página.',
   perfil_no_existe: 'No encontramos tu perfil de profesor.',
 
   // --- Reseñas (1b y 1i) ---
@@ -88,25 +88,25 @@ const MENSAJES = {
   // Lo usan resenas (hace falta una clase DICTADA) y mensajes (un profe solo
   // le escribe a un alumno con el que tiene alguna clase).
   sin_clases_con_esa_persona: 'Para eso tienen que haber tenido una clase juntos.',
-  resena_no_existe: 'Todavia no calificaste a esta persona. Recarga la pagina.',
-  orden_invalido: 'Ese orden no existe. Elegi recientes o puntaje.',
+  resena_no_existe: 'Todavía no calificaste a esta persona. Recargá la página.',
+  orden_invalido: 'Ese orden no existe. Elegí recientes o puntaje.',
   usuario_no_existe: 'Esa persona ya no existe.',
 
   // --- Mensajes (1h) ---
-  hilo_no_existe: 'Esa conversacion ya no existe. Volve a la bandeja.',
-  mensaje_vacio: 'El mensaje esta vacio.',
+  hilo_no_existe: 'Esa conversación ya no existe. Volvé a la bandeja.',
+  mensaje_vacio: 'El mensaje está vacío.',
   estudiante_no_existe: 'Ese alumno ya no existe.',
 
   // --- Panel del profesor (1d) ---
-  periodo_invalido: 'Ese periodo no existe. Elegi mes, trimestre o anio.',
-  agrupacion_invalida: 'Esa agrupacion no existe. Elegi semana, mes o anio.',
+  periodo_invalido: 'Ese período no existe. Elegí mes, trimestre o año.',
+  agrupacion_invalida: 'Esa agrupación no existe. Elegí semana, mes o año.',
 
   // --- Pagos y tarjetas (1g, 1e) ---
-  cobro_no_existe: 'No encontramos el pago de esa clase. Recarga la pagina.',
+  cobro_no_existe: 'No encontramos el pago de esa clase. Recargá la página.',
   cobro_rechazado: 'La tarjeta rechazo el pago. Proba con otra.',
-  tarjeta_vencida: 'Esa tarjeta esta vencida. Usa otra o agrega una nueva.',
-  tarjeta_invalida: 'El numero de tarjeta no es valido.',
-  tarjeta_no_existe: 'Esa tarjeta ya no esta guardada. Recarga la pagina.',
+  tarjeta_vencida: 'Esa tarjeta está vencida. Usá otra o agregá una nueva.',
+  tarjeta_invalida: 'El número de tarjeta no es válido.',
+  tarjeta_no_existe: 'Esa tarjeta ya no está guardada. Recargá la página.',
 
   // --- Cuentas de cobro del profesor (1j) ---
   cuenta_invalida:
@@ -117,8 +117,9 @@ const MENSAJES = {
   cuenta_repetida: 'Ya tenés esa cuenta guardada.',
 
   // --- Generales ---
-  datos_invalidos: 'Revisa los datos: hay algo que no esta bien.',
-  error_servidor: 'El servidor tuvo un problema. Intenta de nuevo en un momento.',
+  datos_invalidos: 'Revisá los datos: hay algo que no está bien.',
+  error_servidor:
+    'El servidor tuvo un problema. Si es una parte de la app que todavía no está hecha, es normal.',
 }
 
 /**
@@ -127,5 +128,5 @@ const MENSAJES = {
  * codigo crudo: "correo_ya_registrado" no le dice nada a nadie.
  */
 export function mensajeDeError(codigo) {
-  return MENSAJES[codigo] || 'Algo salio mal. Intenta de nuevo en un momento.'
+  return MENSAJES[codigo] || 'Algo salió mal. Intentá de nuevo en un momento.'
 }

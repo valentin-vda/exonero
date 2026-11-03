@@ -23,7 +23,7 @@ export default function Bandeja({ hilos, error, elegido, alElegir, busqueda, alB
         type="search"
         className="input bandeja-buscar"
         placeholder="Buscar por nombre"
-        aria-label="Buscar conversacion por nombre"
+        aria-label="Buscar conversación por nombre"
         value={busqueda}
         onChange={(e) => alBuscar(e.target.value)}
       />
@@ -32,7 +32,7 @@ export default function Bandeja({ hilos, error, elegido, alElegir, busqueda, alB
       {!hilos && !error && <p className="tablero-vacio">Cargando...</p>}
       {hilos && hilos.length === 0 && (
         <p className="tablero-vacio">
-          {busqueda ? 'Nadie con ese nombre.' : 'Todavia no tenes conversaciones.'}
+          {busqueda ? 'Nadie con ese nombre.' : 'Todavía no tenés conversaciones.'}
           {!busqueda && esAlumno && ' Escribile a un profe desde su ficha.'}
         </p>
       )}
@@ -57,7 +57,7 @@ export default function Bandeja({ hilos, error, elegido, alElegir, busqueda, alB
                       {h.ultimo_mensaje_el && <span className="texto-chico">{cuando(h.ultimo_mensaje_el)}</span>}
                     </span>
                     <span className="bandeja-hilo-fila">
-                      <span className="bandeja-hilo-ultimo">{h.ultimo_mensaje || 'Sin mensajes todavia'}</span>
+                      <span className="bandeja-hilo-ultimo">{h.ultimo_mensaje || 'Sin mensajes todavía'}</span>
                       {h.no_leidos > 0 && (
                         <span className="bandeja-sin-leer" aria-label={`${h.no_leidos} sin leer`}>{h.no_leidos}</span>
                       )}

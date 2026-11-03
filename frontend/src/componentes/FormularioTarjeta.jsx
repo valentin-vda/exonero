@@ -41,7 +41,7 @@ export default function FormularioTarjeta({ id = 'tarjeta', campos, alCambiar, e
           adelante). autoComplete deja que el navegador ofrezca las suyas. */}
       <Campo
         id={`${id}-numero`}
-        etiqueta="Numero de tarjeta"
+        etiqueta="Número de tarjeta"
         valor={campos.numero}
         alCambiar={cambiar('numero', formatearNumero)}
         error={errores.numero}
@@ -72,7 +72,7 @@ export default function FormularioTarjeta({ id = 'tarjeta', campos, alCambiar, e
         />
         <Campo
           id={`${id}-ccv`}
-          etiqueta="Codigo de seguridad"
+        etiqueta="Código de seguridad"
           valor={campos.ccv}
           alCambiar={cambiar('ccv', formatearCcv)}
           error={errores.ccv}

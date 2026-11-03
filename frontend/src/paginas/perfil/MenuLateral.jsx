@@ -63,7 +63,7 @@ export default function MenuLateral({ pestanias, activa, alElegir, subtitulo, ch
       {/* salir() borra el token y el usuario. Sin usuario, RutaProtegida
           manda solo al login: no hace falta navegar a mano. */}
       <button type="button" className="btn btn-secondary btn-block" style={{ margin: 0 }} onClick={salir}>
-        Cerrar sesion
+        Cerrar sesión
       </button>
     </aside>
   )

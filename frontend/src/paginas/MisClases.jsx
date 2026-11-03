@@ -100,7 +100,7 @@ export default function MisClases() {
     <div className="tablero">
       <div className="perfil-titulo">
         <h2>Mis clases</h2>
-        <p className="text-muted">Tu proxima clase, tu semana y los profes con los que ya estudiaste</p>
+        <p className="text-muted">Tu próxima clase, tu semana y los profes con los que ya estudiaste</p>
       </div>
 
       <ProximaClaseGrande bloque={proxima} alVerDetalle={verDetalle} />

@@ -70,7 +70,7 @@ export default function Ingresos({ bloque, agrupar, alCambiarAgrupar }) {
             </div>
             <div>
               <div className="tablero-cifra">{pesos(datos.pendiente)}</div>
-              <div className="tablero-cifra-nota">pendiente de aprobacion</div>
+              <div className="tablero-cifra-nota">pendiente de aprobación</div>
             </div>
             <div>
               <div className="tablero-cifra">{pesos(datos.promedio_por_clase)}</div>
@@ -83,13 +83,13 @@ export default function Ingresos({ bloque, agrupar, alCambiarAgrupar }) {
             series={SERIES}
             columnas={columnas(datos.serie || [], para)}
             formato={pesos}
-            textoVacio="Todavia no hay cobros en este periodo."
+            textoVacio="Todavía no hay cobros en este período."
           />
         </div>
       )}
 
       <p className="tablero-nota">
-        Se cuenta el cobro cuando aprobas la solicitud. Lo pendiente no entra en el total.
+        Se cuenta el cobro cuando aprobás la solicitud. Lo pendiente no entra en el total.
       </p>
     </section>
   )

@@ -308,7 +308,7 @@ export default function SeccionCuentasCobro() {
         Cobros
       </h4>
       <p className="panel-ayuda" style={{ marginTop: 0 }}>
-        Donde te depositamos lo que cobrás por tus clases. Se liquida en la cuenta principal; las otras
+        Dónde te depositamos lo que cobrás por tus clases. Se liquida en la cuenta principal; las otras
         quedan de alternativa.
       </p>
 

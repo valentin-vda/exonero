@@ -33,7 +33,7 @@ function fechaLarga(dia) {
   })
 }
 
-export default function ResumenResenas({ usuarioId, vacio = 'Todavia no te calificaron.' }) {
+export default function ResumenResenas({ usuarioId, vacio = 'Todavía no te calificaron.' }) {
   const [datos, setDatos] = useState(null)
   const [pagina, setPagina] = useState(1)
   const [cargando, setCargando] = useState(false)
@@ -54,7 +54,7 @@ export default function ResumenResenas({ usuarioId, vacio = 'Todavia no te calif
     cargar(1)
   }, [usuarioId])
 
-  if (error) return <Alerta tipo="error">No pudimos traer las resenas. {error}</Alerta>
+  if (error) return <Alerta tipo="error">No pudimos traer las reseñas. {error}</Alerta>
   if (!datos) return <p className="tablero-vacio">Cargando...</p>
   if (datos.total === 0) return <p className="tablero-vacio">{vacio}</p>
 
@@ -66,9 +66,9 @@ export default function ResumenResenas({ usuarioId, vacio = 'Todavia no te calif
         <div className="resumen-resenas-promedio">
           <strong>{puntaje(datos.promedio)}</strong>
           <span aria-hidden="true">{ESTRELLA.repeat(Math.round(datos.promedio))}</span>
-          <span className="texto-chico">{datos.total === 1 ? '1 resena' : `${datos.total} resenas`}</span>
+          <span className="texto-chico">{datos.total === 1 ? '1 reseña' : `${datos.total} reseñas`}</span>
         </div>
-        <ul className="resumen-resenas-barras" aria-label="Cuantas resenas de cada puntaje">
+        <ul className="resumen-resenas-barras" aria-label="Cuántas reseñas de cada puntaje">
           {['5', '4', '3', '2', '1'].map((estrella) => (
             <li key={estrella}>
               <span>{estrella} {ESTRELLA}</span>
@@ -94,7 +94,7 @@ export default function ResumenResenas({ usuarioId, vacio = 'Todavia no te calif
       {datos.resenas.length < datos.total && datos.resenas.length === pagina * POR_PAGINA && (
         <div className="botonera">
           <button type="button" className="btn btn-secondary" disabled={cargando} onClick={() => cargar(pagina + 1)}>
-            {cargando ? 'Cargando...' : 'Ver mas'}
+            {cargando ? 'Cargando...' : 'Ver más'}
           </button>
         </div>
       )}

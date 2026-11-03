@@ -35,8 +35,8 @@ export function opcionesDeCatalogo(lista, idActual, nombreActual) {
 
 /** El aviso que se muestra cuando los catalogos no cargaron. */
 export const AVISO_SIN_CATALOGOS =
-  'Las listas de barrios, centros, materias e idiomas todavia no estan disponibles ' +
-  '(las arma P2 en GET /api/catalogos/todo). Mientras tanto ves lo que ya tenias ' +
+  'Las listas de barrios, centros, materias e idiomas todavía no están disponibles ' +
+  '(las arma P2 en GET /api/catalogos/todo). Mientras tanto ves lo que ya tenías ' +
   'guardado, pero esos campos no se pueden cambiar.'
 
 // ---------------------------------------------------------------------------
@@ -56,7 +56,7 @@ export const LUGARES = [
   { valor: 'ambos', texto: 'Espacio propio y a domicilio' },
   { valor: 'espacio_propio', texto: 'Solo espacio propio' },
   { valor: 'a_domicilio', texto: 'Solo a domicilio' },
-  { valor: 'espacio_publico', texto: 'Biblioteca o espacio publico' },
+  { valor: 'espacio_publico', texto: 'Biblioteca o espacio público' },
 ]
 
 /** Duraciones de clase, en minutos. */
@@ -93,8 +93,8 @@ export const FORMATOS = [
 
 /** Programas que sigue. Se guarda el mismo para todas las etapas elegidas. */
 export const PROGRAMAS = [
-  'Plan 2006 y reformulacion 2023',
-  'Solo reformulacion 2023',
+  'Plan 2006 y reformulación 2023',
+  'Solo reformulación 2023',
   'Programa de UTU',
 ]
 

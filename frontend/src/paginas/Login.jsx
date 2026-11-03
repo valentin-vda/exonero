@@ -47,7 +47,7 @@ export default function Login() {
 
     const { errores: nuevos, hayErrores } = validarFormulario({
       correo: () => validarCorreo(correo),
-      clave: () => (clave ? null : 'Escribi tu contrasena.'),
+      clave: () => (clave ? null : 'Escribí tu contraseña.'),
     })
     setErrores(nuevos)
     setErrorGeneral(null)
@@ -81,8 +81,8 @@ export default function Login() {
   return (
     <MarcoAuth>
       {/* Los textos son los de la pantalla "0 Ingreso" del mockup. */}
-      <h2 className="auth-titulo">Ingresa a tu cuenta</h2>
-      <p className="auth-bajada">Entra con tu correo y contrasena de Exonero.</p>
+      <h2 className="auth-titulo">Ingresá a tu cuenta</h2>
+      <p className="auth-bajada">Entrá con tu correo y contraseña de Exonero.</p>
 
       <Alerta tipo="error">{errorGeneral}</Alerta>
 
@@ -103,7 +103,7 @@ export default function Login() {
 
         <CampoClave
           id="clave"
-          etiqueta="Contrasena"
+          etiqueta="Contraseña"
           valor={clave}
           alCambiar={setClave}
           error={errores.clave}
@@ -113,7 +113,7 @@ export default function Login() {
         <div className="auth-entre">
           <span />
           <Link to="/recuperar" className="btn btn-ghost">
-            Olvide mi contrasena
+            Olvidé mi contraseña
           </Link>
         </div>
 
@@ -139,7 +139,7 @@ export default function Login() {
       </div>
 
       <p className="auth-pie">
-        No tenes cuenta? <Link to="/registro">Crear una</Link>
+        ¿No tenés cuenta? <Link to="/registro">Crear una</Link>
       </p>
     </MarcoAuth>
   )
