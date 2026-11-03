@@ -55,3 +55,6 @@ deben quedar registrados. Nunca incluir contraseñas, tokens, PAN o CCV en logs.
 - Mailpit: `docker compose up -d mailpit`, interfaz en `http://localhost:8025`.
 - Migración: `alembic upgrade head`.
 - Purgas: `python -m app.privacidad_mantenimiento`.
+- Cómo está hecho el módulo `privacidad` (tablas, endpoints, el ciclo del
+  menor, qué borra la anonimización y la deuda conocida): sección 12 de
+  `docs/DOCUMENTACION.md`.

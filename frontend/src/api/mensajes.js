@@ -27,6 +27,7 @@ const MENSAJES = {
   fecha_invalida: 'La fecha de nacimiento no es valida.',
   fecha_nacimiento_no_modificable: 'La fecha de nacimiento no se cambia desde el perfil porque determina el consentimiento parental.',
   clave_actual_incorrecta: 'La contraseña actual no es correcta.',
+  usar_supresion_confirmada: 'Para darte de baja tenés que confirmar con tu contraseña. Recargá la página y volvé a intentarlo.',
   foto_invalida: 'Ese archivo no es una imagen que podamos usar. Proba con un JPG o PNG.',
   foto_muy_grande: 'La imagen es demasiado pesada.',
 

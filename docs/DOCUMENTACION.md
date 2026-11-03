@@ -17,6 +17,7 @@ cuando uno viene de backend.
 9. [Clases y pagos (P4), de punta a punta](#9-clases-y-pagos-p4-de-punta-a-punta)
 10. [El sistema de diseño](#10-el-sistema-de-diseño)
 11. [Flujos completos](#11-flujos-completos)
+12. [Privacidad y consentimiento parental, de punta a punta](#12-privacidad-y-consentimiento-parental-de-punta-a-punta)
 
 ---
 
@@ -44,7 +45,7 @@ python -m venv .venv            # o py -3.13 -m venv .venv si tenes otra version
 .venv\Scripts\activate          # en Windows
 pip install -r requirements.txt
 copy .env.example .env          # y revisar los valores
-alembic upgrade head            # crea las 25 tablas
+alembic upgrade head            # crea las 28 tablas
 python -m app.seeds             # carga los datos de prueba
 uvicorn app.main:app --reload   # queda en http://localhost:8000
 
@@ -103,8 +104,11 @@ reconstruir una imagen.
 
 ```
 exonero/
-├── docker-compose.yml          solo PostgreSQL
-├── docs/DOCUMENTACION.md       este archivo
+├── docker-compose.yml          PostgreSQL y Mailpit (el correo de prueba)
+├── docs/
+│   ├── DOCUMENTACION.md        este archivo
+│   └── PRIVACIDAD_Y_CUMPLIMIENTO.md  inventario de datos, derechos y lo
+│                               que falta para produccion (seccion 12)
 │
 ├── backend/
 │   ├── requirements.txt
@@ -116,9 +120,10 @@ exonero/
 │   ├── docker/init.sql         extensiones citext y btree_gist
 │   ├── alembic/
 │   │   ├── env.py              lee la conexion del .env
-│   │   └── versions/           una migracion por pull request. Hoy son tres:
+│   │   └── versions/           una migracion por pull request. Hoy son cuatro:
 │   │                           79d6aea11ac3 (la inicial), 6d0c95b67436 y
 │   │                           5a01195bec7c (las dos de P4, ver la seccion 9)
+│   │                           y b18c331 (privacidad, ver la seccion 12)
 │   └── app/
 │       ├── main.py             crea la app y monta los routers
 │       ├── config.py           toda la configuracion, leida del .env
@@ -128,7 +133,10 @@ exonero/
 │       ├── errores.py          ErrorAPI y el formato unico de error
 │       ├── fechas.py           la zona de Montevideo, periodos y ventanas de 1d
 │       ├── dependencias.py     quien es el usuario del token
-│       ├── registro_modelos.py importa los modelos de los 8 modulos con tablas (para Alembic)
+│       ├── correo.py           manda correos por SMTP (Mailpit en desarrollo)
+│       ├── limites.py          tope de intentos por minuto en login, registro...
+│       ├── registro_modelos.py importa los modelos de los 9 modulos con tablas (para Alembic)
+│       ├── privacidad_mantenimiento.py  las purgas de conservacion (seccion 12)
 │       ├── seeds.py            datos de prueba
 │       ├── datos/              la foto de ejemplo que usan los seeds
 │       └── modulos/
@@ -140,7 +148,9 @@ exonero/
 │           ├── clases/         P4 - el ciclo de vida de la clase
 │           ├── pagos/          P4 - tarjetas, cobros simulados y cuentas de cobro
 │           ├── mensajeria/     P3 - hilos y mensajes
-│           └── resenas/        P3 - resenas anonimas en los dos sentidos
+│           ├── resenas/        P3 - resenas anonimas en los dos sentidos
+│           └── privacidad/     consentimiento, consentimiento parental,
+│                               exportar y anonimizar (seccion 12)
 │
 └── frontend/
     ├── package.json
@@ -173,7 +183,8 @@ exonero/
         │   ├── pagos.js        una funcion por endpoint de pagos (P4)
         │   ├── agenda.js       huecos libres, verificar, franjas y bloqueos (P3)
         │   ├── mensajeria.js   el chat y el contador de no leidos (P3)
-        │   └── resenas.js      dejar, editar y leer resenas (P3)
+        │   ├── resenas.js      dejar, editar, borrar y leer resenas (P3)
+        │   └── privacidad.js   aviso, consentimiento parental, exportar y anonimizar
         ├── auth/
         │   ├── ContextoAuth.jsx  quien esta conectado (y su tema)
         │   └── RutaProtegida.jsx rutas que exigen sesion
@@ -213,6 +224,8 @@ exonero/
         │   ├── AgendaProfesor.jsx    1i, HECHA
         │   ├── PerfilProfesor.jsx    1j, HECHA
         │   ├── RedactarResena.jsx    HECHA (se abre desde 1b y 1i)
+        │   ├── Privacidad.jsx    el aviso y "Descargar mis datos" (seccion 12)
+        │   ├── ConsentimientoParental.jsx  donde el adulto autoriza al menor
         │   ├── perfil/           las piezas de 1e y 1j (ver la seccion 7)
         │   ├── checkout/         las piezas de 1g (ver la seccion 9)
         │   ├── panel/            las piezas de 1d y sus graficos (seccion 9)
@@ -250,8 +263,8 @@ barrio_id: Mapped[int | None] = mapped_column(ForeignKey("barrio.id"))
 ```
 
 La única excepción es `app/registro_modelos.py`, que importa los modelos de
-los ocho módulos que tienen tablas (`busqueda` no tiene) en un solo lugar.
-Existe por un motivo técnico: Alembic necesita ver las 25 tablas juntas para
+los nueve módulos que tienen tablas (`busqueda` no tiene) en un solo lugar.
+Existe por un motivo técnico: Alembic necesita ver las 28 tablas juntas para
 poder comparar los modelos con la base. Si un módulo no aparece ahí,
 `autogenerate` cree que sus tablas no existen y escribe un `DROP TABLE`.
 
@@ -289,7 +302,7 @@ poder comparar los modelos con la base. Si un módulo no aparece ahí,
                        ▼                localhost:5433
    ┌──────────────────────────────────────────────┐
    │  PostgreSQL 16  (en Docker)                  │
-   │  25 tablas, 12 tipos ENUM                    │
+   │  28 tablas, 12 tipos ENUM                    │
    └──────────────────────────────────────────────┘
 ```
 
@@ -327,7 +340,7 @@ Cerrar sesión no tiene endpoint: es borrar el token del navegador.
 
 ## 4. El backend
 
-### Los nueve módulos y quién los hace
+### Los diez módulos y quién los hace
 
 | Módulo | Dueño | Responsabilidad | Tablas |
 |---|---|---|---|
@@ -340,8 +353,11 @@ Cerrar sesión no tiene endpoint: es borrar el token del navegador.
 | `pagos` | P4 | Tarjetas, cobro simulado, reembolso, historial, ingresos y cuentas de cobro | 3 |
 | `mensajeria` | P3 | Hilos, mensajes y no leídos | 2 |
 | `resenas` | P3 | Reseñas anónimas en los dos sentidos | 1 |
+| `privacidad` | Lucía | Consentimiento, autorización parental, exportar mis datos, anonimizar y auditoría | 3 |
 
 `busqueda` no tiene tablas propias: consulta las de `perfiles` y `catalogos`.
+`privacidad` se sumó después del reparto original; está explicado en la
+sección 12.
 
 ### Quién llama a quién
 
@@ -378,6 +394,14 @@ Cerrar sesión no tiene endpoint: es borrar el token del navegador.
 
   resenas  --> clases.tuvieron_clase()      solo resena quien tuvo clase
            --> perfiles.escribir_puntaje()  guardar el promedio
+           --> privacidad.borrar_resena_propia()  DELETE /resenas/{id}
+
+  cuentas  --> privacidad.registrar_consentimiento(),
+               crear_invitacion_parental()  en el registro
+
+  privacidad --> resenas.recalcular()       despues de borrar resenas
+             --> app/correo.py              el enlace al adulto
+             (y toca tablas ajenas directo, ver la seccion 12)
 ```
 
 **`cuentas` y `catalogos` bloquean a todos los demás.** Por eso van primero en
@@ -400,6 +424,8 @@ Siempre igual, y siempre con un código corto y estable en `snake_case`:
 | `404` | No existe |
 | `409` | Conflicto de estado (`horario_ocupado`, `ya_resenado`, ...) |
 | `422` | Falla de validación (la tira FastAPI sola) |
+| `429` | Demasiados intentos en un minuto (`demasiados_intentos`, lo pone `app/limites.py`) |
+| `503` | No se pudo mandar el correo (`correo_no_disponible`: Mailpit no está levantado) |
 
 El texto en español **no está en el backend**: está en
 `frontend/src/api/mensajes.js`. Así se puede cambiar la redacción sin tocar
@@ -985,18 +1011,23 @@ Los campos son exactamente los de `RegistroIn`
 | Repetir contraseña | Sí | Solo del lado del cliente; el backend no lo recibe |
 | Documento | No | |
 | Teléfono | No | |
-| Fecha de nacimiento | No | Define si es menor de edad |
+| Fecha de nacimiento | Sí | Define si es menor de edad. Después no se puede cambiar |
+| Correo del adulto responsable | Solo estudiante menor | A ese correo va el enlace de autorización |
+| Acepto el aviso de privacidad | Sí | Se manda con la versión del aviso que se leyó |
 
 Si la fecha de nacimiento da menos de 18 años y el rol es estudiante, aparece
-un aviso: después se le van a pedir los datos de un adulto responsable (eso lo
-exige `PUT /perfiles/estudiante/yo`).
+el campo del correo del adulto. La cuenta queda bloqueada hasta que el adulto
+autorice desde el enlace que le llega (sección 12). Un profesor menor no se
+puede registrar: 403 `profesor_debe_ser_mayor`.
 
 Los opcionales vacíos se mandan como `null`, no como `""`: el backend los
 declara `str | None`.
 
 Al terminar, el registro devuelve el token ya emitido, así que se entra directo
 sin pasar por el login. Y como el perfil recién creado está vacío, se navega a
-la pantalla de perfil para completarlo.
+la pantalla de perfil para completarlo. La excepción es el estudiante menor: la
+respuesta llega con `estado: "consentimiento_parental_pendiente"` y sin token,
+y la pantalla muestra "Falta la autorización del adulto".
 
 ### Recuperar contraseña
 
@@ -1004,9 +1035,10 @@ la pantalla de perfil para completarlo.
 
 Dos pasos en la misma pantalla.
 
-**Importante para probar:** no hay correo saliente (quedó fuera de alcance).
-El backend **imprime el código en su consola**. Hay que ir a la terminal donde
-corre `uvicorn`, copiarlo de ahí y pegarlo en el paso 2.
+**Importante para probar:** el código **se manda por correo**, pero en
+desarrollo no sale a internet: lo atrapa **Mailpit** (`docker compose up -d
+mailpit`). Se lee en `http://localhost:8025`. Si Mailpit no está levantado, el
+paso 1 responde 503 `correo_no_disponible`.
 
 El paso 1 responde `200` exista o no el correo, para no revelar qué cuentas
 están registradas. Por eso siempre se pasa al paso 2.
@@ -1116,17 +1148,17 @@ la base sin cerrar la transacción (sirve para que la base asigne el `id`).
 
 | Método y ruta | Token | Qué hace | Errores propios |
 |---|---|---|---|
-| `POST /auth/registro/estudiante` | No | Crea la cuenta y el perfil vacío. Devuelve el token | 409 `correo_ya_registrado`, 409 `documento_ya_registrado` |
-| `POST /auth/registro/profesor` | No | Igual, con la ficha en borrador | Los mismos |
+| `POST /auth/registro/estudiante` | No | Crea la cuenta y el perfil vacío. Devuelve el token, salvo que sea menor (sección 12) | 409 `correo_ya_registrado`, 409 `documento_ya_registrado`, 409 `aviso_privacidad_desactualizado`, 400 `correo_adulto_requerido`, 400 `fecha_invalida` |
+| `POST /auth/registro/profesor` | No | Igual, con la ficha en borrador | Los mismos, más 403 `profesor_debe_ser_mayor` |
 | `POST /auth/login` | No | Devuelve el token | 409 `credenciales_invalidas` |
-| `POST /auth/recuperar` | No | Imprime un código en la consola del backend. Responde 200 siempre | — |
+| `POST /auth/recuperar` | No | Manda un código por correo (Mailpit). Responde 200 siempre | 503 `correo_no_disponible` |
 | `POST /auth/restablecer` | No | Con el código, cambia la clave | 409 `codigo_invalido` |
 | `GET /usuarios/yo` | Sí | El usuario, con contador de mensajes y cabecera del estudiante | — |
-| `PATCH /usuarios/yo` | Sí | Nombre, apellido, documento, teléfono, nacimiento | 400 `nombre_requerido`, 400 `apellido_requerido`, 400 `fecha_invalida`, 409 `documento_ya_registrado` |
+| `PATCH /usuarios/yo` | Sí | Nombre, apellido, documento, teléfono | 400 `nombre_requerido`, 400 `apellido_requerido`, 409 `documento_ya_registrado`, 409 `fecha_nacimiento_no_modificable` |
 | `PUT /usuarios/yo/foto` | Sí | Foto de perfil en base64 | 400 `foto_invalida`, 400 `foto_muy_grande` |
 | `PUT /usuarios/yo/clave` | Sí | Cambia la clave (pide la actual) | 403 `clave_actual_incorrecta` |
 | `PUT /usuarios/yo/tema` | Sí | `claro` u `oscuro` | 422 si es otra cosa |
-| `DELETE /usuarios/yo` | Sí | Baja lógica. Si es profesor, pausa su ficha | — |
+| `DELETE /usuarios/yo` | Sí | Ya no da de baja: siempre responde 409. La baja es `POST /privacidad/supresion` (sección 12) | 409 `usar_supresion_confirmada` |
 
 Todas las rutas con token pueden responder además 401 `sin_token`.
 
@@ -1238,9 +1270,12 @@ una franja de disponibilidad. Sin lo primero no se podría cotizar una clase;
 sin franjas, el calendario de 1f saldría vacío. Si falta algo, 400
 `ficha_incompleta`.
 
-**Darse de baja no borra nada.** La cuenta queda `dada_de_baja`: no puede
-entrar y su token deja de servir. Las clases, cobros y reseñas se conservan
-para la otra persona. Si es profesor, su ficha pasa a pausada.
+**Darse de baja ahora es anonimizar.** El botón de 1e/1j llama a
+`POST /privacidad/supresion`, que pide la contraseña y borra o vacía los datos
+personales. Las clases y los cobros se conservan para la otra persona, sin
+tema ni ubicación. La cuenta queda `anonimizada` y su ficha, si es profesor,
+pausada. El detalle está en la sección 12. El estado `dada_de_baja` sigue en
+el ENUM, pero ningún endpoint lo pone.
 
 **Cambios respecto de los contratos originales.** Al implementar hubo que
 ajustar algunos esquemas (todos de P1, ninguno lo consumía nadie todavía):
@@ -2696,3 +2731,266 @@ legítimas. El profesor elige cuál aprueba.
 
 ---
 
+## 12. Privacidad y consentimiento parental, de punta a punta
+
+El módulo `privacidad` se sumó después del reparto original de P1 a P4 (lo
+hizo Lucía, commit `153e441`). Cubre lo que pide la ley 18.331 de protección
+de datos para una plataforma con menores. Hace cinco cosas:
+
+- guarda **qué aviso aceptó cada persona**, y cuándo;
+- **bloquea la cuenta del estudiante menor** hasta que un adulto la autorice;
+- deja **descargar todos los datos propios** en un JSON;
+- **anonimiza la cuenta** cuando alguien se da de baja;
+- deja una **auditoría** de cada una de esas acciones.
+
+La parte legal (inventario de datos, finalidades, plazos de conservación y lo
+que falta antes de producción) está en `docs/PRIVACIDAD_Y_CUMPLIMIENTO.md`.
+Esta sección explica el código.
+
+**Es un prototipo.** El responsable de los datos no está identificado, los
+textos no tienen revisión jurídica y las bases no están inscriptas ante la
+URCDP. Por eso `MODO_DEMO=true` y el aviso pide no cargar datos reales.
+
+### Probarlo en dos minutos
+
+```bash
+docker compose up -d mailpit     # el correo de prueba, en http://localhost:8025
+cd backend
+alembic upgrade head             # aplica b18c331
+```
+
+1. En `/registro`, elegir estudiante y poner una fecha de nacimiento de menos
+   de 18 años. Aparece el campo "Correo del adulto responsable".
+2. Registrarse. La pantalla dice "Falta la autorización del adulto" y no entra.
+3. Abrir Mailpit (`http://localhost:8025`). Ahí está el correo con el enlace.
+4. Abrir el enlace, completar el nombre del adulto, el vínculo y aceptar.
+5. Volver a `/login`: ahora el estudiante entra.
+
+Para la exportación: con sesión iniciada, `/privacidad` → "Descargar mis datos".
+
+### Los archivos
+
+| Archivo | Qué hay |
+|---|---|
+| `modulos/privacidad/modelos.py` | Las tres tablas |
+| `modulos/privacidad/esquemas.py` | Entrada y salida de los cuatro endpoints |
+| `modulos/privacidad/logica.py` | Consentimiento, invitación parental, exportar, anonimizar, borrar reseña propia |
+| `modulos/privacidad/rutas.py` | Los endpoints, bajo `/api/privacidad` |
+| `modulos/privacidad/textos.py` | El aviso y el aviso para menores, con versión y hash |
+| `app/correo.py` | Manda un correo por SMTP. Lo usan `privacidad` y la recuperación de clave |
+| `app/limites.py` | Tope de pedidos por minuto y por IP |
+| `app/privacidad_mantenimiento.py` | Las purgas por plazo de conservación |
+| `alembic/versions/b18c331_...py` | La migración |
+
+`textos.py` es un quinto archivo que no está en el patrón de cuatro de la
+sección 2. Está separado porque el texto legal cambia por motivos distintos
+que el código, y porque `cuentas` necesita `VERSION_AVISO` en el registro.
+
+### Las tablas
+
+| Tabla | Para qué | Al borrar el usuario |
+|---|---|---|
+| `consentimiento` | Una fila por aceptación: qué tipo (`privacidad` o `parental`), qué versión y qué hash del aviso, quién aceptó (`titular` o `adulto_responsable`), cuándo, IP y navegador. Si es parental, también nombre, correo y vínculo del adulto | `CASCADE` |
+| `invitacion_parental` | El enlace que se le manda al adulto. Una por usuario. Guarda el **hash** del token, nunca el token | `CASCADE` |
+| `auditoria_privacidad` | Un evento por acción: `consentimiento_otorgado`, `invitacion_parental_enviada`, `cuenta_activada_por_adulto`, `datos_exportados`, `cuenta_anonimizada`, `resena_propia_eliminada` | `SET NULL`: el evento queda aunque el usuario no |
+
+La migración también toca `usuario`, que es de `cuentas`:
+
+- **Dos estados nuevos** en `estado_cuenta_enum`:
+  `pendiente_consentimiento_parental` y `anonimizada`.
+- **`version_sesion`**: un número que se manda adentro del JWT (campo `sv`).
+  Si no coincide con el de la base, el token deja de servir. Se incrementa al
+  cambiar o restablecer la clave y al anonimizar. Así se cierran a la fuerza
+  todas las sesiones abiertas, aunque el JWT no haya vencido.
+- **`anonimizado_el`**: cuándo se anonimizó.
+
+`dependencias.usuario_actual()` y `cuentas.autenticar()` ahora rechazan
+cualquier estado que no sea `activa`. Antes rechazaban solo `dada_de_baja`.
+
+**El `downgrade`** no puede sacarle valores a un ENUM de PostgreSQL. Lo que
+hace es pasar a `dada_de_baja` las cuentas pendientes y anonimizadas, y
+después recrea el tipo con los dos valores viejos.
+
+### Los endpoints
+
+| Método y ruta | Token | Qué hace | Errores propios |
+|---|---|---|---|
+| `GET /privacidad/aviso` | No | El aviso, el aviso para menores, la versión, el hash, el responsable y el contacto | — |
+| `POST /privacidad/consentimiento-parental` | No | El adulto autoriza: activa la cuenta del menor | 409 `enlace_parental_invalido`, 429 `demasiados_intentos` |
+| `GET /privacidad/mis-datos` | Sí | Descarga `exonero-mis-datos.json` | — |
+| `POST /privacidad/supresion` | Sí | Anonimiza la cuenta. Cuerpo: `{clave, confirmacion: "ELIMINAR"}` | 403 `clave_actual_incorrecta`, 422 si `confirmacion` no es `ELIMINAR` |
+| `DELETE /resenas/{destinatario_id}` | Sí | Borra la reseña propia. La ruta es de `resenas`, la lógica de `privacidad` | 404 `resena_no_existe` |
+
+Todas las respuestas bajo `/api/privacidad` llevan `Cache-Control: no-store`,
+para que el navegador no guarde una copia de los datos exportados.
+
+### El aviso tiene versión y hash
+
+`textos.py` define `VERSION_AVISO` (hoy `"2026-11-03"`) y `HASH_AVISO`, que es
+el SHA-256 del texto. Cada consentimiento guarda los dos. Así se puede probar
+**qué texto exacto** aceptó cada persona, aunque después el aviso cambie.
+
+El registro manda `version_privacidad` con la versión que la pantalla mostró.
+Si no coincide con la del backend, responde 409
+`aviso_privacidad_desactualizado`: alguien cambió el aviso mientras la persona
+tenía el formulario abierto, y aceptó un texto que ya no es el vigente.
+
+**Si cambiás el texto del aviso, cambiá también `VERSION_AVISO`.** Si no, el
+hash cambia y la versión no, y quedan dos textos distintos con el mismo número.
+
+### El ciclo del estudiante menor
+
+```
+  Registro (fecha < 18 años, rol estudiante, con correo_adulto)
+     │  cuentas._registrar()
+     │    crea usuario + perfil
+     │    privacidad.registrar_consentimiento(tipo="privacidad")
+     │    usuario.estado = pendiente_consentimiento_parental
+     │    privacidad.crear_invitacion_parental()  -> correo al adulto
+     │  responde 201 sin token
+     ▼
+  pendiente_consentimiento_parental      no puede hacer login
+     │
+     │  el adulto abre  /consentimiento-parental#token=...
+     │  POST /privacidad/consentimiento-parental
+     │    token valido, no usado, no vencido (72 h)
+     │    invitacion.usada_el = ahora
+     │    usuario.estado = activa
+     │    registrar_consentimiento(tipo="parental", datos del adulto)
+     ▼
+  activa                                 ya puede entrar
+
+  Si nadie autoriza en 7 dias, la purga borra la cuenta (ver mas abajo).
+```
+
+Lo que conviene saber:
+
+- **El token va después del `#`**, no en el `?`. El navegador no manda el
+  fragmento al servidor, así que el token no queda en logs ni en el
+  `Referer`. `ConsentimientoParental.jsx` lo lee de `window.location.hash`.
+- **En la base se guarda el SHA-256 del token**, no el token. Si alguien lee
+  la tabla, no puede armar el enlace.
+- **Sirve una vez y vence a las 72 horas.** Tres casos responden lo mismo,
+  `enlace_parental_invalido`: token inexistente, ya usado y vencido. Así no
+  se puede averiguar cuál de los tres fue.
+- **El correo sale antes del commit.** Si Mailpit está caído, `correo.enviar()`
+  levanta 503 `correo_no_disponible` y el registro entero se descarta: no
+  queda una cuenta bloqueada sin enlace.
+- **Un profesor menor no puede registrarse** (403 `profesor_debe_ser_mayor`).
+  Solo los estudiantes pasan por la autorización parental.
+- **La fecha de nacimiento ya no se cambia desde el perfil** (409
+  `fecha_nacimiento_no_modificable`). Si se pudiera, alcanzaría con cambiarla
+  para saltear la autorización.
+
+### Exportar mis datos
+
+`exportar_datos()` arma un JSON con la cuenta, los dos perfiles, las clases,
+los mensajes que escribió, las reseñas escritas y recibidas, las tarjetas y
+los consentimientos. De las reseñas recibidas no sale el autor, para respetar
+el anonimato. De las tarjetas, solo la marca y los últimos cuatro números.
+Nunca incluye el hash de la clave ni ningún token.
+
+La ruta es un `GET` pero hace commit: la exportación queda en la auditoría.
+
+### Anonimizar la cuenta
+
+Es lo que hoy significa "darse de baja". `DELETE /usuarios/yo` responde 409
+`usar_supresion_confirmada`; el botón de 1e/1j llama a `/privacidad/supresion`.
+
+No se borra la fila de `usuario`: las clases y los cobros de la otra persona
+apuntan a ella. Se vacía todo lo que identifica:
+
+| Qué | Qué le pasa |
+|---|---|
+| Reseñas que escribió y que recibió | Se borran. Se recalcula el promedio de cada destinatario |
+| Mensajes que escribió | El texto pasa a `[contenido eliminado]` |
+| Clases donde participó | `tema`, `ubicacion` y `motivo` quedan en NULL. Los importes no se tocan |
+| Perfil de estudiante | Todo en NULL, incluidos los datos del adulto |
+| Perfil de profesor | Biografía, título, dirección y coordenadas en NULL. La ficha pasa a `pausada` |
+| Fotos del lugar | Se borran |
+| Tarjetas | Número `DEMO-ELIMINADA`, sin CCV, inactivas |
+| Cuentas de cobro | Identificador y titular reemplazados, inactivas |
+| Consentimientos | Se conservan como evidencia, sin nombre, correo ni vínculo del adulto y sin IP |
+| `usuario` | Correo `eliminado-{id}-{azar}@anonimo.invalid`, nombre "Usuario eliminado", clave al azar, sin documento, teléfono, nacimiento ni foto. Estado `anonimizada`, `version_sesion + 1` |
+
+La clave al azar y el `version_sesion + 1` hacen que nadie pueda volver a
+entrar y que cualquier sesión abierta muera en el próximo pedido. El correo
+falso libera el original: la misma persona puede registrarse de nuevo.
+
+### Las purgas
+
+```bash
+cd backend
+python -m app.privacidad_mantenimiento
+```
+
+No corre solo: no hay cron. Hay que ejecutarlo a mano. Hace cinco cosas y
+devuelve cuántas filas tocó en cada una:
+
+| Qué | Cuándo |
+|---|---|
+| Borra invitaciones parentales | Vencidas hace más de 1 día |
+| Borra eventos de auditoría | Con más de 180 días |
+| Borra cuentas pendientes de autorización | Creadas hace más de 7 días. El `CASCADE` se lleva el perfil, la invitación y los consentimientos |
+| Vacía el texto de los mensajes | Con más de 24 meses: `[contenido vencido]` |
+| Vacía tema, ubicación y motivo de las clases | Terminadas hace más de 24 meses |
+
+### Lo que cambió en otros módulos
+
+El commit de privacidad también tocó código de otros. Lo pongo acá porque
+alguno de esos cambios puede sorprender:
+
+| Dónde | Qué | Por qué |
+|---|---|---|
+| `busqueda.pines_mapa()` (P2) | Latitud y longitud redondeadas a 2 decimales | El mapa público muestra la zona (~1 km), no la puerta del profesor |
+| `GET /profesores/{id}` (P1) | Saca `direccion_espacio` y redondea las coordenadas | Lo mismo, en la ficha pública |
+| `pagos.agregar_tarjeta()` (P4) | Con `MODO_DEMO`, solo acepta `4111111111111111` y `5555555555554444` (400 `solo_tarjeta_prueba`) | Que nadie cargue una tarjeta real por error |
+| `cuentas` (P1) | Registro con fecha obligatoria y aviso; recuperación por correo; clave nueva invalida sesiones | Ver arriba |
+| `main.py` | Cabeceras de seguridad en toda respuesta y el limitador de `limites.py` | |
+
+**El limitador** cuenta los pedidos por IP en memoria: 30 por minuto al
+login, 8 a registro, recuperación, restablecimiento y consentimiento parental.
+Al pasarse, 429 `demasiados_intentos`. Como es memoria, se reinicia con
+`uvicorn` y no sirve con más de un proceso.
+
+### Configuración
+
+En el `.env` (ver `.env.example`):
+
+| Variable | Para qué | Por defecto |
+|---|---|---|
+| `MODO_DEMO` | Solo tarjetas de prueba, aviso de prototipo | `true` |
+| `URL_FRONTEND` | Para armar el enlace del correo al adulto | `http://localhost:5173` |
+| `SMTP_HOST`, `SMTP_PUERTO` | Dónde está el servidor de correo | Mailpit: `localhost`, `1025` |
+| `SMTP_REMITENTE` | El "De:" de los correos | `privacidad@exonero.local` |
+| `RESPONSABLE_DATOS`, `CONTACTO_PRIVACIDAD` | Lo que muestra `/privacidad` | Marcadores "PENDIENTE" |
+
+Si probás con otra base en otro puerto (como en la sección 9), cambiá también
+`URL_FRONTEND`. Si no, el enlace del correo apunta al frontend de `5173`.
+
+### Deuda conocida
+
+Estas cosas no siguen las reglas de la sección 2 o están a medio hacer.
+Conviene saberlas antes de tocar el módulo:
+
+- **Importa modelos ajenos.** `privacidad/logica.py` importa
+  `cuentas.modelos.Usuario` y `resenas.modelos.Resena`, y
+  `privacidad_mantenimiento.py` importa `Usuario`. La sección 2 dice que nadie
+  importa el `modelos.py` de otro módulo.
+- **Escribe tablas ajenas con SQL a mano.** `exportar_datos()`, `anonimizar()`
+  y las purgas leen y modifican `mensaje`, `clase`, `perfil_estudiante`,
+  `perfil_profesor`, `foto_lugar`, `tarjeta` y `cuenta_cobro` con `text(...)`.
+  Si un dueño renombra una columna, Alembic no avisa y nada falla al levantar:
+  falla recién cuando alguien exporta o se da de baja. **Si cambiás una de
+  esas tablas, buscá su nombre en `privacidad/logica.py` y en
+  `privacidad_mantenimiento.py`.**
+- **`consentimiento.revocado_el` no se usa.** No hay endpoint para revocar un
+  consentimiento, salvo anonimizar la cuenta entera.
+- **No hay forma de impugnar decisiones automatizadas** (el ranking, por
+  ejemplo). Quedó fuera de alcance; por eso no se puede decir que el sistema
+  cumpla todos los derechos ARCO.
+- **No hay reenvío del enlace parental.** `esquemas.ReenviarIn` existe, pero
+  ninguna ruta lo usa. Si el adulto pierde el correo, hay que esperar a que la
+  purga borre la cuenta y registrarse de nuevo.
+
+---
