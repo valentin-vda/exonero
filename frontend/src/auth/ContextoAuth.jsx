@@ -75,6 +75,9 @@ export function ProveedorAuth({ children }) {
   /** Crea la cuenta y deja la sesion abierta, sin pasar por el login. */
   const registrarse = useCallback(async (rol, datos) => {
     const respuesta = await apiRegistrar(rol, datos)
+    if (respuesta.estado === 'consentimiento_parental_pendiente') {
+      return { pendiente: true, rol }
+    }
     guardarToken(respuesta.token)
     const yo = await obtenerYo()
     setUsuario(yo)

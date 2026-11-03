@@ -9,9 +9,9 @@ dos para cambiar la contrasena y ninguno del cual colgar el chat, que une a los
 dos. El rol es una columna, no una tabla.
 """
 
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import Date, Enum, Text
+from sqlalchemy import Date, DateTime, Enum, Text
 from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -55,6 +55,10 @@ class Usuario(Base, Marcas):
         nullable=False,
         default=EstadoCuenta.activa,
     )
+
+    # Incrementar este numero invalida todos los JWT emitidos anteriormente.
+    version_sesion: Mapped[int] = mapped_column(nullable=False, default=0)
+    anonimizado_el: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     tema: Mapped[Tema] = mapped_column(
         Enum(Tema, name="tema_enum"), nullable=False, default=Tema.claro

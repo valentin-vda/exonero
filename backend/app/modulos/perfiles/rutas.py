@@ -217,7 +217,12 @@ def ficha_profesor(profesor_id: int, db: Db):
     ficha = logica.ficha_completa(db, profesor_id)
     if ficha is None or ficha["estado_ficha"] != EstadoFicha.publicada.value:
         raise no_existe("profesor")
-    return ficha
+    publica = dict(ficha)
+    publica["direccion_espacio"] = None
+    for campo in ("latitud", "longitud"):
+        if publica.get(campo) is not None:
+            publica[campo] = round(publica[campo], 2)
+    return publica
 
 
 # ============================================================================

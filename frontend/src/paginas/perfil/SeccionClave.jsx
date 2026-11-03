@@ -42,6 +42,7 @@ export default function SeccionClave({ children }) {
   const [confirmandoBaja, setConfirmandoBaja] = useState(false)
   const [errorBaja, setErrorBaja] = useState(null)
   const [dandoDeBaja, setDandoDeBaja] = useState(false) // evita el doble clic
+  const [claveBaja, setClaveBaja] = useState('')
 
   // Devuelve la funcion que actualiza UN campo. cambiar('nueva') es una
   // funcion que recibe el texto y lo guarda en campos.nueva.
@@ -65,7 +66,7 @@ export default function SeccionClave({ children }) {
     try {
       await cambiarClave(campos.actual, campos.nueva)
       setCampos(VACIO)
-      setMensaje({ tipo: 'ok', texto: 'Listo, tu contraseña cambió.' })
+      salir()
     } catch (error) {
       setMensaje({ tipo: 'error', texto: mensajeDeError(error.codigo) })
     } finally {
@@ -77,7 +78,7 @@ export default function SeccionClave({ children }) {
     setErrorBaja(null)
     setDandoDeBaja(true)
     try {
-      await darmeDeBaja()
+      await darmeDeBaja(claveBaja)
       // La cuenta ya no existe para el backend: el token no sirve mas.
       // salir() lo borra y RutaProtegida manda al login.
       salir()
@@ -153,18 +154,27 @@ export default function SeccionClave({ children }) {
             Dar de baja mi cuenta
           </button>
         ) : (
-          <div className="botonera">
-            <button type="button" className="btn btn-primary" onClick={confirmarBaja} disabled={dandoDeBaja}>
-              {dandoDeBaja ? 'Dando de baja...' : 'Si, dar de baja'}
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => setConfirmandoBaja(false)}
-              disabled={dandoDeBaja}
-            >
-              Cancelar
-            </button>
+          <div>
+            <CampoClave
+              id="clave-baja"
+              etiqueta="Contraseña actual para confirmar"
+              valor={claveBaja}
+              alCambiar={setClaveBaja}
+              autoComplete="current-password"
+            />
+            <div className="botonera">
+              <button type="button" className="btn btn-primary" onClick={confirmarBaja} disabled={dandoDeBaja || !claveBaja}>
+                {dandoDeBaja ? 'Anonimizando...' : 'Anonimizar y eliminar mi cuenta'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => { setConfirmandoBaja(false); setClaveBaja('') }}
+                disabled={dandoDeBaja}
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         )}
       </section>

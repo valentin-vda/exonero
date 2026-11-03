@@ -97,6 +97,8 @@ export function cambiarTema(tema) {
 }
 
 /** DELETE /api/usuarios/yo - baja logica. Despues hay que cerrar la sesion. */
-export function darmeDeBaja() {
-  return pedir('/api/usuarios/yo', { metodo: 'DELETE' })
+export function darmeDeBaja(clave) {
+  return pedir('/api/privacidad/supresion', {
+    metodo: 'POST', cuerpo: { clave, confirmacion: 'ELIMINAR' },
+  })
 }

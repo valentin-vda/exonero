@@ -28,16 +28,22 @@ import PerfilProfesor from './paginas/PerfilProfesor.jsx'
 import RecuperarClave from './paginas/RecuperarClave.jsx'
 import RedactarResena from './paginas/RedactarResena.jsx'
 import Registro from './paginas/Registro.jsx'
+import Privacidad from './paginas/Privacidad.jsx'
+import ConsentimientoParental from './paginas/ConsentimientoParental.jsx'
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <div className="demo-global" role="status">PROTOTIPO ACADEMICO · usa solo datos ficticios</div>
+      <Routes>
       {/* ---------------------------------------------------------------
           Publicas. Son las unicas tres pantallas sin sesion.
           --------------------------------------------------------------- */}
       <Route path="/login" element={<Login />} />
       <Route path="/registro" element={<Registro />} />
       <Route path="/recuperar" element={<RecuperarClave />} />
+      <Route path="/privacidad" element={<Privacidad />} />
+      <Route path="/consentimiento-parental" element={<ConsentimientoParental />} />
 
       {/* ---------------------------------------------------------------
           Privadas del estudiante. Piden sesion Y rol estudiante.
@@ -88,6 +94,7 @@ export default function App() {
 
       {/* Cualquier URL que no exista tambien va a la raiz. */}
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   )
 }

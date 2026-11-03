@@ -35,3 +35,8 @@ export function dejarResena(datos) {
 export function editarResena(datos) {
   return pedir('/api/resenas', { metodo: 'PUT', cuerpo: datos })
 }
+
+/** DELETE /api/resenas/{destinatario} - solo borra la resena del autor conectado. */
+export function eliminarResena(destinatarioId) {
+  return pedir(`/api/resenas/${destinatarioId}`, { metodo: 'DELETE' })
+}

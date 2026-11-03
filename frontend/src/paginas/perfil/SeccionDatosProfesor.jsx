@@ -131,7 +131,8 @@ export default function SeccionDatosProfesor({ ficha, catalogos, alGuardar }) {
           <Campo id="telefono" etiqueta="Teléfono" tipo="tel" valor={campos.telefono}
                  alCambiar={cambiar('telefono')} autoComplete="tel" placeholder="099 123 456" />
           <Campo id="fechaNacimiento" etiqueta="Fecha de nacimiento" tipo="date" valor={campos.fechaNacimiento}
-                 alCambiar={cambiar('fechaNacimiento')} error={errores.fechaNacimiento} />
+                 alCambiar={cambiar('fechaNacimiento')} error={errores.fechaNacimiento} disabled
+                 ayuda="No se modifica desde el perfil porque acredita la mayoría de edad." />
 
           <CampoSelect id="barrio" etiqueta="Barrio base" valor={campos.barrioId} alCambiar={cambiar('barrioId')}
                        opciones={opcionesBarrio} disabled={!catalogos}

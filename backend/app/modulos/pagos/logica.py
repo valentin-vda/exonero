@@ -30,6 +30,7 @@ from sqlalchemy import Enum, column, func, select, table
 from sqlalchemy.orm import Session
 
 from app import fechas
+from app.config import ajustes
 from app.db import SesionLocal
 from app.enums import EstadoClase, EstadoCobro
 from app.errores import ErrorAPI, conflicto, no_es_tuyo, no_existe
@@ -255,6 +256,8 @@ def agregar_tarjeta(db: Session, usuario_id: int, datos) -> dict:
     anio_valido = 2000 <= datos.vence_anio <= 2099
     if not (numero_valido and ccv_valido and anio_valido and titular):
         raise ErrorAPI(400, "tarjeta_invalida")
+    if ajustes.MODO_DEMO and numero not in {"4111111111111111", "5555555555554444"}:
+        raise ErrorAPI(400, "solo_tarjeta_prueba")
 
     # 2. Una tarjeta vencida no sirve para nada: no se guarda.
     if _vencida(datos.vence_mes, datos.vence_anio):

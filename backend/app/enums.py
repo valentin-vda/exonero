@@ -20,7 +20,9 @@ class EstadoCuenta(str, enum.Enum):
     """La baja es logica: la cuenta queda inactiva y las clases pasadas se
     conservan."""
     activa = "activa"
+    pendiente_consentimiento_parental = "pendiente_consentimiento_parental"
     dada_de_baja = "dada_de_baja"
+    anonimizada = "anonimizada"
 
 
 class Tema(str, enum.Enum):

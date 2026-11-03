@@ -110,8 +110,8 @@ export default function RecuperarClave() {
       ) : (
         <>
           <p className="auth-bajada">
-            Mientras no haya envío de correos, el código se imprime en la
-            consola del backend. Copialo de ahí.
+            Te enviamos el código por correo. En desarrollo podés verlo en
+            la bandeja de Mailpit en http://localhost:8025.
           </p>
           <Alerta tipo="error">{errorGeneral}</Alerta>
           <form onSubmit={enviarPaso2} noValidate>

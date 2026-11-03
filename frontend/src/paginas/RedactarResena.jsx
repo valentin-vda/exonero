@@ -28,7 +28,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { misAlumnos, misProfesores } from '../api/clases.js'
 import { mensajeDeError } from '../api/mensajes.js'
-import { dejarResena, editarResena } from '../api/resenas.js'
+import { dejarResena, editarResena, eliminarResena } from '../api/resenas.js'
 import { useAuth } from '../auth/ContextoAuth.jsx'
 import Alerta from '../componentes/Alerta.jsx'
 import Avatar from '../componentes/Avatar.jsx'
@@ -103,6 +103,18 @@ export default function RedactarResena() {
     }
   }
 
+  async function borrar() {
+    if (!window.confirm('¿Eliminar tu reseña? El promedio se recalculará.')) return
+    setGuardando(true)
+    try {
+      await eliminarResena(Number(destinatarioId))
+      navigate(volver)
+    } catch (err) {
+      setError(mensajeDeError(err.codigo))
+      setGuardando(false)
+    }
+  }
+
   if (noEncontrada) {
     return (
       <div className="resena-redactar">
@@ -163,10 +175,12 @@ export default function RedactarResena() {
 
         <Alerta tipo="info">
           Tu calificación es anónima: {persona.nombre} ve el puntaje y el comentario, nunca quién lo dejó.
+          {' '}No incluyas datos de salud, religión, origen ni otra información sensible.
         </Alerta>
         <Alerta tipo="error">{error}</Alerta>
 
         <div className="botonera">
+          {miResena && <button type="button" className="btn btn-ghost" onClick={borrar} disabled={guardando}>Eliminar mi reseña</button>}
           <Link to={volver} className="btn btn-secondary">Cancelar</Link>
           <button type="submit" className="btn btn-primary" disabled={guardando}>
             {guardando ? 'Guardando...' : 'Guardar calificación'}

@@ -114,6 +114,7 @@ export default function Layout() {
           </div>
 
           <div className="nav-actions">
+            <Link to="/privacidad" className="btn btn-ghost">Privacidad</Link>
             <button type="button" className="btn btn-ghost nav-salir" onClick={salir}>
               Salir
             </button>

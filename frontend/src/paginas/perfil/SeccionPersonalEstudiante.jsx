@@ -185,7 +185,8 @@ export default function SeccionPersonalEstudiante({ perfil, catalogos, alGuardar
           <Campo id="telefono" etiqueta="Teléfono" tipo="tel" valor={campos.telefono}
                  alCambiar={cambiar('telefono')} autoComplete="tel" placeholder="099 123 456" />
           <Campo id="fechaNacimiento" etiqueta="Fecha de nacimiento" tipo="date" valor={campos.fechaNacimiento}
-                 alCambiar={cambiar('fechaNacimiento')} error={errores.fechaNacimiento} />
+                 alCambiar={cambiar('fechaNacimiento')} error={errores.fechaNacimiento} disabled
+                 ayuda="Para proteger el consentimiento parental, no se modifica desde el perfil." />
 
           <CampoSelect id="etapa" etiqueta="Etapa educativa" valor={campos.etapaId} alCambiar={cambiarEtapa}
                        opciones={opcionesEtapa} disabled={!catalogos} />

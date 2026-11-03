@@ -19,6 +19,16 @@ class Ajustes(BaseSettings):
     JWT_ALGORITMO: str = "HS256"
     JWT_HORAS_VALIDO: int = 24
 
+    # Este repositorio es un prototipo academico. En modo demo Mailpit captura
+    # los correos y las tarjetas aceptadas son exclusivamente de prueba.
+    MODO_DEMO: bool = True
+    URL_FRONTEND: str = "http://localhost:5173"
+    SMTP_HOST: str = "localhost"
+    SMTP_PUERTO: int = 1025
+    SMTP_REMITENTE: str = "privacidad@exonero.local"
+    RESPONSABLE_DATOS: str = "PENDIENTE - PROTOTIPO ACADEMICO"
+    CONTACTO_PRIVACIDAD: str = "privacidad@exonero.local"
+
     # Origenes permitidos para CORS, separados por coma.
     CORS_ORIGENES: str = "http://localhost:5173,http://127.0.0.1:5173"
 

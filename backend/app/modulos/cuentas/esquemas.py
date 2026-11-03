@@ -5,6 +5,7 @@ frontend; estan copiados tal cual de la seccion 9 de la spec.
 """
 
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -26,7 +27,10 @@ class RegistroIn(BaseModel):
     apellido: str = Field(min_length=1, max_length=80)
     documento: str | None = Field(default=None, max_length=20)
     telefono: str | None = Field(default=None, max_length=30)
-    fecha_nacimiento: date | None = None
+    fecha_nacimiento: date
+    acepta_privacidad: Literal[True]
+    version_privacidad: str
+    correo_adulto: EmailStr | None = None
 
 
 # --- Login ------------------------------------------------------------------
@@ -56,6 +60,13 @@ class TokenOut(BaseModel):
 
     token: str
     expira_en: int  # segundos
+    usuario: UsuarioSesionOut
+
+
+class RegistroOut(BaseModel):
+    estado: Literal["activa", "consentimiento_parental_pendiente"]
+    token: str | None = None
+    expira_en: int | None = None
     usuario: UsuarioSesionOut
 
 

@@ -20,6 +20,7 @@ from app.modulos.clases import modelos as _clases        # noqa: F401
 from app.modulos.pagos import modelos as _pagos          # noqa: F401
 from app.modulos.mensajeria import modelos as _mensajeria  # noqa: F401
 from app.modulos.resenas import modelos as _resenas      # noqa: F401
+from app.modulos.privacidad import modelos as _privacidad  # noqa: F401
 # busqueda no tiene tablas propias: consulta las de perfiles y catalogos.
 
 metadata = Base.metadata

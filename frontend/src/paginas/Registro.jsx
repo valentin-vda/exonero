@@ -13,10 +13,11 @@
  * backend/app/modulos/cuentas/esquemas.py.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { mensajeDeError } from '../api/mensajes.js'
+import { obtenerAviso } from '../api/privacidad.js'
 import { useAuth } from '../auth/ContextoAuth.jsx'
 import Alerta from '../componentes/Alerta.jsx'
 import Campo from '../componentes/Campo.jsx'
@@ -52,10 +53,18 @@ export default function Registro() {
     documento: '',
     telefono: '',
     fechaNacimiento: '',
+    correoAdulto: '',
   })
+  const [aceptaPrivacidad, setAceptaPrivacidad] = useState(false)
+  const [aviso, setAviso] = useState(null)
+  const [registroPendiente, setRegistroPendiente] = useState(false)
   const [errores, setErrores] = useState({})
   const [errorGeneral, setErrorGeneral] = useState(null)
   const [enviando, setEnviando] = useState(false)
+
+  useEffect(() => {
+    obtenerAviso().then(setAviso).catch(() => setErrorGeneral('No pudimos cargar el aviso de privacidad.'))
+  }, [])
 
   if (usuario) {
     return <Navigate to={usuario.rol === 'profesor' ? '/panel' : '/inicio'} replace />
@@ -75,7 +84,12 @@ export default function Registro() {
       correo: () => validarCorreo(campos.correo),
       clave: () => validarClave(campos.clave),
       repetirClave: () => validarRepetirClave(campos.clave, campos.repetirClave),
-      fechaNacimiento: () => validarFechaNacimiento(campos.fechaNacimiento),
+      fechaNacimiento: () => (!campos.fechaNacimiento ? 'La fecha de nacimiento es obligatoria.' : validarFechaNacimiento(campos.fechaNacimiento)),
+      privacidad: () => (!aceptaPrivacidad ? 'Tenes que aceptar el aviso de privacidad.' : null),
+      correoAdulto: () => (
+        esMenorDeEdad(campos.fechaNacimiento) && rol === 'estudiante' && !campos.correoAdulto.trim()
+          ? 'Necesitamos el correo de un adulto responsable.' : null
+      ),
     })
     setErrores(nuevos)
     setErrorGeneral(null)
@@ -94,7 +108,14 @@ export default function Registro() {
         documento: campos.documento.trim() || null,
         telefono: campos.telefono.trim() || null,
         fecha_nacimiento: campos.fechaNacimiento || null,
+        correo_adulto: menor && rol === 'estudiante' ? campos.correoAdulto.trim() : null,
+        acepta_privacidad: aceptaPrivacidad,
+        version_privacidad: aviso?.version,
       })
+      if (yo.pendiente) {
+        setRegistroPendiente(true)
+        return
+      }
       // Recien creado, el perfil esta vacio: lo mandamos a completarlo.
       navegar(yo.rol === 'profesor' ? '/perfil-profesor' : '/mi-perfil', { replace: true })
     } catch (error) {
@@ -105,6 +126,19 @@ export default function Registro() {
   }
 
   const menor = esMenorDeEdad(campos.fechaNacimiento)
+
+  if (registroPendiente) {
+    return (
+      <MarcoAuth ancho>
+        <h2 className="auth-titulo">Falta la autorizacion del adulto</h2>
+        <Alerta tipo="ok">
+          Enviamos un enlace al correo del adulto responsable. La cuenta quedara bloqueada
+          hasta que lo abra y acepte el tratamiento de datos.
+        </Alerta>
+        <p className="auth-pie"><Link to="/login">Volver al ingreso</Link></p>
+      </MarcoAuth>
+    )
+  }
 
   return (
     <MarcoAuth ancho>
@@ -213,7 +247,30 @@ export default function Registro() {
           autoComplete="bday"
         />
 
-        <button type="submit" className="btn btn-primary btn-block" disabled={enviando}>
+        {menor && rol === 'estudiante' && (
+          <Campo
+            id="correoAdulto"
+            etiqueta="Correo del adulto responsable"
+            tipo="email"
+            valor={campos.correoAdulto}
+            alCambiar={cambiar('correoAdulto')}
+            error={errores.correoAdulto}
+            ayuda="Le enviaremos un enlace de autorizacion que vence en 72 horas."
+            requerido
+          />
+        )}
+
+        <label className="privacidad-check">
+          <input
+            type="checkbox"
+            checked={aceptaPrivacidad}
+            onChange={(e) => setAceptaPrivacidad(e.target.checked)}
+          />
+          <span>Lei y acepto el <Link to="/privacidad" target="_blank">aviso de privacidad</Link> version {aviso?.version || 'cargando...'}. Entiendo que es un prototipo y usare datos ficticios.</span>
+        </label>
+        {errores.privacidad && <p className="field-error">{errores.privacidad}</p>}
+
+        <button type="submit" className="btn btn-primary btn-block" disabled={enviando || !aviso}>
           {enviando ? 'Creando la cuenta...' : 'Crear cuenta'}
         </button>
       </form>

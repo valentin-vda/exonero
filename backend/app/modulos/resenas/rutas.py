@@ -12,6 +12,7 @@ from fastapi import APIRouter, Query, status
 
 from app.dependencias import Db, Yo
 from app.modulos.resenas import esquemas, logica
+from app.modulos.privacidad import logica as privacidad
 
 router = APIRouter(prefix="/resenas", tags=["resenas"])
 
@@ -42,6 +43,14 @@ def editar_resena(datos: esquemas.ResenaIn, yo: Yo, db: Db):
     resena = logica.dejar_o_editar(db, yo.id, yo.rol, datos, crear=False)
     db.commit()
     return resena
+
+
+@router.delete("/{destinatario_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_resena_propia(destinatario_id: int, yo: Yo, db: Db):
+    """Solo el autor puede borrar la resena que escribio."""
+    privacidad.borrar_resena_propia(db, yo.id, destinatario_id)
+    db.commit()
+    return None
 
 
 @router.get("/resumen/{usuario_id}", response_model=esquemas.ResumenResenasOut)

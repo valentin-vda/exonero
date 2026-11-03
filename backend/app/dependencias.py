@@ -63,7 +63,10 @@ def usuario_actual(
 
     # 4. Un token de una cuenta borrada o dada de baja ya no sirve, aunque la
     #    firma sea valida y no haya vencido.
-    if usuario is None or usuario.estado == EstadoCuenta.dada_de_baja:
+    if usuario is None or usuario.estado != EstadoCuenta.activa:
+        raise sin_autorizacion()
+
+    if carga.get("sv", 0) != usuario.version_sesion:
         raise sin_autorizacion()
 
     return usuario

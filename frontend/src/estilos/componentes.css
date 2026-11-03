@@ -514,3 +514,33 @@ label:has(.oculto-visual:focus-visible) {
   height: auto;
   pointer-events: none;
 }
+.demo-global {
+  background: #5b2100;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  padding: 6px 16px;
+  text-align: center;
+}
+
+.privacidad-check {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  line-height: 1.45;
+  margin: 18px 0;
+}
+
+.privacidad-check input { margin-top: 4px; }
+
+.pagina-legal {
+  margin: 32px auto;
+  max-width: 780px;
+  padding: 24px;
+}
+
+.pagina-legal h1, .pagina-legal h2 { margin-top: 28px; }
+.demo-aviso { background: #fff3cd; border: 1px solid #e2b93b; border-radius: 8px; padding: 14px; }
+.legal-datos { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin-top: 28px; }
+.legal-datos dt { font-weight: 700; }

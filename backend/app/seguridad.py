@@ -35,7 +35,7 @@ def verificar_clave(clave: str, hash_guardado: str) -> bool:
 
 # --- Tokens -----------------------------------------------------------------
 
-def crear_token(usuario_id: int, rol: str) -> tuple[str, int]:
+def crear_token(usuario_id: int, rol: str, version_sesion: int = 0) -> tuple[str, int]:
     """Firma un JWT con el id y el rol del usuario.
 
     Devuelve (token, segundos_hasta_vencer), que es exactamente lo que
@@ -45,7 +45,7 @@ def crear_token(usuario_id: int, rol: str) -> tuple[str, int]:
     vence solo.
     """
     vence = datetime.now(timezone.utc) + timedelta(hours=ajustes.JWT_HORAS_VALIDO)
-    carga = {"sub": str(usuario_id), "rol": rol, "exp": vence}
+    carga = {"sub": str(usuario_id), "rol": rol, "sv": version_sesion, "exp": vence}
     token = jwt.encode(carga, ajustes.JWT_SECRETO, algorithm=ajustes.JWT_ALGORITMO)
     return token, ajustes.JWT_HORAS_VALIDO * 3600
 

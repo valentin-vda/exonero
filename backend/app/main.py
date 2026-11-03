@@ -7,9 +7,17 @@ Se levanta con:  uvicorn app.main:app --reload
 """
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import ajustes
+from app.limites import excedido
+
+if not ajustes.MODO_DEMO:
+    raise RuntimeError(
+        "Este prototipo no puede iniciar fuera de MODO_DEMO: falta identificar "
+        "al responsable, registrar las bases y reemplazar el pago ficticio."
+    )
 
 # Importar el registro hace que las 24 tablas queden en Base.metadata.
 # Tiene que pasar ANTES de montar los routers.
@@ -24,6 +32,7 @@ from app.modulos.mensajeria.rutas import router as router_mensajes
 from app.modulos.pagos.rutas import router as router_pagos
 from app.modulos.perfiles.rutas import router_perfiles, router_profesores
 from app.modulos.resenas.rutas import router as router_resenas
+from app.modulos.privacidad.rutas import router as router_privacidad
 
 app = FastAPI(
     title="Exonero API",
@@ -61,6 +70,23 @@ app.include_router(router_clases, prefix="/api")
 app.include_router(router_pagos, prefix="/api")
 app.include_router(router_mensajes, prefix="/api")
 app.include_router(router_resenas, prefix="/api")
+app.include_router(router_privacidad, prefix="/api")
+
+
+@app.middleware("http")
+async def cabeceras_seguridad(request, call_next):
+    ip = request.client.host if request.client else "desconocida"
+    if excedido(ip, request.url.path):
+        return JSONResponse({"detail": "demasiados_intentos"}, status_code=429)
+    respuesta = await call_next(request)
+    respuesta.headers["X-Content-Type-Options"] = "nosniff"
+    respuesta.headers["X-Frame-Options"] = "DENY"
+    respuesta.headers["Referrer-Policy"] = "no-referrer"
+    respuesta.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
+    respuesta.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    if request.headers.get("authorization") or request.url.path.startswith("/api/privacidad"):
+        respuesta.headers["Cache-Control"] = "no-store"
+    return respuesta
 
 
 @app.get("/api/salud", tags=["sistema"])

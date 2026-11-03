@@ -215,16 +215,19 @@ export default function Conversacion({ hilo, alVolver, alCambiar }) {
         ))}
       </div>
       <form className="conversacion-escribir" onSubmit={(e) => { e.preventDefault(); enviar(texto, true) }}>
-        <textarea
-          className="input"
-          rows={2}
-          maxLength={2000}
-          placeholder="Escribí un mensaje..."
-          aria-label="Mensaje"
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          onKeyDown={alTeclear}
-        />
+        <div style={{ flex: 1 }}>
+          <textarea
+            className="input"
+            rows={2}
+            maxLength={2000}
+            placeholder="Escribí un mensaje..."
+            aria-label="Mensaje"
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={alTeclear}
+          />
+          <span className="field-hint">No compartas datos sensibles o información innecesaria.</span>
+        </div>
         <button type="submit" className="btn btn-primary" disabled={enviando || !texto.trim()}>
           {enviando ? 'Enviando...' : 'Enviar'}
         </button>

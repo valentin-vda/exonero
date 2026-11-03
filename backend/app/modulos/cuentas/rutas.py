@@ -22,15 +22,19 @@ COMO LEER UNA RUTA:
 Cada ruta hace lo mismo: llama a logica.py, hace el commit y responde.
 """
 
-from fastapi import APIRouter, status
+from datetime import date
 
-from app import seguridad
+from fastapi import APIRouter, Request, status
+
+from app import correo, seguridad
 from app.dependencias import Db, Yo
-from app.enums import Rol
+from app.enums import EstadoCuenta, Rol
 from app.errores import ErrorAPI
 from app.modulos.cuentas import esquemas, logica
 from app.modulos.mensajeria import logica as mensajeria
 from app.modulos.perfiles import logica as perfiles
+from app.modulos.privacidad import logica as privacidad
+from app.modulos.privacidad.textos import VERSION_AVISO
 
 # Dos routers porque son dos prefijos distintos; main.py monta los dos.
 router_auth = APIRouter(prefix="/auth", tags=["auth"])
@@ -43,10 +47,10 @@ router_usuarios = APIRouter(prefix="/usuarios", tags=["cuentas"])
 
 @router_auth.post(
     "/registro/estudiante",
-    response_model=esquemas.TokenOut,
+    response_model=esquemas.RegistroOut,
     status_code=status.HTTP_201_CREATED,
 )
-def registro_estudiante(datos: esquemas.RegistroIn, db: Db):
+def registro_estudiante(datos: esquemas.RegistroIn, request: Request, db: Db):
     """Alta de una cuenta de estudiante. Crea usuario + perfil_estudiante vacio.
 
     Devuelve el token ya emitido, para que el frontend entre directo al tablero
@@ -54,25 +58,39 @@ def registro_estudiante(datos: esquemas.RegistroIn, db: Db):
 
     Errores: 409 correo_ya_registrado, 409 documento_ya_registrado
     """
-    return _registrar(db, datos, Rol.estudiante)
+    return _registrar(db, datos, Rol.estudiante, request)
 
 
 @router_auth.post(
     "/registro/profesor",
-    response_model=esquemas.TokenOut,
+    response_model=esquemas.RegistroOut,
     status_code=status.HTTP_201_CREATED,
 )
-def registro_profesor(datos: esquemas.RegistroIn, db: Db):
+def registro_profesor(datos: esquemas.RegistroIn, request: Request, db: Db):
     """Alta de una cuenta de profesor. Crea usuario + perfil_profesor en borrador.
 
     La ficha nace en estado borrador: no aparece en la busqueda hasta que el
     profesor la completa y la publica desde 1j.
     """
-    return _registrar(db, datos, Rol.profesor)
+    return _registrar(db, datos, Rol.profesor, request)
 
 
-def _registrar(db, datos, rol) -> dict:
+def _registrar(db, datos, rol, request: Request) -> dict:
     """Lo comun a los dos registros. El rol viene de la RUTA, nunca del cuerpo."""
+    if datos.version_privacidad != VERSION_AVISO:
+        raise ErrorAPI(409, "aviso_privacidad_desactualizado")
+    if datos.fecha_nacimiento > date.today():
+        raise ErrorAPI(400, "fecha_invalida")
+    edad = date.today().year - datos.fecha_nacimiento.year - (
+        (date.today().month, date.today().day)
+        < (datos.fecha_nacimiento.month, datos.fecha_nacimiento.day)
+    )
+    menor = edad < 18
+    if rol == Rol.profesor and menor:
+        raise ErrorAPI(403, "profesor_debe_ser_mayor")
+    if rol == Rol.estudiante and menor and not datos.correo_adulto:
+        raise ErrorAPI(400, "correo_adulto_requerido")
+
     # 1. La cuenta (cuentas) y el perfil vacio (perfiles), con flush y sin commit.
     usuario = logica.crear_cuenta(db, datos, rol)
     if rol == Rol.estudiante:
@@ -80,11 +98,27 @@ def _registrar(db, datos, rol) -> dict:
     else:
         perfiles.crear_perfil_profesor(db, usuario.id)
 
+    ip = request.client.host if request.client else None
+    agente = request.headers.get("user-agent")
+    privacidad.registrar_consentimiento(db, usuario.id, "privacidad", "titular", ip, agente)
+
+    if rol == Rol.estudiante and menor:
+        usuario.estado = EstadoCuenta.pendiente_consentimiento_parental
+        privacidad.crear_invitacion_parental(db, usuario, str(datos.correo_adulto))
+        db.commit()
+        return {
+            "estado": "consentimiento_parental_pendiente",
+            "token": None,
+            "expira_en": None,
+            "usuario": {"id": usuario.id, "nombre": usuario.nombre, "rol": usuario.rol.value},
+        }
+
     # 2. Un solo commit para las dos filas: o quedan las dos o ninguna.
     db.commit()
 
     # 3. El token, para entrar directo.
-    return _respuesta_con_token(usuario)
+    respuesta = _respuesta_con_token(usuario)
+    return {"estado": "activa", **respuesta}
 
 
 @router_auth.post("/login", response_model=esquemas.TokenOut)
@@ -113,11 +147,10 @@ def recuperar(datos: esquemas.RecuperarIn, db: Db):
     """
     codigo = logica.generar_codigo_recuperacion(db, datos.correo)
     if codigo is not None:
-        # flush=True para que se vea al instante en la terminal de uvicorn.
-        print(
-            f"\n[Exonero] Codigo para recuperar la clave de {datos.correo}: {codigo}"
-            f"  (vale {logica.MINUTOS_VALIDEZ_CODIGO} minutos)\n",
-            flush=True,
+        correo.enviar(
+            str(datos.correo),
+            "Codigo para recuperar tu cuenta de Exonero",
+            f"Tu codigo es {codigo}. Vence en {logica.MINUTOS_VALIDEZ_CODIGO} minutos.",
         )
     return {"ok": True}
 
@@ -203,14 +236,7 @@ def darse_de_baja(yo: Yo, db: Db):
 
     Cerrar sesion no tiene endpoint: es descartar el token en el frontend.
     """
-    logica.dar_de_baja(db, yo)
-    # Si es profesor, su ficha sale de la busqueda. Va aca y no en logica para
-    # no crear una importacion circular entre cuentas y perfiles.
-    if yo.rol == Rol.profesor:
-        perfiles.pausar_ficha(db, yo.id)
-    db.commit()
-    # 204 = "salio bien y no hay nada que devolver".
-    return None
+    raise ErrorAPI(409, "usar_supresion_confirmada")
 
 
 # ============================================================================
@@ -219,7 +245,9 @@ def darse_de_baja(yo: Yo, db: Db):
 
 def _respuesta_con_token(usuario) -> dict:
     """La forma de TokenOut: el token, cuando vence y un pedacito del usuario."""
-    token, expira_en = seguridad.crear_token(usuario.id, usuario.rol.value)
+    token, expira_en = seguridad.crear_token(
+        usuario.id, usuario.rol.value, usuario.version_sesion
+    )
     return {
         "token": token,
         "expira_en": expira_en,

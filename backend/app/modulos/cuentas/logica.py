@@ -85,7 +85,7 @@ def autenticar(db: Session, correo: str, clave: str) -> Usuario | None:
     no revelar que correos estan registrados.
     """
     usuario = _buscar_por_correo(db, correo)
-    if usuario is None or usuario.estado == EstadoCuenta.dada_de_baja:
+    if usuario is None or usuario.estado != EstadoCuenta.activa:
         return None
     if not seguridad.verificar_clave(clave, usuario.hash_clave):
         return None
@@ -179,7 +179,7 @@ def generar_codigo_recuperacion(db: Session, correo: str) -> str | None:
     responde 200 igual en los dos casos (ver rutas.recuperar).
     """
     usuario = _buscar_por_correo(db, correo)
-    if usuario is None or usuario.estado == EstadoCuenta.dada_de_baja:
+    if usuario is None or usuario.estado != EstadoCuenta.activa:
         return None
 
     # secrets y no random: random es predecible, secrets esta hecho para esto.
@@ -215,6 +215,7 @@ def restablecer_clave(db: Session, correo: str, codigo: str, clave_nueva: str) -
         raise ErrorAPI(409, "codigo_invalido")
 
     usuario.hash_clave = seguridad.hashear_clave(clave_nueva)
+    usuario.version_sesion += 1
     del _codigos[clave_dict]
 
 
@@ -251,7 +252,8 @@ def actualizar_datos(db: Session, usuario: Usuario, cambios: dict) -> None:
         nacimiento = cambios["fecha_nacimiento"]
         if nacimiento is not None and nacimiento > date.today():
             raise ErrorAPI(400, "fecha_invalida")
-        usuario.fecha_nacimiento = nacimiento
+        if nacimiento != usuario.fecha_nacimiento:
+            raise ErrorAPI(409, "fecha_nacimiento_no_modificable")
 
 
 def cambiar_foto(db: Session, usuario: Usuario, foto_base64: str) -> None:
@@ -269,6 +271,7 @@ def cambiar_clave(db: Session, usuario: Usuario, clave_actual: str, clave_nueva:
     if not seguridad.verificar_clave(clave_actual, usuario.hash_clave):
         raise ErrorAPI(403, "clave_actual_incorrecta")
     usuario.hash_clave = seguridad.hashear_clave(clave_nueva)
+    usuario.version_sesion += 1
 
 
 def cambiar_tema(db: Session, usuario: Usuario, tema) -> None:

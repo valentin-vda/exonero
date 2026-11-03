@@ -25,6 +25,7 @@ const MENSAJES = {
   nombre_requerido: 'El nombre no puede quedar vacío.',
   apellido_requerido: 'El apellido no puede quedar vacío.',
   fecha_invalida: 'La fecha de nacimiento no es valida.',
+  fecha_nacimiento_no_modificable: 'La fecha de nacimiento no se cambia desde el perfil porque determina el consentimiento parental.',
   clave_actual_incorrecta: 'La contraseña actual no es correcta.',
   foto_invalida: 'Ese archivo no es una imagen que podamos usar. Proba con un JPG o PNG.',
   foto_muy_grande: 'La imagen es demasiado pesada.',
@@ -106,6 +107,7 @@ const MENSAJES = {
   cobro_rechazado: 'La tarjeta rechazo el pago. Proba con otra.',
   tarjeta_vencida: 'Esa tarjeta está vencida. Usá otra o agregá una nueva.',
   tarjeta_invalida: 'El número de tarjeta no es válido.',
+  solo_tarjeta_prueba: 'Este prototipo solo acepta las tarjetas ficticias 4111 1111 1111 1111 y 5555 5555 5555 4444.',
   tarjeta_no_existe: 'Esa tarjeta ya no está guardada. Recargá la página.',
 
   // --- Cuentas de cobro del profesor (1j) ---
@@ -115,8 +117,14 @@ const MENSAJES = {
   correo_invalido: 'Ese correo de Mercado Pago no parece válido.',
   cuenta_no_existe: 'Esa cuenta de cobro ya no está guardada. Recargá la página.',
   cuenta_repetida: 'Ya tenés esa cuenta guardada.',
+  correo_no_disponible: 'El correo de prueba no está disponible. Levantá Mailpit con Docker Compose.',
+  enlace_parental_invalido: 'El enlace parental no es válido, ya fue usado o venció.',
+  correo_adulto_requerido: 'Para un estudiante menor necesitamos el correo de un adulto responsable.',
+  profesor_debe_ser_mayor: 'Las cuentas de profesor requieren ser mayor de 18 años.',
+  aviso_privacidad_desactualizado: 'El aviso de privacidad cambió. Recargá la página y volvé a aceptarlo.',
 
   // --- Generales ---
+  demasiados_intentos: 'Hiciste demasiados intentos. Esperá un minuto y probá de nuevo.',
   datos_invalidos: 'Revisá los datos: hay algo que no está bien.',
   error_servidor:
     'El servidor tuvo un problema. Si es una parte de la app que todavía no está hecha, es normal.',

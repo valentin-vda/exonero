@@ -189,8 +189,10 @@ def pines_mapa(db: Session, filtros=None, ids: list[int] | None = None) -> list[
         pines.append({
             "id": fila["usuario_id"],
             "nombre": nombre,
-            "latitud": fila["latitud"],
-            "longitud": fila["longitud"],
+            # El mapa publico muestra una zona aproximada, no la puerta del
+            # espacio donde trabaja el profesor.
+            "latitud": round(fila["latitud"], 2),
+            "longitud": round(fila["longitud"], 2),
             "precio_hora": _precio_fila(fila, modalidad_pedida),
             "puntaje_promedio": fila["puntaje_promedio"],
             "modalidad": fila["modalidad"],
