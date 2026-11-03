@@ -38,6 +38,7 @@ export default function ResultadosProfesores({
   cargando,
   error,
   hayFiltros,
+  hayUbicacion,
   alLimpiar,
   alCambiarPagina,
 }) {
@@ -47,15 +48,20 @@ export default function ResultadosProfesores({
     ? Math.ceil(pagina.total / pagina.por_pagina)
     : 0
 
+  // Sin pagina no hay total que contar: o falla la busqueda o todavia no
+  // llego. Sin barrio ni centro no hay distancias y el backend ordena por
+  // puntaje.
   return (
     <section className="resultados-bloque" aria-live="polite">
       <div className="resultados-cabecera">
         <h2>
-          {cargando && !pagina
-            ? 'Buscando profesores…'
-            : `${total} ${total === 1 ? 'profe coincide' : 'profes coinciden'} con tus filtros`}
+          {pagina
+            ? `${total} ${total === 1 ? 'profe coincide' : 'profes coinciden'} con tus filtros`
+            : error
+              ? 'No pudimos buscar profesores'
+              : 'Buscando profesores…'}
         </h2>
-        <span>ordenados por distancia</span>
+        {!error && <span>ordenados por {hayUbicacion ? 'distancia' : 'puntaje'}</span>}
       </div>
 
       <div className={`resultados-panel${cargando ? ' esta-cargando' : ''}`}>

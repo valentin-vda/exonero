@@ -169,6 +169,12 @@ textarea.input { min-height: 90px; resize: vertical; border-radius: var(--radius
   background: color-mix(in srgb, var(--color-surface) 88%, transparent);
 }
 
+/* Los enlaces del globo ("Ver profesor") y de la atribucion: el azul fijo de
+   Leaflet no se lee sobre el gris oscuro. */
+:root[data-tema='oscuro'] :is(.inicio-mapa, .mapa-profesores, .publico-mapa) :is(.leaflet-popup-content, .leaflet-control-attribution) a {
+  color: var(--color-accent-700);
+}
+
 /* Las teselas de OpenStreetMap pasan a una escala de negros y grises. No se
    usa hue-rotate para evitar el tono azul verdoso que daba el filtro anterior. */
 :root[data-tema='oscuro'] :is(.inicio-mapa, .mapa-profesores, .publico-mapa) .leaflet-tile-pane {

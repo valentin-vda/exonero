@@ -21,18 +21,32 @@
 
 /* --- Cabecera: el numerito de no leidos en "Mensajes" -------------------- */
 
-.nav-sin-leer {
+/* El 400 con el 900 de la rampa dorada: como en oscuro la rampa se invierte,
+   el par da mas de 4,5:1 en los dos temas. */
+.nav-sin-leer,
+.nav-hamburguesa[data-sin-leer]::after {
   display: inline-block;
   min-width: 18px;
   margin-left: 6px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--color-accent-2);
-  color: #fff;
+  background: var(--color-accent-2-400);
+  color: var(--color-accent-2-900);
   font-size: 11px;
   font-weight: 700;
   line-height: 18px;
   text-align: center;
+}
+
+/* En el celular los enlaces quedan dentro del menu: el mismo numerito va
+   sobre el boton de la hamburguesa (el aria-label del boton lo dice). */
+.nav-hamburguesa[data-sin-leer] { position: relative; }
+.nav-hamburguesa[data-sin-leer]::after {
+  content: attr(data-sin-leer);
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  margin-left: 0;
 }
 
 .boton-mensaje-error {
@@ -126,6 +140,7 @@
   overflow: hidden;
 }
 .conversacion-nada { align-items: center; justify-content: center; }
+.conversacion-nada-volver { display: none; }
 .conversacion-cabecera {
   display: flex;
   align-items: center;
@@ -199,6 +214,7 @@
   .mensajes { grid-template-columns: minmax(0, 1fr); height: calc(100vh - 170px); }
   .mensajes-con-hilo .bandeja { display: none; }
   .mensajes:not(.mensajes-con-hilo) .conversacion { display: none; }
-  .conversacion-volver { display: inline-flex; }
+  .conversacion-volver,
+  .conversacion-nada-volver { display: inline-flex; }
   .burbuja { max-width: 85%; }
 }

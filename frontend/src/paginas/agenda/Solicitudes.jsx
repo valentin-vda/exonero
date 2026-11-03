@@ -42,7 +42,8 @@ function Solicitud({ solicitud, alCambiar }) {
       await accion(solicitud.id)
       alCambiar()
     } catch (err) {
-      setError(mensajeDeError(err.codigo))
+      // Al aprobar, horario_ocupado lleva el texto para el profe, no el del alumno.
+      setError(mensajeDeError(err.codigo === 'horario_ocupado' ? 'horario_ocupado_al_aprobar' : err.codigo))
       setOcupado(false)
     }
   }

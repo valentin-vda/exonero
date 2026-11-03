@@ -68,7 +68,8 @@ export default function DetalleClase({ clase, alCerrar, alCambiar }) {
       await accion()
       alCambiar()
     } catch (err) {
-      setError(mensajeDeError(err.codigo))
+      // horario_ocupado solo sale de aprobar (del profe): lleva su texto, no el del alumno.
+      setError(mensajeDeError(err.codigo === 'horario_ocupado' ? 'horario_ocupado_al_aprobar' : err.codigo))
     } finally {
       setOcupado(false)
     }

@@ -17,7 +17,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
-import { borrarToken, guardarToken, leerToken } from '../api/cliente.js'
+import { EVENTO_SESION_VENCIDA, borrarToken, guardarToken, leerToken } from '../api/cliente.js'
 import { login as apiLogin, obtenerYo, registrar as apiRegistrar } from '../api/auth.js'
 
 const ContextoAuth = createContext(null)
@@ -40,13 +40,25 @@ export function ProveedorAuth({ children }) {
     }
     obtenerYo()
       .then((yo) => setUsuario(yo))
-      .catch(() => {
-        // El token vencio o no sirve. Se descarta y se sigue como si no
-        // hubiera nadie conectado.
-        borrarToken()
+      .catch((error) => {
+        // Un 401 es que el token vencio o no sirve: se descarta. Si fallo la
+        // red o el servidor, el token puede seguir valiendo: queda guardado y
+        // al recargar se vuelve a probar. En los dos casos, por ahora no hay
+        // nadie conectado.
+        if (error.estado === 401) borrarToken()
         setUsuario(null)
       })
       .finally(() => setCargando(false))
+  }, [])
+
+  // Si un pedido cualquiera recibe un 401 con la app abierta, cliente.js ya
+  // borro el token y avisa con este evento: se cierra la sesion aca tambien.
+  useEffect(() => {
+    function alVencer() {
+      setUsuario(null)
+    }
+    window.addEventListener(EVENTO_SESION_VENCIDA, alVencer)
+    return () => window.removeEventListener(EVENTO_SESION_VENCIDA, alVencer)
   }, [])
 
   /** Entra con correo y clave. Devuelve el usuario. */

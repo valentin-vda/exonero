@@ -17,8 +17,6 @@ cuando uno viene de backend.
 9. [Clases y pagos (P4), de punta a punta](#9-clases-y-pagos-p4-de-punta-a-punta)
 10. [El sistema de diseño](#10-el-sistema-de-diseño)
 11. [Flujos completos](#11-flujos-completos)
-12. [Qué está hecho y qué falta](#12-qué-está-hecho-y-qué-falta)
-13. [Cosas que hay que decidir](#13-cosas-que-hay-que-decidir)
 
 ---
 
@@ -46,7 +44,7 @@ python -m venv .venv            # o py -3.13 -m venv .venv si tenes otra version
 .venv\Scripts\activate          # en Windows
 pip install -r requirements.txt
 copy .env.example .env          # y revisar los valores
-alembic upgrade head            # crea las 24 tablas
+alembic upgrade head            # crea las 25 tablas
 python -m app.seeds             # carga los datos de prueba
 uvicorn app.main:app --reload   # queda en http://localhost:8000
 
@@ -106,18 +104,21 @@ reconstruir una imagen.
 ```
 exonero/
 ├── docker-compose.yml          solo PostgreSQL
-├── DOCUMENTACION.md            este archivo
+├── docs/DOCUMENTACION.md       este archivo
 │
 ├── backend/
 │   ├── requirements.txt
 │   ├── .env.example            copiar a .env
 │   ├── alembic.ini
 │   ├── schema.sql              el esquema completo, de referencia
+│   ├── verificar_p3.py         las comprobaciones de P3 (agenda, mensajeria y resenas)
 │   ├── verificar_p4.py         las comprobaciones de P4 (ver la seccion 9)
 │   ├── docker/init.sql         extensiones citext y btree_gist
 │   ├── alembic/
 │   │   ├── env.py              lee la conexion del .env
-│   │   └── versions/           una migracion por pull request
+│   │   └── versions/           una migracion por pull request. Hoy son tres:
+│   │                           79d6aea11ac3 (la inicial), 6d0c95b67436 y
+│   │                           5a01195bec7c (las dos de P4, ver la seccion 9)
 │   └── app/
 │       ├── main.py             crea la app y monta los routers
 │       ├── config.py           toda la configuracion, leida del .env
@@ -127,8 +128,9 @@ exonero/
 │       ├── errores.py          ErrorAPI y el formato unico de error
 │       ├── fechas.py           la zona de Montevideo, periodos y ventanas de 1d
 │       ├── dependencias.py     quien es el usuario del token
-│       ├── registro_modelos.py importa los 9 modulos (solo para Alembic)
+│       ├── registro_modelos.py importa los modelos de los 8 modulos con tablas (para Alembic)
 │       ├── seeds.py            datos de prueba
+│       ├── datos/              la foto de ejemplo que usan los seeds
 │       └── modulos/
 │           ├── cuentas/        P1 - identidad, login, registro
 │           ├── perfiles/       P1 - los dos perfiles y la ficha publica
@@ -136,7 +138,7 @@ exonero/
 │           ├── busqueda/       P2 - los nueve filtros, mapas y ranking
 │           ├── agenda/         P3 - disponibilidad y huecos libres
 │           ├── clases/         P4 - el ciclo de vida de la clase
-│           ├── pagos/          P4 - tarjetas y cobros simulados
+│           ├── pagos/          P4 - tarjetas, cobros simulados y cuentas de cobro
 │           ├── mensajeria/     P3 - hilos y mensajes
 │           └── resenas/        P3 - resenas anonimas en los dos sentidos
 │
@@ -153,15 +155,25 @@ exonero/
         │   ├── auth.css        login y registro
         │   ├── perfil.css      las pantallas de perfil (1e y 1j)
         │   ├── panel.css       el panel del profesor (1d) y sus graficos
-        │   └── pagos.css       el checkout (1g) y "Medios de pago" (1e)
+        │   ├── pagos.css       el checkout (1g) y "Medios de pago" (1e)
+        │   ├── inicio.css      el inicio del estudiante (1a)
+        │   ├── busqueda.css    buscar profes (1c)
+        │   ├── perfil-publico.css la ficha publica (1f)
+        │   ├── mis-clases.css  mis clases (1b)
+        │   ├── agenda.css      la agenda del profesor (1i)
+        │   └── mensajes.css    los mensajes (1h)
+        ├── assets/             el logo, el buho del login y la senal del easter egg
         ├── api/
         │   ├── cliente.js      el fetch con token y manejo de errores
         │   ├── mensajes.js     codigo de error -> texto en espanol
         │   ├── auth.js         una funcion por endpoint de cuentas
         │   ├── perfiles.js     una funcion por endpoint de perfiles
+        │   ├── busqueda.js     resultados, pines, cercanos y ranking (P2)
         │   ├── clases.js       una funcion por endpoint de clases (P4)
         │   ├── pagos.js        una funcion por endpoint de pagos (P4)
-        │   └── agenda.js       por ahora solo verificar (lo usa 1g)
+        │   ├── agenda.js       huecos libres, verificar, franjas y bloqueos (P3)
+        │   ├── mensajeria.js   el chat y el contador de no leidos (P3)
+        │   └── resenas.js      dejar, editar y leer resenas (P3)
         ├── auth/
         │   ├── ContextoAuth.jsx  quien esta conectado (y su tema)
         │   └── RutaProtegida.jsx rutas que exigen sesion
@@ -177,18 +189,36 @@ exonero/
         │   ├── SelectorRol.jsx   las dos tarjetas del registro
         │   ├── Alerta.jsx        el cartel de error, de exito o de aviso
         │   ├── FormularioTarjeta.jsx los campos de una tarjeta (1g y 1e)
-        │   └── EnConstruccion.jsx marcador de las pantallas pendientes
+        │   ├── BotonMensaje.jsx  abre la conversacion con otra persona (1h)
+        │   ├── useNoLeidos.js    el contador de no leidos de la barra
+        │   ├── EnConstruccion.jsx marcador de las pantallas pendientes
+        │   ├── busqueda/         el mapa y la tabla de 1c (ver la seccion 8)
+        │   ├── inicio/           el mapa de 1a
+        │   ├── perfil-publico/   el mapa chico de 1f
+        │   ├── mapas/            lo comun a los tres mapas (zoom, easter egg)
+        │   ├── clases/           el calendario semanal y el detalle (1b y 1i)
+        │   └── resenas/          el resumen de resenas de una persona
         ├── paginas/
         │   ├── Login.jsx         HECHA
         │   ├── Registro.jsx      HECHA
         │   ├── RecuperarClave.jsx HECHA
-        │   ├── PerfilEstudiante.jsx  1e, HECHA
-        │   ├── PerfilProfesor.jsx    1j, HECHA
-        │   ├── Checkout.jsx      1g, HECHA
+        │   ├── InicioEstudiante.jsx  1a, HECHA
+        │   ├── MisClases.jsx     1b, HECHA
+        │   ├── BuscarProfesores.jsx  1c, HECHA
         │   ├── PanelProfesor.jsx 1d, HECHA
+        │   ├── PerfilEstudiante.jsx  1e, HECHA
+        │   ├── PerfilPublicoProfesor.jsx 1f, HECHA
+        │   ├── Checkout.jsx      1g, HECHA
+        │   ├── Mensajes.jsx      1h, HECHA
+        │   ├── AgendaProfesor.jsx    1i, HECHA
+        │   ├── PerfilProfesor.jsx    1j, HECHA
+        │   ├── RedactarResena.jsx    HECHA (se abre desde 1b y 1i)
         │   ├── perfil/           las piezas de 1e y 1j (ver la seccion 7)
         │   ├── checkout/         las piezas de 1g (ver la seccion 9)
-        │   └── panel/            las piezas de 1d y sus graficos (seccion 9)
+        │   ├── panel/            las piezas de 1d y sus graficos (seccion 9)
+        │   ├── mis-clases/       las piezas de 1b
+        │   ├── agenda/           las piezas de 1i (el editor de franjas lo usa tambien 1j)
+        │   └── mensajes/         la bandeja y la conversacion de 1h
         └── utiles/
             ├── validaciones.js
             ├── formato.js        iniciales, fechas, horas, importes, puntajes
@@ -219,11 +249,11 @@ barrio_id: Mapped[int | None] = mapped_column(ForeignKey("barrio.id"))
 #                                         no una importacion de catalogos
 ```
 
-La única excepción es `app/registro_modelos.py`, que importa los nueve módulos
-en un solo lugar. Existe por un motivo técnico: Alembic necesita ver las 24
-tablas juntas para poder comparar los modelos con la base. Si un módulo no
-aparece ahí, `autogenerate` cree que sus tablas no existen y escribe un
-`DROP TABLE`.
+La única excepción es `app/registro_modelos.py`, que importa los modelos de
+los ocho módulos que tienen tablas (`busqueda` no tiene) en un solo lugar.
+Existe por un motivo técnico: Alembic necesita ver las 25 tablas juntas para
+poder comparar los modelos con la base. Si un módulo no aparece ahí,
+`autogenerate` cree que sus tablas no existen y escribe un `DROP TABLE`.
 
 ---
 
@@ -259,7 +289,7 @@ aparece ahí, `autogenerate` cree que sus tablas no existen y escribe un
                        ▼                localhost:5433
    ┌──────────────────────────────────────────────┐
    │  PostgreSQL 16  (en Docker)                  │
-   │  24 tablas, 12 tipos ENUM                    │
+   │  25 tablas, 12 tipos ENUM                    │
    └──────────────────────────────────────────────┘
 ```
 
@@ -307,7 +337,7 @@ Cerrar sesión no tiene endpoint: es borrar el token del navegador.
 | `busqueda` | P2 | Los nueve filtros, orden, paginación, mapas y ranking | 0 |
 | `agenda` | P3 | Franjas, bloqueos y el cálculo de huecos libres | 2 |
 | `clases` | P4 | El ciclo de vida de la clase y las métricas del panel | 1 |
-| `pagos` | P4 | Tarjetas, cobro simulado, reembolso, historial e ingresos | 2 |
+| `pagos` | P4 | Tarjetas, cobro simulado, reembolso, historial, ingresos y cuentas de cobro | 3 |
 | `mensajeria` | P3 | Hilos, mensajes y no leídos | 2 |
 | `resenas` | P3 | Reseñas anónimas en los dos sentidos | 1 |
 
@@ -324,6 +354,7 @@ Cerrar sesión no tiene endpoint: es borrar el token del navegador.
   perfiles --> lee nombres de los catalogos por nombre de tabla,
                solo lectura (ver la seccion 7)
            --> cuentas.datos_basicos(), es_menor()
+           --> agenda.tiene_franjas()       para publicar la ficha
 
   busqueda --> perfiles.ficha_resumida()    completar los resultados
            --> catalogos.centroide_barrio() calcular distancias
@@ -342,6 +373,8 @@ Cerrar sesión no tiene endpoint: es borrar el token del navegador.
 
   pagos    --> cuentas.datos_basicos_varios()  el profesor de cada pago
                (lee la tabla clase "de lejos", ver la seccion 9)
+
+  mensajeria --> cuentas y perfiles, en lote  la otra persona de cada hilo
 
   resenas  --> clases.tuvieron_clase()      solo resena quien tuvo clase
            --> perfiles.escribir_puntaje()  guardar el promedio
@@ -534,8 +567,9 @@ con el valor viejo.
 
 #### 5. `useEffect` es para lo que pasa "además de dibujar"
 
-Pedirle datos al backend, poner un temporizador, escuchar un evento. Se usa
-una sola vez en todo el código actual, en `ContextoAuth.jsx`:
+Pedirle datos al backend, poner un temporizador, escuchar un evento. Casi
+todas las pantallas lo usan para cargar sus datos al entrar; el caso más
+simple está en `ContextoAuth.jsx`:
 
 ```jsx
 useEffect(() => {
@@ -738,7 +772,15 @@ sección 10).
 `sessionStorage` pero todavía no sabemos si sigue siendo válido. Hay que
 preguntarle al backend con `GET /usuarios/yo`. Durante ese instante, sin
 `cargando`, se vería el login parpadear antes de entrar. Por eso
-`RutaProtegida` muestra "Cargando..." mientras tanto.
+`RutaProtegida` muestra "Cargando..." mientras tanto. Si esa pregunta da 401,
+el token se descarta; si falla la red o el servidor, el token queda guardado
+(puede seguir valiendo) y al recargar se vuelve a probar.
+
+**Si el token vence con la app abierta:** cualquier pedido con sesión que
+reciba un 401 hace que `pedir()` (`api/cliente.js`) borre el token y dispare
+el evento `EVENTO_SESION_VENCIDA`. El contexto lo escucha y pone el usuario
+en `null`, y `RutaProtegida` manda al login. Los pedidos `sinToken` (login,
+registro) no cierran nada.
 
 ### Las rutas
 
@@ -748,7 +790,7 @@ padre:
 ```jsx
 <Route element={<RutaProtegida rol="estudiante" />}>   // exige sesion + rol
   <Route element={<Layout />}>                          // agrega la barra
-    <Route path="/inicio" element={<Inicio />} />       // la pantalla
+    <Route path="/inicio" element={<InicioEstudiante />} />  // la pantalla
   </Route>
 </Route>
 ```
@@ -827,7 +869,8 @@ export default function BuscarProfes() {
 }
 ```
 
-**3.** Importarla en `App.jsx` y reemplazar el `<EnConstruccion />` de esa ruta.
+**3.** Importarla en `App.jsx` y agregarle su `<Route>`, adentro de la
+`RutaProtegida` y el `Layout` que correspondan (como las de la tabla de arriba).
 
 **4.** Usar las clases del sistema de diseño (`card`, `btn`, `input`, `tag`),
 no escribir CSS nuevo salvo que sea algo muy específico de esa pantalla.
@@ -907,7 +950,7 @@ Lo que hace, en orden:
 El botón se deshabilita mientras se envía, para que no se pueda hacer doble
 clic y mandar dos logins.
 
-Abajo está el recuadro verde de **usuarios de prueba**, como en el mockup.
+Abajo está el recuadro dorado de **usuarios de prueba**, como en el mockup.
 Sus dos botones (**Alumno** y **Profe**) completan el formulario con
 `alumno1@example.com` o `profe1@example.com` y la clave `exonero123`, los
 usuarios que crea `python -m app.seeds`. Es solo para probar rápido: no
@@ -1079,7 +1122,7 @@ la base sin cerrar la transacción (sirve para que la base asigne el `id`).
 | `POST /auth/recuperar` | No | Imprime un código en la consola del backend. Responde 200 siempre | — |
 | `POST /auth/restablecer` | No | Con el código, cambia la clave | 409 `codigo_invalido` |
 | `GET /usuarios/yo` | Sí | El usuario, con contador de mensajes y cabecera del estudiante | — |
-| `PATCH /usuarios/yo` | Sí | Nombre, apellido, documento, teléfono, nacimiento | 400 `nombre_requerido`, 400 `fecha_invalida`, 409 `documento_ya_registrado` |
+| `PATCH /usuarios/yo` | Sí | Nombre, apellido, documento, teléfono, nacimiento | 400 `nombre_requerido`, 400 `apellido_requerido`, 400 `fecha_invalida`, 409 `documento_ya_registrado` |
 | `PUT /usuarios/yo/foto` | Sí | Foto de perfil en base64 | 400 `foto_invalida`, 400 `foto_muy_grande` |
 | `PUT /usuarios/yo/clave` | Sí | Cambia la clave (pide la actual) | 403 `clave_actual_incorrecta` |
 | `PUT /usuarios/yo/tema` | Sí | `claro` u `oscuro` | 422 si es otra cosa |
@@ -1118,7 +1161,7 @@ modelos). Están implementadas y probadas:
 | Función | La usa | Devuelve |
 |---|---|---|
 | `cuentas.obtener_usuario(db, id)` | Todos | El `Usuario`, o `None` |
-| `cuentas.datos_basicos(db, id)` | mensajería, clases, reseñas | `{id, nombre, apellido, foto_base64, rol}` |
+| `cuentas.datos_basicos(db, id)` | perfiles; su versión en lote, `datos_basicos_varios(db, ids)`, la usan perfiles, clases, pagos y mensajería | `{id, nombre, apellido, foto_base64, rol}` |
 | `cuentas.es_menor(db, id)` | perfiles | `True` si tiene menos de 18 |
 | `perfiles.perfil_profesor_de(db, usuario_id)` | agenda | El `PerfilProfesor` (ojo: recibe el id del **usuario**) |
 | `perfiles.reglas_profesor(db, perfil_id)` | agenda | Duraciones, descanso, tope y aviso (ojo: recibe el id del **perfil**) |
@@ -1140,13 +1183,14 @@ está hecho para tolerar que todavía no exista:
 |---|---|---|
 | `mensajeria.contar_no_leidos()` | P3 | `GET /usuarios/yo` responde `mensajes_no_leidos: 0` (ver `_contar_no_leidos` en `cuentas/rutas.py`). Sin esto, nadie podría entrar a la app |
 | `GET /api/catalogos/todo` | P2 | 1e y 1j muestran un aviso, y los desplegables de barrio, centro, etapa, materias e idiomas quedan con el valor actual y deshabilitados. El resto se puede editar |
-| Saber si el profesor tiene franjas de disponibilidad | P3 | Para publicar se exige materia y precio, pero todavía no franjas. El lugar del chequeo está marcado en `perfiles/logica.py` (`cambiar_estado_ficha`) |
+| Saber si el profesor tiene franjas de disponibilidad | P3 | **Ya está**: para publicar se exige materia, precio y al menos una franja (`cambiar_estado_ficha` en `perfiles/logica.py` le pregunta a `agenda.tiene_franjas()`) |
 | Tarjetas guardadas | P4 | **Ya está**: P4 hizo la pestaña "Medios de pago" de 1e (sección 9) |
-| Reseñas recibidas | P3 | La pestaña "Mis reseñas" de 1e muestra "pendiente, le toca a P3" |
+| Reseñas recibidas | P3 | **Ya está**: P3 hizo la pestaña "Mis reseñas" de 1e (`componentes/resenas/ResumenResenas.jsx`) |
 
-Cuando cada uno termine su parte, lo de P1 empieza a usarla **sin cambiar nada**:
-el `try/except NotImplementedError` deja de activarse solo, y los
-desplegables se habilitan apenas `GET /api/catalogos/todo` responda.
+Hoy los demás ya terminaron su parte, y lo de P1 la usa **sin haber cambiado
+nada**: el `try/except NotImplementedError` sigue ahí como red, pero ya no se
+activa, y los desplegables se habilitan porque `GET /api/catalogos/todo`
+responde.
 
 ### Decisiones que conviene conocer
 
@@ -1188,9 +1232,11 @@ portada, y solo puede haber una portada.
 dirección a coordenadas). Cuando se elige un barrio, el frontend manda la
 latitud y longitud del centro de ese barrio, que vienen en el catálogo.
 
-**Publicar exige lo mínimo.** Al menos una materia y el precio de cada
-modalidad que ofrece (si da presencial y online, los dos precios). Sin eso no
-se podría cotizar una clase.
+**Publicar exige lo mínimo.** Al menos una materia, el precio de cada
+modalidad que ofrece (si da presencial y online, los dos precios) y al menos
+una franja de disponibilidad. Sin lo primero no se podría cotizar una clase;
+sin franjas, el calendario de 1f saldría vacío. Si falta algo, 400
+`ficha_incompleta`.
 
 **Darse de baja no borra nada.** La cuenta queda `dada_de_baja`: no puede
 entrar y su token deja de servir. Las clases, cobros y reseñas se conservan
@@ -1220,7 +1266,7 @@ Las dos pantallas tienen el mismo esqueleto, el del mockup:
   |                                           pestania elegida
   +-- MenuLateral         las pestanias, modo oscuro, cerrar sesion
   |                       (en 1j, ademas: % completo y publicar/pausar)
-  +-- CabeceraPerfil      la tarjeta verde: foto, nombre, etiquetas,
+  +-- CabeceraPerfil      la tarjeta dorada: foto, nombre, etiquetas,
   |                       boton "Cambiar foto"
   +-- la seccion de la pestania elegida (una sola a la vez)
 ```
@@ -1230,7 +1276,7 @@ Las piezas están en `src/paginas/perfil/`:
 | Archivo | Qué es | Lo usa |
 |---|---|---|
 | `MenuLateral.jsx` | El menú de la izquierda | 1e y 1j |
-| `CabeceraPerfil.jsx` | La tarjeta verde con la foto | 1e y 1j |
+| `CabeceraPerfil.jsx` | La tarjeta dorada con la foto | 1e y 1j |
 | `SeccionClave.jsx` | Cambiar la contraseña y darse de baja | 1e y 1j |
 | `SeccionPersonalEstudiante.jsx` | "Información personal" del estudiante | 1e |
 | `SeccionDatosProfesor.jsx` | "Información personal" del profesor | 1j |
@@ -1295,7 +1341,7 @@ opción con el valor actual → los campos se deshabilitan y aparece el aviso.
 | "Materias en las que buscás apoyo" (1e) | No hay tabla para eso en el perfil del estudiante |
 | "Precio por alumno en grupal" y "misma etapa" | No están en el modelo, y lo grupal está fuera de la v1 |
 | "Ver mi ficha pública" (1j) | La ficha pública es la pantalla 1f, que es de P2 y solo pueden abrirla los estudiantes |
-| La etapa "Primaria" | Las etapas salen del catálogo, y la lista que manda no la tiene (sección 13) |
+| La etapa "Primaria" | Las etapas salen del catálogo, y la lista que manda (la del mockup, en `ETAPAS` de `app/seeds.py`: Ciclo básico, Bachillerato, UTU, Universidad y Examen de ingreso) no la tiene |
 | Arrastrar fotos a cada espacio | Se elige el archivo con un clic: más simple y funciona igual con teclado |
 
 ---
@@ -1303,10 +1349,10 @@ opción con el valor actual → los campos se deshabilitan y aparece el aviso.
 ## 8. Catálogos y búsqueda (P2), de punta a punta
 
 P2 es dueño de `catalogos`, `busqueda` y las pantallas 1a, 1c y 1f. Catálogos,
-los cuatro endpoints del backend y las pantallas 1c y 1f ya están
+los cuatro endpoints del backend y las pantallas 1a, 1c y 1f ya están
 implementados. Los filtros alimentan la tabla y el mapa con datos reales; la
-ficha pública consume el perfil, cotiza la reserva y queda preparada para los
-horarios y reseñas que implementa P3.
+ficha pública consume el perfil, cotiza la reserva y muestra los horarios y
+las reseñas que implementó P3.
 
 ### Probar el panel en dos minutos
 
@@ -1320,7 +1366,7 @@ horarios y reseñas que implementa P3.
 7. Pulsar "Limpiar": todos los controles deben volver a su valor inicial.
 8. Elegir un barrio o centro y comprobar que el mapa se acerca a esa zona.
 9. Comprobar que cambian el total, las filas y los pines con cada filtro.
-10. Pulsar un pin y abrir su globo; "Ver Profesor" debe navegar a `/profesor/{id}`.
+10. Pulsar un pin y abrir su globo; "Ver profesor" debe navegar a `/profesor/{id}`.
 
 ### Los archivos de P2 que participan
 
@@ -1342,7 +1388,8 @@ horarios y reseñas que implementa P3.
 | `frontend/src/paginas/InicioEstudiante.jsx` | Coordina la pantalla 1a: próxima clase, mapa, cercanos y ranking |
 | `frontend/src/componentes/inicio/MapaInicio.jsx` | Mapa grande de 1a, ubicación del estudiante, pines y leyenda |
 | `frontend/src/componentes/perfil-publico/MapaUbicacionProfesor.jsx` | Mapa pequeño de la ubicación aproximada |
-| `frontend/src/api/resenas.js` | Lectura de reseñas de 1f; funcionará cuando P3 complete la ruta |
+| `frontend/src/componentes/mapas/SenalBatman.jsx` | El easter egg de los tres mapas, solo en modo oscuro (ver "El mapa y sus pines") |
+| `frontend/src/api/resenas.js` | Lectura de reseñas de 1f (el módulo es de P3) |
 | `frontend/src/estilos/perfil-publico.css` | Diseño adaptable de la ficha pública |
 | `frontend/src/componentes/CampoSelect.jsx` | Selector reutilizable que ya compartían los perfiles |
 | `frontend/src/api/perfiles.js` | Contiene temporalmente `obtenerCatalogos()` |
@@ -1350,8 +1397,15 @@ horarios y reseñas que implementa P3.
 En la ficha pública 1f, la galería usa solamente las fotos devueltas por
 `ficha.fotos`. Si no hay ninguna, muestra el estado vacío "No se cargaron
 fotos del lugar" en vez de simular cuatro imágenes. Los datos de prueba
-incluyen una foto del espacio de `profe1@example.com` para poder comprobar el
-caso con contenido; los demás profesores permiten probar el estado vacío.
+incluyen una foto del espacio de `profe1@example.com` (y la misma foto de
+ejemplo en algunos de los profesores nuevos que reciben en su espacio) para
+poder comprobar el caso con contenido; el resto permite probar el estado vacío.
+
+Si el profesor está en el podio de 1a (los tres de `GET
+/api/busqueda/mejor-puntuados`, con la etapa del alumno, el mismo pedido que
+hace el inicio), la ficha sale **dorada**: la cabecera con
+`.publico-cabecera-dorada` y la medalla "Mejor rankeado del momento" con su
+puesto (`perfil-publico.css`). Si ese pedido falla, la ficha sale normal.
 
 `obtenerCatalogos()` está en `api/perfiles.js` porque P1 lo necesitó primero
 para 1e y 1j. Cuando P2 cree `api/catalogos.js`, se mueve ahí y se actualizan
@@ -1377,8 +1431,9 @@ App.jsx
 Las cinco lecturas son independientes: si falla la próxima clase, el mapa y
 los profesores cercanos igual se muestran. El carrusel usa primero el centro
 educativo del estudiante y, si no tiene, su barrio. El ranking no inventa
-resultados: el backend exige al menos cinco reseñas y, mientras P3 no las
-cargue, 1a muestra el estado vacío correspondiente.
+resultados: el backend exige al menos cinco reseñas y, si nadie llega, 1a
+muestra el estado vacío correspondiente. Los tres del podio salen también
+en dorado en el mapa ("Mejor rankeado" en la leyenda).
 
 ### Cómo está armada la pantalla 1c
 
@@ -1498,6 +1553,15 @@ Con los mismos parámetros de la tabla, el frontend pide
 `Marker` con inicial; al tocarlo abre un `Popup` con nombre, puntaje, precio y
 enlace al perfil. La zona elegida se dibuja con un `Circle` de tres kilómetros.
 
+Los tres mapas (1a, 1c y 1f) tienen además un easter egg,
+`componentes/mapas/SenalBatman.jsx`: **solo en modo oscuro**, si se aleja el
+mapa hasta Estados Unidos aparece en el centro del país un pin del mismo
+tamaño que el de un profe, con el símbolo de Batman
+(`assets/senal-batman.svg`), y su popup lo presenta como el "Caballero de la
+Noche". No es un profe de la base y no lleva a ninguna ficha. No se enfoca
+con el teclado (`keyboard={false}`), para que quien recorre la página con Tab
+no se tope con un pin que no está en pantalla.
+
 ### El backend de búsqueda
 
 Los cuatro endpoints son públicos: una persona puede explorar profesores antes
@@ -1595,11 +1659,13 @@ etapa y desempata por cantidad de reseñas.
 
 #### La dependencia con P3
 
-P2 ya llama a las dos funciones públicas acordadas con agenda. Mientras P3 no
-implemente `primera_hora_libre()`, el campo opcional de las búsquedas básicas
-sale en `null`; esto permite desarrollar P2 y P3 en paralelo. Los filtros
-explícitos `dia` o `franja` sí necesitan `filtrar_con_hueco()` y quedarán
-operativos cuando P3 complete esa función. No se duplicó ningún cálculo de
+P2 llama a las dos funciones públicas acordadas con agenda, y P3 ya las
+implementó. `primera_hora_libre()` completa la próxima hora libre de los
+resultados de 1c y de `cercanos` (con `con_hueco=true`); si levantara
+`NotImplementedError`, el campo saldría en `null` sin romper la búsqueda
+(`_primeras_horas_disponibles` en `busqueda/logica.py`): así se pudieron
+desarrollar P2 y P3 en paralelo. Los filtros explícitos `dia`
+o `franja` usan `filtrar_con_hueco()`. No se duplicó ningún cálculo de
 disponibilidad dentro de búsqueda.
 
 ### Limpiar sin duplicar estado
@@ -1666,9 +1732,10 @@ una espera breve; la limpieza del efecto ignora respuestas viejas. La tabla
 muestra la primera página de veinte y controles de paginación solo cuando son
 necesarios. El mapa usa exactamente los mismos filtros.
 
-Lo único que depende de otro equipo son los filtros de día y franja y la
-próxima hora libre: se habilitarán cuando P3 complete las funciones públicas de
-agenda. No bloquean materia, etapa, ubicación, precio, modalidad ni puntaje.
+Los filtros de día y franja y la próxima hora libre dependen de agenda (P3),
+que ya implementó sus funciones: el backend los acepta y los calcula, pero el
+panel de 1c no tiene controles para día y franja, y la tabla no muestra la
+próxima hora libre (`proxima_hora_libre`, que el backend ya manda).
 
 ---
 
@@ -1838,8 +1905,8 @@ Todas reciben ids de **usuario** (no de perfil) e instantes con zona.
 | `resenas.resena_de()` | P3 | `mi_resena` viene en `null` en mis-profesores y mis-alumnos (`_mis_resenas`) |
 
 Es el mismo truco que usa P1 con `mensajeria.contar_no_leidos()`: un
-`try/except NotImplementedError`. Cuando P3 las implemente, P4 las empieza a usar
-**sin cambiar nada**.
+`try/except NotImplementedError`. P3 ya las implementó, y P4 las usa **sin
+haber cambiado nada**: el `except` sigue ahí, pero ya no se activa.
 
 De P1 hacían falta cinco funciones que no existían. Se **agregaron**, en el
 mismo estilo, y ninguna de las que había cambió:
@@ -1895,6 +1962,11 @@ no, se ignora: no es un error. La ubicación que se guarda en la clase es la
 dirección del alumno si el profesor va (o si solo da clases a domicilio), la del
 espacio del profesor si no, y un enlace simulado
 (`https://meet.exonero.test/clase-<id>`) si es online, igual que en los seeds.
+El que decide `con_traslado` es 1f (`PerfilPublicoProfesor.jsx`), en presencial:
+si el profesor solo va a domicilio lo manda siempre (y la tarjeta lo avisa:
+"Viene a tu casa: incluye $ … de traslado"); si da en los dos lugares, lo
+manda solo si el alumno marcó "Que venga a mi casa". Con eso cotiza, y pasa
+`traslado=1` al checkout para que 1g cotice y cobre lo mismo.
 
 **Crear es una sola transacción.** La clase se inserta, se hace `flush` para
 tener su id, y `pagos.retener()` crea el cobro. Si la tarjeta falla, el error
@@ -1903,11 +1975,11 @@ no queda ni la clase ni el cobro. La tarjeta tiene que ser del alumno y estar
 activa; si es de otro, también 404 `tarjeta_no_existe` (no hace falta confirmarle
 que existe).
 
-**Dos controles propios, mientras agenda no está.** Un horario que **ya pasó**
-nunca está libre: sin agenda nada impediría reservar ayer (cuando P3 implemente
-`verificar()` lo rechaza igual, por el aviso mínimo). Y el **mismo alumno** no
-puede pedirle dos veces un rato que se cruza al mismo profesor: es un doble clic
-en confirmar, y dejaría dos cobros retenidos. Los dos responden 409
+**Dos controles propios, además de agenda.** Un horario que **ya pasó**
+nunca está libre: sin agenda nada impediría reservar ayer (`verificar()` lo
+rechaza igual, por el aviso mínimo, así que no se pisan). Y el **mismo
+alumno** no puede pedirle dos veces un rato que se cruza al mismo profesor: es
+un doble clic en confirmar, y dejaría dos cobros retenidos. Los dos responden 409
 `horario_ocupado`. Alumnos distintos sí pueden pedir el mismo horario: el
 profesor elige cuál aprueba.
 
@@ -1933,7 +2005,9 @@ encontrar el cobro por la clase. El historial del alumno filtra por
 `tarjeta.usuario_id` (la tarjeta es suya, `retener` siempre la guarda y su baja es
 lógica) con un `LEFT JOIN` a `clase`: así aparecen también los cobros liberados de
 las rechazadas, con `clase_id`, `materia` y `contraparte` en `null`. El frontend
-los muestra como "Solicitud rechazada".
+los muestra como "Solicitud rechazada". Un cobro también queda liberado cuando
+se cancela una clase pendiente, pero ahí la clase sigue existiendo: por eso un
+liberado **con** `clase_id` se muestra como "Solicitud cancelada".
 
 **Cancelar: liberado o en proceso.** La decisión la toma el estado del cobro, no
 el de la clase. Si estaba `retenido` (la clase todavía pendiente), se **libera en
@@ -1942,8 +2016,14 @@ aprobada), se encola `pagos.reembolsar()` como `BackgroundTask` y la respuesta
 vuelve al instante con `"en_proceso"`. La tarea corre después del commit de la
 ruta, abre su propia `SesionLocal()`, bloquea la fila con `FOR UPDATE`, es
 idempotente (si el cobro ya está reembolsado no hace nada) y cierra la sesión
-siempre, en un `finally`. El importe es **el total, siempre** (ver la sección
-13.2).
+siempre, en un `finally`. El importe es **el total, siempre**, la cancele quien
+la cancele: la política de cancelación (si hay un plazo mínimo para devolver
+todo) sigue sin decidir, y está marcada con un comentario "PENDIENTE DE
+DECIDIR" en `clases.logica.cancelar()` y `pagos.logica.reembolsar()`. Si se
+decide un plazo, el lugar es `cancelar()`, que tiene la clase y sabe quién
+cancela. Un reembolso **parcial** no entra en el modelo actual: el cobro tiene
+un solo `importe` y un estado, así que haría falta una columna nueva en
+`cobro` (por ejemplo, `importe_reembolsado`), o sea una migración.
 
 **Reprogramar.** Cualquiera de las dos partes, sobre una pendiente o una
 aprobada. La clase vuelve a `pendiente` y el profesor la tiene que aprobar de
@@ -2172,9 +2252,9 @@ y ofrece volver a buscar, sin romperse. El contrato completo está comentado
 arriba de `Checkout.jsx`.
 
 1f ya construye ese enlace con `URLSearchParams` cuando el alumno selecciona
-un hueco real. Mientras `GET /agenda/profesores/{id}/disponibilidad` siga sin
-implementar, muestra el estado de agenda no disponible y mantiene “Reservar”
-deshabilitado: no inventa fechas ni crea una reserva inválida.
+un hueco real. Si `GET /agenda/profesores/{id}/disponibilidad` falla, muestra
+el estado de agenda no disponible y mantiene “Reservar” deshabilitado: no
+inventa fechas ni crea una reserva inválida.
 
 | Archivo | Qué es |
 |---|---|
@@ -2193,10 +2273,10 @@ deshabilitado: no inventa fechas ni crea una reserva inválida.
 
 Tres detalles:
 
-- **`agenda/verificar` todavía responde 500** (es de P3). El checkout sigue como
-  si el horario estuviera libre: `POST /clases` vuelve a chequear y la base
-  tiene la `EXCLUDE`. Cuando P3 lo implemente, un `{libre: false, motivo}` muestra
-  un mensaje distinto por motivo y deshabilita confirmar.
+- **Si `agenda/verificar` falla** (es de P3), el checkout sigue como si el
+  horario estuviera libre: `POST /clases` vuelve a chequear y la base tiene la
+  `EXCLUDE`. Si responde `{libre: false, motivo}`, muestra un mensaje distinto
+  por motivo y deshabilita confirmar.
 - **"Guardar esta tarjeta" sin marcar** igual da de alta la tarjeta (el cobro
   necesita una), y la da de baja apenas se crea la clase. Si la reserva falla
   (por ejemplo, la tarjeta rechaza el pago), también se da de baja: no quedan
@@ -2218,8 +2298,10 @@ Tres detalles:
 
 En el historial, el estado del cobro va como etiqueta: retenido = "Pendiente de
 aprobación", cobrado = "Pagado", liberado = "Solicitud rechazada · no se
-cobró", reembolsado = "Reembolsado". En los liberados, `materia`,
-`contraparte` y `clase_id` pueden venir en `null` (la clase se borró).
+cobró" (o "Solicitud cancelada · no se cobró" si trae `clase_id`: se canceló
+estando pendiente), reembolsado = "Reembolsado". En los liberados de una
+rechazada, `materia`, `contraparte` y `clase_id` vienen en `null` (la clase se
+borró).
 
 #### 1d · Panel del profesor (`/panel`, solo profesor)
 
@@ -2338,10 +2420,10 @@ Detalles:
 
 | Qué | Por qué |
 |---|---|
-| Reembolsos parciales según la anticipación | La política de cancelación no está decidida (sección 13.2). Hoy se devuelve el total |
+| Reembolsos parciales según la anticipación | La política de cancelación no está decidida (ver "Cancelar: liberado o en proceso", arriba). Hoy se devuelve el total |
 | Que la materia de la reserva sea una de las que dicta el profesor | Se valida que exista en el catálogo, no que el profesor la dé: `ficha_resumida()` trae los nombres y no los ids. Se puede sumar con una función chica en perfiles |
 | Que las solicitudes pendientes venzan solas | La spec dice "sin expiración automática" |
-| Validar el horario contra la agenda | Es de P3 (`agenda.verificar()`); P4 ya la llama y la va a usar sola |
+| Validar el horario contra la agenda | Es de P3 (`agenda.verificar()`), y P4 la llama al crear y al reprogramar: no hace falta repetirla en `clases` |
 | Reintentar un reembolso que falló | La `BackgroundTask` corre una vez. Si justo se cae el servidor entre la respuesta y la tarea, el cobro queda `cobrado` con la clase `cancelada`. Con un cobro simulado no vale la complejidad; con una pasarela real haría falta una cola con reintentos o un barrido de esos casos |
 | Que el promedio por clase cuente solo lo dictado | `promedio_por_clase` es lo cobrado del período sobre las dictadas del período, como pide la spec. Lo cobrado incluye las aprobadas que todavía no se dieron, así que a principio de mes puede salir alto |
 | Que el profesor marque como dictada solo una clase que ya pasó | No se exige: con los seeds, las aprobadas están todas en el futuro, y no se podría probar completar |
@@ -2358,18 +2440,21 @@ ver igual al diseño sin esfuerzo.
 
 ### Los colores
 
+Los colores ya no son los de Organic: son los de `Exonero Demo.html` (sección
+8), definidos una sola vez en `tokens.css`.
+
 | Variable | Valor | Para qué |
 |---|---|---|
-| `--color-bg` | `#f5ead8` | El fondo crema de toda la app |
-| `--color-surface` | `#ebddc5` | Tarjetas e inputs, un tono más oscuro |
-| `--color-text` | `#201e1d` | Casi negro, cálido |
-| `--color-accent` | `#c67139` | Terracota: botones primarios, links, activo |
-| `--color-accent-2` | `#7a8a5e` | Verde oliva: acento secundario |
+| `--color-bg` | `#e6edf5` | El fondo azul claro de toda la app |
+| `--color-surface` | `#ffffff` | Paneles, tarjetas e inputs |
+| `--color-text` | `#13284c` | Texto y encabezados, azul oscuro |
+| `--color-accent` | `#4d7fb3` | Azul: botones primarios, links, activo |
+| `--color-accent-2` | `#b08a1e` | Dorado: acento secundario, el de lo destacado (el podio, los pines de los mejor rankeados, las estrellas, la ficha de un profe del podio). Antes era marrón |
 
 Además hay tres **rampas tonales** de nueve pasos: `--color-neutral-100` a
-`900`, `--color-accent-100` a `900`, y `--color-accent-2-100` a `900`. Están
-generadas sobre una misma escala de luminosidad, así que el paso 500 del
-naranja y el 500 del verde se ven igual de oscuros.
+`900`, `--color-accent-100` a `900`, y `--color-accent-2-100` a `900`, del
+100 (el más claro) al 900 (el más oscuro). En modo oscuro se invierten: el
+100 pasa a ser el más oscuro.
 
 ### Las tipografías
 
@@ -2433,7 +2518,7 @@ Y estas, que se sumaron con las pantallas de perfil:
 <input type="file" class="oculto-visual">
 ```
 
-Los estilos propios de 1e y 1j (el menú lateral, la cabecera verde, los
+Los estilos propios de 1e y 1j (el menú lateral, la cabecera dorada, los
 paneles, el interruptor) están en `estilos/perfil.css`.
 
 ### El modo oscuro
@@ -2442,8 +2527,10 @@ Está en `tokens.css`, debajo de los colores normales:
 
 ```css
 :root[data-tema='oscuro'] {
-  --color-bg: #172235;
-  --color-accent: #6a95c4;   /* en oscuro el acento pasa a azul */
+  --color-bg: #0b0b0b;
+  --color-surface: #242424;
+  --color-accent: #6288ae;   /* el mismo azul, más claro y apagado */
+  --color-accent-2: #d9b44a; /* el dorado, más claro sobre el fondo oscuro */
   ...
 }
 ```
@@ -2465,11 +2552,11 @@ segmentado tienen `border-radius: 999px`. Las tarjetas y los diálogos usan
 redondeado al diseño.
 
 **Las sombras están tintadas** con el color del texto, no con negro puro. Sobre
-un fondo crema, una sombra negra se ve sucia.
+un fondo claro, una sombra negra se ve sucia. (En modo oscuro sí son negras.)
 
 ### La regla
 
-**Nunca escribas un color suelto.** Ni `#c67139`, ni `rgb(198,113,57)`. Siempre
+**Nunca escribas un color suelto.** Ni `#4d7fb3`, ni `rgb(77,127,179)`. Siempre
 `var(--color-accent)`. Así cambiar el acento en `tokens.css` lo cambia en toda
 la aplicación.
 
@@ -2514,9 +2601,8 @@ Es el flujo más largo y el que toca más módulos:
 ```
   1f Detalle del profesor
      GET /profesores/{id}                     la ficha
-     GET /agenda/profesores/{id}/disponibilidad  los huecos libres
+     GET /agenda/profesores/{id}/disponibilidad  los huecos libres (primera vez)
      POST /clases/cotizar                     el importe estimado
-     POST /agenda/verificar                   sigue libre? (primera vez)
         |
         v
   1g Checkout

@@ -58,6 +58,11 @@
   font-size: 12.5px;
   font-weight: 700;
 }
+/* En oscuro la rampa se invierte: el 500 queda claro y el texto bajaba a
+   3:1 en ese extremo. Con 300 -> 400 todo el texto queda arriba de 4,5:1. */
+:root[data-tema='oscuro'] .publico-medalla {
+  background: linear-gradient(135deg, var(--color-accent-2-300), var(--color-accent-2-400));
+}
 .publico-medalla-puesto {
   display: inline-grid;
   place-items: center;
@@ -145,6 +150,7 @@
 .publico-resena div span { color: color-mix(in srgb, var(--color-text) 55%, transparent); font-size: 12px; }
 .publico-resena p { margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 80%, transparent); font-size: 13.5px; line-height: 1.55; }
 .publico-resenas-vacio { padding: 22px; border: 1px dashed var(--color-divider); border-radius: 28px; color: color-mix(in srgb, var(--color-text) 60%, transparent); font-size: 13px; text-align: center; }
+.publico-resenas-mas { justify-content: center; margin-top: 12px; }
 
 .publico-lateral { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 16px; }
 .publico-resumen { padding: 22px; border-radius: 36px; background: var(--color-bg); box-shadow: var(--shadow-md); }
@@ -158,6 +164,9 @@
 .publico-segmentado button { flex: 1 0 auto; padding: 9px 11px; border: 0; color: var(--color-text); background: transparent; font: inherit; font-size: 12.5px; cursor: pointer; }
 .publico-segmentado button + button { border-left: 1px solid var(--color-divider); }
 .publico-segmentado button.esta-activo { color: var(--color-bg); background: var(--color-accent); }
+.publico-traslado { display: flex; align-items: center; gap: 8px; margin: 0; color: color-mix(in srgb, var(--color-text) 75%, transparent); font-size: 12.5px; }
+.publico-traslado input { width: 16px; height: 16px; margin: 0; accent-color: var(--color-accent); }
+.publico-resumen > .publico-total-aviso { margin: -6px 0 14px; color: var(--color-error); font-size: 12px; }
 .publico-total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 16px 0 14px; padding-top: 14px; border-top: 1px solid var(--color-divider); }
 .publico-total span { color: color-mix(in srgb, var(--color-text) 60%, transparent); font-size: 13px; }
 .publico-total strong { font-family: var(--font-heading); font-size: 24px; font-weight: var(--font-heading-weight); }

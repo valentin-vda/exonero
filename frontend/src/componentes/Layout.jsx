@@ -78,12 +78,15 @@ export default function Layout() {
           <span>Exonero</span>
         </Link>
 
+        {/* Con el menu cerrado, los no leidos se ven sobre el boton (el CSS
+            dibuja data-sin-leer) y se dicen en el aria-label. */}
         <button
           type="button"
           className="nav-hamburguesa"
-          aria-label={menuAbierto ? 'Cerrar menú' : 'Abrir menú'}
+          aria-label={menuAbierto ? 'Cerrar menú' : `Abrir menú${sinLeer > 0 ? `, ${sinLeer} ${sinLeer === 1 ? 'mensaje' : 'mensajes'} sin leer` : ''}`}
           aria-expanded={menuAbierto}
           aria-controls="menu-principal"
+          data-sin-leer={!menuAbierto && sinLeer > 0 ? sinLeer : undefined}
           onClick={() => setMenuAbierto((abierto) => !abierto)}
         >
           <span />

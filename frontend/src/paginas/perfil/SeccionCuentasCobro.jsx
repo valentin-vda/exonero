@@ -292,6 +292,10 @@ export default function SeccionCuentasCobro() {
       })
     } catch (error) {
       setMensaje({ tipo: 'error', texto: mensajeDeError(error.codigo) })
+      // El mensaje sale arriba de la lista: en el celular queda fuera de la
+      // pantalla, y el foco se perdio con el boton deshabilitado. El titulo
+      // esta justo arriba: enfocarlo trae los dos a la vista.
+      volverAlTitulo()
     } finally {
       setOcupado(false)
     }
@@ -459,6 +463,7 @@ export default function SeccionCuentasCobro() {
                 error={errores.titular}
                 autoComplete="name"
                 placeholder={`${usuario.nombre} ${usuario.apellido}`}
+                maxLength={120} // el tope del backend: con mas, responde un 422 generico
               />
             </>
           ) : (

@@ -31,6 +31,8 @@
 
 .inicio-pin { display: grid; place-items: center; border: 2px solid var(--color-surface); border-radius: 50%; color: white; background: var(--color-accent); box-shadow: var(--shadow-md); font-family: var(--font-heading); font-size: 15px; }
 .inicio-pin-destacado { background: var(--color-accent-2); }
+/* En oscuro el dorado es claro y la letra blanca no se leia (2:1). */
+:root[data-tema='oscuro'] .inicio-pin-destacado { color: var(--color-accent-2-100); }
 
 .inicio-reservar-ya { position: absolute; z-index: 550; bottom: 0; left: 50%; min-width: 190px; padding: 13px 24px; transform: translate(-50%, 50%); border: 3px solid var(--color-bg); border-radius: 999px; color: white; background: var(--color-azul-heading); font-family: var(--font-heading); font-size: 18px; text-align: center; text-decoration: none; box-shadow: var(--shadow-md); }
 .inicio-reservar-ya:hover { background: color-mix(in srgb, var(--color-azul-heading) 86%, white); }
@@ -77,6 +79,9 @@
   .inicio-proxima-info { flex-basis: calc(100% - 80px); }
   .inicio-proxima-acciones { width: 100%; justify-content: flex-end; }
   .inicio-ranking { grid-template-columns: 1fr; }
+  /* El boton Reservar cae sobre el borde de abajo del mapa y, en angosto,
+     tapaba la leyenda: la leyenda sube por encima de el. */
+  .inicio-mapa-leyenda { bottom: 44px; }
 }
 
 @media (max-width: 620px) {
@@ -85,7 +90,11 @@
   .inicio-proxima-info { flex-basis: calc(100% - 70px); }
   .inicio-proxima-acciones { justify-content: flex-start; flex-wrap: wrap; }
   .inicio-mapa { height: 380px; }
-  .inicio-mapa-leyenda { right: 12px; bottom: 12px; left: 12px; justify-content: center; }
+  /* En angosto Reservar llega hasta la atribucion: la atribucion y el zoom
+     suben por encima del boton, y la leyenda por encima de la atribucion,
+     sin estirarse a todo el ancho para dejar libre el zoom. */
+  .inicio-mapa .leaflet-bottom { bottom: 30px; }
+  .inicio-mapa-leyenda { bottom: 54px; left: 12px; max-width: calc(100% - 68px); flex-wrap: wrap; row-gap: 4px; }
   .inicio-seccion-cabecera { align-items: flex-start; flex-direction: column; }
   .inicio-carrusel { grid-auto-columns: minmax(250px, 88vw); }
 }

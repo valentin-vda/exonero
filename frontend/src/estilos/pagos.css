@@ -362,13 +362,29 @@
   border-radius: 28px;
   background: var(--color-bg);
 }
-.tarjeta-fila .medio-datos { flex: 1 1 180px; }
+.tarjeta-fila .medio-datos {
+  flex: 1 1 180px;
+  /* Que el nombre no se angoste menos que su palabra mas larga (en un correo
+     de Mercado Pago, lo que va antes del <wbr>): si al lado de los botones no
+     entra, bajan los botones y el correo corta antes de la arroba. Si ni a lo
+     ancho de la fila entra, manda el max-width y break-word lo corta donde
+     sea (anywhere tambien, pero achica la palabra mas larga a una letra). */
+  min-width: auto;
+  max-width: 100%;
+}
+.tarjeta-fila .medio-nombre { overflow-wrap: break-word; }
 .tarjeta-acciones {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-left: auto;
+}
+/* La pregunta de "Quitar" puede nombrar un correo largo ("Los cobros pasan a
+   Mercado Pago · ..."): sin esto no se angosta y se sale de la tarjeta. */
+.tarjeta-acciones .texto-chico {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* El formulario de "Agregar medio de pago" */

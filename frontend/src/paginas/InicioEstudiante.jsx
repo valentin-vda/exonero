@@ -49,9 +49,20 @@ function finClase(clase) {
   return new Date(new Date(clase.inicio).getTime() + clase.duracion_min * 60_000).toISOString()
 }
 
-function cuentaRegresiva(minutos) {
+// Dias de calendario (en Montevideo) entre hoy y la fecha de la clase.
+function diasHasta(inicio) {
+  const dia = (fecha) => Date.parse(fecha.toLocaleDateString('en-CA', { timeZone: ZONA }))
+  return Math.round((dia(new Date(inicio)) - dia(new Date())) / 86_400_000)
+}
+
+// Hasta 24 h cuenta horas y minutos; mas lejos, dias ("EN 343 H" no se lee).
+function cuentaRegresiva(minutos, inicio) {
   if (minutos <= 0) return 'AHORA'
   if (minutos < 60) return `EN ${minutos} MIN`
+  if (minutos >= 24 * 60) {
+    const dias = diasHasta(inicio)
+    return dias <= 1 ? 'MAÑANA' : `EN ${dias} DÍAS`
+  }
   const horas = Math.floor(minutos / 60)
   const resto = minutos % 60
   return `EN ${horas} H${resto ? ` ${resto} MIN` : ''}`
@@ -88,7 +99,7 @@ function ProximaClase({ clase, cargando, error }) {
     <section className="inicio-proxima">
       <div className="inicio-proxima-hora">{hora(clase.inicio)}</div>
       <div className="inicio-proxima-info">
-        <span className="inicio-kicker">PRÓXIMA CLASE · {cuentaRegresiva(clase.minutos_restantes)}</span>
+        <span className="inicio-kicker">PRÓXIMA CLASE · {cuentaRegresiva(clase.minutos_restantes, clase.inicio)}</span>
         <h2>{clase.materia || 'Clase particular'} con {profesor}</h2>
         <p>
           {fechaClase(clase.inicio)} · {hora(clase.inicio)} a {hora(finClase(clase))}
@@ -309,7 +320,7 @@ export default function InicioEstudiante() {
       <section className="inicio-seccion inicio-ranking-seccion">
         <div className="inicio-seccion-cabecera inicio-ranking-cabecera">
           <h2>Los 3 mejor rankeados del momento</h2>
-          <span>últimas 4 semanas · {datosEstudiante.etapa || 'todas las etapas'}</span>
+          <span>según todas sus reseñas · {datosEstudiante.etapa || 'todas las etapas'}</span>
         </div>
 
         {ranking.length ? (

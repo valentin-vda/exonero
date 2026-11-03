@@ -9,8 +9,7 @@
 
 const MENSAJES = {
   // --- Conexion ---
-  sin_conexion:
-    'No se pudo conectar con el servidor. Fijate que el backend este levantado en el puerto 8000.',
+  sin_conexion: 'No se pudo conectar con el servidor. Revisa tu conexion e intenta de nuevo en un momento.',
 
   // --- Login y registro ---
   credenciales_invalidas: 'El correo o la contraseña no son correctos.',
@@ -58,9 +57,16 @@ const MENSAJES = {
   sin_precio: 'Este profe no da clases en esa modalidad. Elegí otra.',
   duracion_invalida: 'Este profe no da clases de esa duración. Elegí una de las que ofrece.',
   modalidad_invalida: 'La clase tiene que ser presencial u online.',
-  horario_ocupado: 'Ese horario ya no está libre. Volvé al perfil del profe y elegí otro.',
-  estado_invalido: 'La clase cambió de estado mientras tanto. Recargá la página.',
-  clase_no_existe: 'Esa clase ya no existe. Recargá la página.',
+  horario_ocupado: 'Ese horario ya no esta libre. Volve al perfil del profe y elegi otro.',
+  // No lo manda el backend: es horario_ocupado dicho para el profe que
+  // aprueba una solicitud (Solicitudes.jsx y DetalleClase.jsx). El de arriba
+  // es para el alumno que reserva.
+  horario_ocupado_al_aprobar:
+    'No se puede aprobar: ese horario se cruza con otra clase que ya aprobaste o con un bloqueo de tu ' +
+    'agenda. Rechaza esta solicitud, o libera ese rato (mueve o cancela la otra clase, o borra el bloqueo) ' +
+    'y volve a aprobarla.',
+  estado_invalido: 'La clase cambio de estado mientras tanto. Recarga la pagina.',
+  clase_no_existe: 'Esa clase ya no existe. Recarga la pagina.',
   profesor_no_existe: 'Ese profe no existe o pauso su ficha.',
   duracion_no_modificable:
     'Al reprogramar no se puede cambiar la duración: el importe ya quedó fijo. Cancelá y reservá de nuevo.',

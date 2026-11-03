@@ -29,6 +29,11 @@ export function borrarToken() {
   sessionStorage.removeItem(CLAVE_TOKEN)
 }
 
+// El evento que se dispara cuando el backend rechaza el token con un 401 (se
+// vencio, o la cuenta ya no existe). Lo escucha ContextoAuth para cerrar la
+// sesion, y RutaProtegida manda al login sola.
+export const EVENTO_SESION_VENCIDA = 'exonero:sesion-vencida'
+
 /**
  * Error de la API, con el codigo corto que devuelve el backend.
  *
@@ -62,10 +67,8 @@ export async function pedir(ruta, opciones = {}) {
   if (cuerpo !== null) cabeceras['Content-Type'] = 'application/json'
 
   // El token va en Authorization, como espera app/dependencias.py.
-  if (!sinToken) {
-    const token = leerToken()
-    if (token) cabeceras['Authorization'] = `Bearer ${token}`
-  }
+  const token = sinToken ? null : leerToken()
+  if (token) cabeceras['Authorization'] = `Bearer ${token}`
 
   let respuesta
   try {
@@ -99,6 +102,16 @@ export async function pedir(ruta, opciones = {}) {
     let codigo = 'datos_invalidos'
     if (typeof detalle === 'string') codigo = detalle
     else if (respuesta.status >= 500) codigo = 'error_servidor'
+
+    // Un 401 en un pedido que va con sesion es que el token ya no sirve (se
+    // vencio, o lo borraron): se cierra la sesion aca, para todas las
+    // pantallas a la vez. Solo si el token no cambio mientras tanto: si se
+    // entro de nuevo, el nuevo no se toca. Los pedidos sinToken (el login, el
+    // registro) no cierran nada.
+    if (respuesta.status === 401 && !sinToken && token === leerToken()) {
+      borrarToken()
+      window.dispatchEvent(new Event(EVENTO_SESION_VENCIDA))
+    }
     throw new ErrorAPI(respuesta.status, codigo)
   }
 
